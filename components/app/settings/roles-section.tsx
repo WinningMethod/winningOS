@@ -42,7 +42,7 @@ export function RolesSection() {
               <div className="sm:w-48 sm:shrink-0">
                 <p className="flex items-center gap-2 text-sm font-medium">
                   {group.group}
-                  {group.group === "Modules" && <Badge tone="muted">Later</Badge>}
+                  {group.group === "Plugins" && <Badge tone="muted">Later</Badge>}
                 </p>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{group.description}</p>
               </div>

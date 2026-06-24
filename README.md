@@ -6,9 +6,9 @@ It is not intended to be a generic SaaS product. Each deployment is meant to be 
 
 ## Current status
 
-WinningOS Core is in definition phase.
+WinningOS Core is in implementation-contract phase.
 
-Before application code or plugins are added, this repo will first define the durable core rules that every future implementation and plugin must follow.
+The repo now contains the initial Core docs and a simplified static frontend wireframe. The next priority is to lock the Supabase/auth/data/route contract before adding real backend behavior, migrations, plugins, or business workflows.
 
 ## Core principles
 
@@ -16,11 +16,13 @@ Before application code or plugins are added, this repo will first define the du
 - Supabase-backed: Supabase is the default foundation for auth, Postgres data, and future storage/realtime needs.
 - Build-time modularity: plugins are source-level modules included at build/deploy time, not runtime marketplace extensions.
 - Company-owned deployments: WinningOS is a framework for building custom operating systems, not a centralized SaaS.
-- Core first: plugin work waits until WinningOS Core is defined, reviewed, and stable.
+- Core first: plugin work waits until WinningOS Core is defined, reviewed, and stable. Agent/chat functionality belongs in plugin territory, not Core v0.1.
 
 ## Foundational documents
 
 - `CORE.md` defines what WinningOS Core is responsible for.
 - `AGENTS.md` defines repo-wide, agent-agnostic contribution rules.
+- `ARCHITECTURE.md`, `DATA_MODEL.md`, and `SECURITY.md` define the current Core contract.
+- `FRONTEND_BRIEF.md` and `V0_WIREFRAME_PROMPT.md` describe the static wireframe scope.
 
-Additional architecture, data model, security, and compatibility documents will be added only after the core charter is agreed on.
+Additional implementation and compatibility documents should be added in small, reviewable PRs.

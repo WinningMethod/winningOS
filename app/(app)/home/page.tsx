@@ -77,7 +77,7 @@ export default function HomePage() {
         <div>
           <p className="text-sm font-medium">Not wired yet</p>
           <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
-            Authentication, member invitations, and the agent provider are placeholders in this Core wireframe.
+            Authentication, member invitations, and plugin installation are not wired in this Core wireframe.
             Workspace configuration lives under{" "}
             <Link href="/settings" className="font-medium text-foreground hover:underline">
               Settings

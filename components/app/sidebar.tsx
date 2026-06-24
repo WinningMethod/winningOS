@@ -74,7 +74,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="border-t border-sidebar-border p-3">
         <p className="rounded-md bg-muted px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-          Wireframe build. Auth, data, and providers are not wired.
+          Wireframe build. Auth, data, and plugins are not wired.
         </p>
       </div>
     </div>

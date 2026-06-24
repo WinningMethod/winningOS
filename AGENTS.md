@@ -21,11 +21,11 @@ As the repo matures, additional source-of-truth documents may be added, such as:
 
 ## Current phase
 
-WinningOS Core is in definition phase.
+WinningOS Core is in implementation-contract phase.
 
-Do not jump ahead to plugin implementation, app scaffolding, or feature work unless explicitly asked.
+The repo has an initial static frontend wireframe. The immediate priority is to lock the Supabase/auth/data/route contract before adding real backend behavior, migrations, plugins, or business workflows.
 
-The immediate priority is to make the core foundation clear, durable, and reviewable.
+Do not jump ahead to plugin implementation or business-specific features unless explicitly asked.
 
 ## Product rules
 
@@ -34,7 +34,7 @@ The immediate priority is to make the core foundation clear, durable, and review
 - WinningOS is not a runtime plugin marketplace.
 - WinningOS must stay agent-agnostic.
 - Supabase is the intended backend foundation.
-- Plugins are build-time/source-level modules, but plugin work starts only after core is defined.
+- Plugins are build-time/source-level modules, but plugin work starts only after core is defined. Agent/chat functionality is plugin territory, not Core v0.1.
 
 ## Agent rules
 
@@ -114,15 +114,18 @@ For major changes:
 4. summarize the diff
 5. wait for feedback before expanding scope
 
-## Current first slice
+## Current implementation guardrails
 
-The first slice should contain only:
+The current repo may contain Core docs and the static frontend wireframe.
 
-- `README.md`
-- `CORE.md`
-- `AGENTS.md`
+Until the implementation contract is accepted:
 
-No app code.
-No plugin code.
-No Supabase migrations yet.
-No framework implementation yet.
+- no Supabase migrations yet
+- no real auth flow yet
+- no plugin code
+- no meeting-notes plugin
+- no agent/chat functionality in Core
+- no business-specific workflows
+- no workspace switcher or multi-workspace management
+
+When implementation begins, work in small PRs that map back to the accepted implementation contract.

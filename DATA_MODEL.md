@@ -53,9 +53,6 @@ core_role_permissions
 core_brand_settings
   Workspace branding and theme configuration
 
-core_agent_providers
-  Optional future table for configured agent/chat providers
-
 core_audit_events
   Optional future table for important security/activity events
 ```
@@ -217,7 +214,6 @@ members.*
 roles.*
 branding.*
 settings.*
-chat.*
 plugins.*
 ```
 
@@ -235,8 +231,6 @@ branding.view
 branding.manage
 settings.view
 settings.manage
-chat.use
-chat.configure
 plugins.view
 plugins.manage
 ```
@@ -282,27 +276,13 @@ Notes:
 - `theme_json` is a storage carrier, not the long-term component API. Components should consume named core theme tokens.
 - Branding is intended to be one row per workspace unless a future theme-history/versioning feature is explicitly designed. The first migration should enforce `UNIQUE(workspace_id)` so a workspace cannot accumulate conflicting active brand settings.
 
-## Future: `core_agent_providers`
+## Agent/plugin data boundary
 
-Optional future table for workspace-configured agent/chat providers.
+Agent/chat provider data does not belong in WinningOS Core v0.1.
 
-Conceptual fields:
+If an agent/chat experience is added later, it should arrive through the build-time plugin system after `COMPATIBILITY.md` defines plugin table naming, RLS expectations, navigation contribution rules, and secret handling.
 
-```text
-id uuid primary key
-workspace_id uuid references core_workspaces(id)
-provider_key text
-display_name text
-config_json jsonb
-is_enabled boolean
-created_at timestamptz
-updated_at timestamptz
-```
-
-Notes:
-
-- This should not be implemented until the provider abstraction is designed.
-- Secrets should not be stored casually in plain JSON.
+Do not add `core_agent_*` tables to the initial Core schema.
 
 ## Future: `core_audit_events`
 

@@ -76,7 +76,6 @@ members.*
 roles.*
 branding.*
 settings.*
-chat.*
 plugins.*
 ```
 
@@ -133,16 +132,11 @@ SUPABASE_SERVICE_ROLE_KEY
 
 Server-only variables must never be referenced in client components.
 
-## Agent/provider secrets
+## Plugin and integration secrets
 
-Future agent provider credentials must be treated as secrets.
+Core v0.1 should not store or manage agent/provider secrets.
 
-Rules:
-
-- provider API keys must not be exposed to browser code
-- provider calls should go through server-side routes/actions
-- workspace-level provider configuration should distinguish public config from secret material
-- secret storage strategy must be documented before implementation
+Future plugins that integrate with external providers must document their secret strategy before implementation. Plugin credentials must not be exposed to browser code, and plugin server calls must preserve the same client/server boundary as Core.
 
 ## Audit posture
 
@@ -155,7 +149,6 @@ Examples:
 - member removed or disabled
 - role changed
 - branding changed
-- agent provider configured
 - plugin installed or removed, later
 
 Audit logging does not need to be implemented in the first schema, but the architecture should leave room for it.

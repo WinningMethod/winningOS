@@ -1,20 +1,18 @@
 "use client"
 
 import { useState } from "react"
-import { Bot, Palette, ShieldCheck, SlidersHorizontal } from "lucide-react"
+import { Palette, ShieldCheck, SlidersHorizontal } from "lucide-react"
 import { PageContainer, PageHeader } from "@/components/app/page-header"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { WorkspaceSection } from "@/components/app/settings/workspace-section"
 import { RolesSection } from "@/components/app/settings/roles-section"
 import { BrandingSection } from "@/components/app/settings/branding-section"
-import { AgentSection } from "@/components/app/settings/agent-section"
 
 const tabs = [
   { key: "workspace", label: "Workspace", icon: SlidersHorizontal },
   { key: "roles", label: "Roles", icon: ShieldCheck },
   { key: "branding", label: "Branding", icon: Palette },
-  { key: "agent", label: "Agent", icon: Bot },
 ] as const
 
 type TabKey = (typeof tabs)[number]["key"]
@@ -62,7 +60,6 @@ export default function SettingsPage() {
         {active === "workspace" && <WorkspaceSection />}
         {active === "roles" && <RolesSection />}
         {active === "branding" && <BrandingSection />}
-        {active === "agent" && <AgentSection />}
       </div>
     </PageContainer>
   )

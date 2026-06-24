@@ -8,7 +8,7 @@ Before using this prompt, review `FRONTEND_BRIEF.md`, `CORE.md`, `ARCHITECTURE.m
 
 Build a static frontend wireframe for WinningOS Core, a workspace-first framework for custom company operating systems.
 
-This is a frontend wireframe only. Use mock data. Do not implement Supabase auth, database calls, migrations, server actions, API routes, or plugin machinery.
+This is a frontend wireframe only. Use mock data. Do not implement Supabase auth, database calls, migrations, server actions, API routes, plugin machinery, agent/chat UI, or provider configuration.
 
 Product vocabulary:
 - Use `workspace` as the root operating object.
@@ -16,8 +16,9 @@ Product vocabulary:
 - Use `member` for a profile inside a workspace.
 - Use `role` for a named permission bundle.
 - Use `permission` for explicit action strings.
-- Use `provider` for an agent/chat backend adapter.
+- Use `plugin` for future build-time extensions outside Core v0.1.
 - Do not use team/company/org/tenant as the canonical root noun.
+- Do not use provider/agent/chat as Core product concepts.
 
 Create a polished app wireframe with these screens:
 
@@ -26,9 +27,10 @@ Create a polished app wireframe with these screens:
 - short tagline
 - sign-in placeholder card/button
 - subtle note that auth is not wired in this wireframe
+- no real OAuth or SSO behavior
 
 2. Authenticated app shell
-- sidebar or primary navigation
+- primary navigation limited to Home, Members, and Settings
 - topbar/header
 - static workspace display only; no workspace switcher
 - profile/account menu placeholder
@@ -36,22 +38,23 @@ Create a polished app wireframe with these screens:
 - responsive layout concept
 
 Navigation:
-- Dashboard
+- Home
 - Members
-- Roles & Permissions
-- Branding
-- Agent
 - Settings
-- Optional disabled/future item: Modules
 
-3. Dashboard
+Settings sections:
+- Workspace
+- Roles
+- Branding
+
+3. Home
 - workspace overview
 - setup checklist
-- recent admin activity placeholder
 - members summary
 - branding status
-- agent provider status
-- future modules placeholder
+- future plugin readiness placeholder, if present, restrained and non-primary
+- no agent/provider status
+- no chat preview
 
 4. Members
 - member list/table
@@ -61,42 +64,22 @@ Navigation:
 - invite member button placeholder
 - search/filter concept
 
-5. Roles & Permissions
-- system roles: Owner, Admin, Member, Viewer
-- permission groups: Workspace, Members, Roles, Branding, Settings, Agent, Modules
-- clear read-only or coming-later framing for deep customization
-- make permissions explicit and boring, not magical
-
-6. Branding
-- brand name field placeholder
-- logo placeholder/upload mock
-- color token controls mock
-- radius/style token controls mock
-- light/dark preview area
-- save button placeholder
-- present branding as token-based
-
-7. Agent
-- provider-neutral agent/chat settings and preview page
-- current provider status card
-- provider configuration placeholder
-- chat preview panel
-- example provider names can include Hermes, OpenAI, Anthropic, Local, Custom
-- do not hardcode Hermes as the only provider
-- do not implement real API calls
-
-8. Settings
+5. Settings
 - workspace name/slug placeholders
 - workspace metadata card
-- restrained danger-zone placeholder
-- security/settings sections
+- roles section with system roles: Owner, Admin, Member, Viewer
+- permission groups: Workspace, Members, Roles, Branding, Settings, Plugins
+- branding section with token-based brand name/logo/color/radius placeholders
+- no Agent section
+- no Chat section
+- no provider selector
+- no single sign-on settings
 - no destructive behavior implemented
 
-9. Empty/restricted states
+6. Empty/restricted states
 - no members invited yet
-- provider not configured
 - insufficient permission
-- future modules not available yet
+- future plugins not available yet
 
 Design direction:
 - serious company operating environment
@@ -113,12 +96,14 @@ Avoid:
 - fake business-specific analytics
 - meeting notes, CRM, billing, docs, analytics, or other business modules
 - runtime plugin marketplace assumptions
+- AI chat product UI in Core
+- agent/provider configuration in Core
 
 Use mock data such as:
 - Workspace: Acme Operations
 - Roles: Owner, Admin, Member, Viewer
 - Statuses: active, invited, disabled, removed
-- Permissions: workspace.view, members.invite, branding.manage, agent.configure
+- Permissions: workspace.view, members.invite, branding.manage, plugins.view
 
 Accessibility:
 - semantic headings
