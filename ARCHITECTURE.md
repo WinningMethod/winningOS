@@ -33,16 +33,16 @@ User interface layer
   App shell, navigation, layout, settings surfaces, theme usage
 
 Application layer
-  Workspace actions, membership flows, permission checks, agent/chat orchestration
+  Workspace actions, membership flows, permission checks, settings actions
 
 Domain layer
-  Profiles, workspaces, memberships, roles, permissions, branding, provider abstractions
+  Profiles, workspaces, memberships, roles, permissions, branding, plugin readiness
 
 Data layer
   Supabase client/server access, SQL migrations, RLS policies, typed data access helpers
 
 Integration layer
-  Agent providers, future plugin adapters, external service boundaries
+  Future plugin adapters and external service boundaries
 ```
 
 The layers are conceptual. They do not require premature abstraction, but they should guide file placement and responsibility.
@@ -59,10 +59,9 @@ WinningOS Core owns:
 6. Auth/session boundary
 7. App shell and core navigation
 8. Branding and theme tokens
-9. Agent/chat provider abstraction
-10. Future build-time plugin boundary
-11. Compatibility rules and validation conventions
-12. Agent-agnostic contribution rules
+9. Future build-time plugin boundary
+10. Compatibility rules and validation conventions
+11. Agent-agnostic contribution rules
 
 ## Core non-responsibilities
 
@@ -78,7 +77,7 @@ Examples that do not belong in core:
 - documents
 - automations
 - industry workflows
-- provider-specific integrations beyond reference adapters
+- agent/chat experiences, provider configuration, or model-provider integrations
 
 Core may define extension boundaries for these, but it should not implement them directly.
 
@@ -164,56 +163,25 @@ members.*
 roles.*
 branding.*
 settings.*
-chat.*
 plugins.*
 ```
 
 UI visibility is not security. Server-side checks and Supabase RLS must enforce access to protected data and actions.
 
-## Agent/chat boundary
+## Agent/plugin boundary
 
-Core may provide chat or agent-facing functionality, but it must be provider-neutral.
+Agent and chat functionality are plugin territory, not Core v0.1.
 
-Correct model:
+Core may eventually allow a build-time plugin to contribute agent/chat routes, settings, permissions, and provider integrations. Until `COMPATIBILITY.md` defines that plugin boundary, Core should not include:
 
-```text
-Core defines an AgentProvider interface.
-Hermes, OpenAI, Anthropic, local agents, or custom company agents can implement adapters.
-```
+- agent settings sections
+- provider selectors
+- chat previews
+- agent-specific permissions
+- provider API key handling
+- model-provider abstractions
 
-WinningOS should not hardcode itself to Hermes, Claude, Codex, or any one provider.
-
-For Core v0.1, provider-neutral means the app code talks to a minimal chat-oriented contract rather than to a specific vendor SDK or agent process. A future TypeScript shape may look like:
-
-```ts
-type AgentMessageRole = 'system' | 'user' | 'assistant' | 'tool';
-
-type AgentMessage = {
-  id?: string;
-  role: AgentMessageRole;
-  content: string;
-};
-
-type AgentRequest = {
-  workspaceId: string;
-  threadId?: string;
-  messages: AgentMessage[];
-  metadata?: Record<string, unknown>;
-};
-
-type AgentResponse = {
-  message: AgentMessage;
-  metadata?: Record<string, unknown>;
-};
-
-type AgentProvider = {
-  id: string;
-  displayName: string;
-  sendMessage(request: AgentRequest): Promise<AgentResponse>;
-};
-```
-
-This is intentionally chat-oriented. Coding-agent orchestration, background jobs, tool execution, and provider-specific capabilities should not be baked into the first interface until the core chat path is proven.
+This keeps Core focused on user management, workspace settings, branding, permissions, and plugin readiness.
 
 ## Future plugin boundary
 
@@ -238,7 +206,7 @@ core/
   memberships/
   permissions/
   branding/
-  agent/
+  plugins/
   supabase/
 config/
 supabase/

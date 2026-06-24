@@ -6,7 +6,7 @@ WinningOS Core is the stable foundation for custom company operating systems.
 
 It provides the shared primitives that every WinningOS deployment needs before any company-specific plugins or workflows are added.
 
-WinningOS Core must be boring, explicit, durable, and easy to reason about. Future plugins, agents, and businesses will inherit its assumptions, so the core should change slowly and intentionally.
+WinningOS Core must be boring, explicit, durable, and easy to reason about. Future plugins and businesses will inherit its assumptions, so the core should change slowly and intentionally.
 
 ## What WinningOS is
 
@@ -16,7 +16,7 @@ WinningOS is:
 - a source-owned, build-time modular web application foundation
 - a Supabase-backed system for identity, workspaces, permissions, branding, and shared data boundaries
 - a base that can be cloned, customized, extended, and deployed by each company
-- a platform where agents can help build, maintain, and extend the system without owning the architecture
+- a platform that agents can help build, maintain, and extend without owning the product architecture
 
 ## What WinningOS is not
 
@@ -26,7 +26,7 @@ WinningOS is not:
 - a runtime plugin marketplace
 - a centralized multi-tenant product where all customers share one hosted app
 - a place for business-specific workflows to live in core
-- tied to one AI coding agent, one chat agent, or one model provider
+- tied to one AI coding agent, chat agent, model provider, or business workflow
 
 ## Core responsibilities
 
@@ -39,10 +39,9 @@ WinningOS Core owns the primitives that every deployment needs:
 5. Roles and permissions
 6. Branding and theme tokens
 7. App shell and navigation rules
-8. Agent/chat provider abstraction
-9. Build-time plugin boundary, later
-10. Compatibility rules, later
-11. Repo-wide development and agent contribution rules
+8. Build-time plugin readiness boundary, later
+9. Compatibility rules, later
+10. Repo-wide development and agent contribution rules
 
 ## Core non-goals
 
@@ -58,7 +57,7 @@ These belong outside core:
 - documents
 - automations
 - industry-specific workflows
-- provider-specific integrations unless they are reference adapters
+- agent/chat experiences
 
 Core may define how these things plug in, but should not implement them directly.
 
@@ -137,7 +136,6 @@ Core permissions should protect core actions like:
 - managing roles
 - managing branding
 - managing settings
-- using or configuring chat/agent features
 - managing future plugin installation/configuration
 
 UI hiding is not security. Permissions must eventually be enforced at server/data boundaries too.
@@ -154,16 +152,11 @@ Business-specific UI may vary, but it should consume core theme primitives inste
 
 ## Agent/chat philosophy
 
-WinningOS Core may include an agent/chat interface, but it must remain provider-neutral.
+Agent and chat functionality should not live in WinningOS Core v0.1.
 
-Hermes can be a reference or default adapter, but WinningOS must not be hardcoded to Hermes.
+Core should be ready to accept future build-time plugins, and an agent/chat experience can be one of those future plugins. Core should not ship agent-specific settings, provider selectors, chat previews, agent permissions, or provider secret handling until the plugin boundary and compatibility contract are defined.
 
-The correct abstraction is:
-
-```text
-WinningOS Core defines an agent provider interface.
-Specific agents/providers implement adapters.
-```
+Hermes or another provider may become a reference plugin later, but WinningOS Core must not hardcode any agent provider or model provider.
 
 ## Plugin timing
 
@@ -173,7 +166,7 @@ Before plugins are implemented, WinningOS Core must first define:
 
 1. what core owns
 2. what core refuses to own
-3. how identity, teams, permissions, Supabase, branding, and agent interfaces work
+3. how identity, workspace membership, permissions, Supabase, branding, and plugin readiness work
 4. how compatibility will be judged
 
 The meeting notes plugin is a future validation use case, not the starting point.
@@ -188,7 +181,6 @@ WinningOS Core v0.1 should eventually include:
 - basic role and permission model
 - app shell and navigation model
 - branding/theme token model
-- provider-neutral agent/chat interface
 - compatibility contract for future build-time plugins
 - agent-agnostic contribution rules
 

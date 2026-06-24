@@ -1,6 +1,6 @@
 // Static mock data for the WinningOS Core wireframe.
 // No backend, no Supabase, no network calls. Vocabulary is canonical:
-// workspace / profile / member / role / permission / provider.
+// workspace / profile / member / role / permission / plugin.
 
 export type MemberStatus = "active" | "invited" | "disabled" | "removed"
 export type RoleName = "Owner" | "Admin" | "Member" | "Viewer"
@@ -128,19 +128,11 @@ export const permissionGroups: PermissionGroup[] = [
     ],
   },
   {
-    group: "Agent",
-    description: "Provider configuration for agent/chat.",
+    group: "Plugins",
+    description: "Future build-time plugins. Not available in Core v0.1.",
     permissions: [
-      { key: "agent.view", label: "View agent", grants: memberUp },
-      { key: "agent.configure", label: "Configure provider", grants: adminUp },
-    ],
-  },
-  {
-    group: "Modules",
-    description: "Future build-time modules. Not available in Core v0.1.",
-    permissions: [
-      { key: "modules.view", label: "View modules", grants: memberUp },
-      { key: "modules.manage", label: "Manage modules", grants: adminUp },
+      { key: "plugins.view", label: "View plugins", grants: memberUp },
+      { key: "plugins.manage", label: "Manage plugins", grants: adminUp },
     ],
   },
 ]
@@ -157,23 +149,9 @@ export const setupChecklist = [
   { id: "c_2", label: "Set workspace name and slug", done: true },
   { id: "c_3", label: "Configure branding tokens", done: true },
   { id: "c_4", label: "Invite members", done: false },
-  { id: "c_5", label: "Configure an agent provider", done: false },
+  { id: "c_5", label: "Review plugin readiness", done: false },
 ]
 
-export type Provider = {
-  id: string
-  name: string
-  kind: string
-  status: "connected" | "not_configured" | "available"
-}
-
-export const providers: Provider[] = [
-  { id: "hermes", name: "Hermes", kind: "Reference adapter", status: "not_configured" },
-  { id: "openai", name: "OpenAI", kind: "Hosted", status: "available" },
-  { id: "anthropic", name: "Anthropic", kind: "Hosted", status: "available" },
-  { id: "local", name: "Local", kind: "Self-hosted", status: "available" },
-  { id: "custom", name: "Custom", kind: "Company adapter", status: "available" },
-]
 
 export const brandTokens = {
   name: "Acme Operations",

@@ -10,31 +10,33 @@ Use this checklist when reviewing V0-generated frontend wireframe work.
 - [ ] No migrations were added.
 - [ ] No API routes/server actions were added for real backend behavior.
 - [ ] No plugin system or plugin loader was added.
+- [ ] No agent/chat/provider UI was added to Core.
 - [ ] No business-specific workflow modules were added.
+- [ ] No workspace switcher, workspace creation UI, or multi-workspace management exists.
 
 ## Vocabulary
 
 - [ ] `workspace` is the root operating noun.
-- [ ] `profile`, `member`, `role`, `permission`, and `provider` are used consistently.
+- [ ] `profile`, `member`, `role`, `permission`, and `plugin` are used consistently.
+- [ ] `provider`, `agent`, and `chat` are not presented as Core product concepts.
 - [ ] `team`, `company`, `organization`, and `tenant` are not used as competing root nouns.
 
 ## Required screens
 
 - [ ] Unauthenticated entry screen exists.
 - [ ] Authenticated app shell exists.
-- [ ] Dashboard exists.
+- [ ] Home page exists.
 - [ ] Members page exists.
-- [ ] Roles & Permissions page exists.
-- [ ] Branding page exists.
-- [ ] Agent page exists.
 - [ ] Settings page exists.
+- [ ] Settings includes Workspace, Roles, and Branding sections only.
 - [ ] Empty/restricted states exist.
 
 ## App shell
 
-- [ ] Sidebar or primary navigation is clear.
+- [ ] Primary navigation is limited to Home, Members, and Settings.
 - [ ] Topbar/header exists.
-- [ ] Workspace switcher/display exists.
+- [ ] Static workspace display exists.
+- [ ] No workspace switcher exists.
 - [ ] Profile/account menu placeholder exists.
 - [ ] Active navigation state is visible.
 - [ ] Responsive behavior is considered.
@@ -43,6 +45,7 @@ Use this checklist when reviewing V0-generated frontend wireframe work.
 
 - [ ] System roles are shown: Owner, Admin, Member, Viewer.
 - [ ] Permission groups are explicit.
+- [ ] Permission groups do not include Agent/Chat/Provider namespaces.
 - [ ] Permissions feel understandable and boring.
 - [ ] UI does not imply that hiding buttons is the only security layer.
 - [ ] Deep role customization is framed as later, not fully implemented now.
@@ -53,12 +56,12 @@ Use this checklist when reviewing V0-generated frontend wireframe work.
 - [ ] UI includes brand name, logo, color, radius/style, and preview concepts.
 - [ ] UI does not expose `theme_json` as the user-facing model.
 
-## Agent/provider
+## Plugins
 
-- [ ] Agent UI is provider-neutral.
-- [ ] Hermes is not hardcoded as the only provider.
-- [ ] Chat preview is static/mock only.
-- [ ] Provider configuration is placeholder only.
+- [ ] Plugin readiness may be referenced as future-facing only.
+- [ ] No plugin installation UI is implemented.
+- [ ] No plugin route, manifest, loader, or runtime marketplace concept is introduced.
+- [ ] Agent/chat is treated as future plugin territory, not Core.
 
 ## Visual quality
 
@@ -66,6 +69,7 @@ Use this checklist when reviewing V0-generated frontend wireframe work.
 - [ ] Calm, clean, sturdy, and premium without being flashy.
 - [ ] Not a generic marketing SaaS dashboard.
 - [ ] No fake business analytics that imply non-core workflows.
+- [ ] No AI chat product UI in Core.
 - [ ] Good spacing and hierarchy.
 - [ ] Dark-mode capable or visually compatible with future dark mode.
 

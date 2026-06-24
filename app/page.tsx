@@ -28,7 +28,7 @@ export default function AuthEntryPage() {
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground text-pretty">
               WinningOS Core is a workspace-first foundation for custom company operating systems. Calm,
-              source-owned, and agent-agnostic.
+              source-owned, and plugin-ready.
             </p>
           </div>
 
@@ -41,9 +41,6 @@ export default function AuthEntryPage() {
             <div className="mt-5 flex flex-col gap-2.5">
               <Button size="lg" className="w-full" disabled>
                 Continue with email
-              </Button>
-              <Button variant="outline" size="lg" className="w-full" disabled>
-                Continue with single sign-on
               </Button>
             </div>
 
@@ -73,7 +70,7 @@ export default function AuthEntryPage() {
       </main>
 
       <footer className="px-5 py-6 text-center text-xs text-muted-foreground lg:px-8">
-        WinningOS Core — static wireframe. No backend, auth, or provider integrations.
+        WinningOS Core — static wireframe. No backend, auth, or plugin integrations.
       </footer>
     </div>
   )
