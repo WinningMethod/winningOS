@@ -6,9 +6,9 @@ It is not intended to be a generic SaaS product. Each deployment is meant to be 
 
 ## Current status
 
-WinningOS Core is in definition phase.
+WinningOS Core is in implementation-contract phase.
 
-Before application code or plugins are added, this repo will first define the durable core rules that every future implementation and plugin must follow.
+The repo now contains the initial Core docs and a simplified static frontend wireframe. The next priority is to lock the Supabase/auth/data/route contract before adding real backend behavior, migrations, plugins, or business workflows.
 
 ## Core principles
 

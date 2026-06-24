@@ -79,24 +79,24 @@ Must include:
 - clear active nav state
 - responsive behavior concept
 
-Navigation should include:
+Navigation should include only:
 
-- Dashboard
+- Home
 - Members
-- Roles & Permissions
-- Branding
-- Agent
 - Settings
 
-Optional future-looking nav item:
+Settings may contain sections for:
 
-- Modules, disabled or marked as later
+- Workspace
+- Roles
+- Branding
+- Agent
 
-Do not add meeting notes, CRM, billing, docs, analytics, or other business-specific modules yet.
+Do not add primary nav items for modules, meeting notes, CRM, billing, docs, analytics, or other business-specific workflows yet.
 
-### 3. Core dashboard
+### 3. Core home
 
-Create a neutral Core dashboard page.
+Create a neutral Core home page.
 
 Purpose:
 
@@ -135,9 +135,9 @@ Important:
 - Do not invent backend behavior.
 - Keep the UI permission-aware conceptually, but static.
 
-### 5. Roles & Permissions page
+### 5. Roles section
 
-Create a roles and permissions management concept.
+Create a roles and permissions management concept inside Settings.
 
 Must include:
 
@@ -156,9 +156,9 @@ The wireframe should make permissions feel explicit and boring.
 
 Do not build a complex custom role editor yet.
 
-### 6. Branding page
+### 6. Branding section
 
-Create a workspace branding settings page.
+Create a workspace branding settings section inside Settings.
 
 Must include:
 
@@ -175,9 +175,9 @@ Important:
 - Do not spread one-off styling concepts.
 - Treat `theme_json` as a storage carrier, not a UI concept.
 
-### 7. Agent page
+### 7. Agent section
 
-Create a provider-neutral agent/chat settings and preview page.
+Create a provider-neutral agent/chat settings and preview section inside Settings.
 
 Must include:
 
@@ -194,7 +194,7 @@ Important:
 
 ### 8. Settings page
 
-Create general workspace settings.
+Create general workspace settings with focused sections.
 
 Must include:
 

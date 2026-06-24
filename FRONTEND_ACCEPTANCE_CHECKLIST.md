@@ -4,6 +4,7 @@ Use this checklist when reviewing V0-generated frontend wireframe work.
 
 ## Scope
 
+- [ ] No workspace switcher, workspace creation UI, or multi-workspace management exists.
 - [ ] Wireframe uses mock data only.
 - [ ] No Supabase auth implementation was added.
 - [ ] No database calls were added.
@@ -22,12 +23,10 @@ Use this checklist when reviewing V0-generated frontend wireframe work.
 
 - [ ] Unauthenticated entry screen exists.
 - [ ] Authenticated app shell exists.
-- [ ] Dashboard exists.
+- [ ] Home page exists.
 - [ ] Members page exists.
-- [ ] Roles & Permissions page exists.
-- [ ] Branding page exists.
-- [ ] Agent page exists.
 - [ ] Settings page exists.
+- [ ] Settings includes Workspace, Roles, Branding, and Agent sections.
 - [ ] Empty/restricted states exist.
 
 ## App shell

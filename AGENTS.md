@@ -21,11 +21,11 @@ As the repo matures, additional source-of-truth documents may be added, such as:
 
 ## Current phase
 
-WinningOS Core is in definition phase.
+WinningOS Core is in implementation-contract phase.
 
-Do not jump ahead to plugin implementation, app scaffolding, or feature work unless explicitly asked.
+The repo has an initial static frontend wireframe. The immediate priority is to lock the Supabase/auth/data/route contract before adding real backend behavior, migrations, plugins, or business workflows.
 
-The immediate priority is to make the core foundation clear, durable, and reviewable.
+Do not jump ahead to plugin implementation or business-specific features unless explicitly asked.
 
 ## Product rules
 
@@ -89,13 +89,17 @@ For documentation-only changes, verify with:
 git diff --check
 ```
 
-For future application code, validation commands will be defined once the stack is scaffolded.
+For current frontend/app changes, verify with:
 
-Expected future checks may include:
+```bash
+npm run build
+```
+
+Future checks may include:
 
 ```bash
 npm run lint
-npm run build
+npm run typecheck
 npm test
 npm run compatibility:check
 ```
@@ -114,15 +118,17 @@ For major changes:
 4. summarize the diff
 5. wait for feedback before expanding scope
 
-## Current first slice
+## Current implementation guardrails
 
-The first slice should contain only:
+The current repo may contain Core docs and the static frontend wireframe.
 
-- `README.md`
-- `CORE.md`
-- `AGENTS.md`
+Until the implementation contract is accepted:
 
-No app code.
-No plugin code.
-No Supabase migrations yet.
-No framework implementation yet.
+- no Supabase migrations yet
+- no real auth flow yet
+- no plugin code
+- no meeting-notes plugin
+- no business-specific workflows
+- no workspace switcher or multi-workspace management
+
+When implementation begins, work in small PRs that map back to `IMPLEMENTATION_PLAN.md`, `SUPABASE_CONTRACT.md`, and `ROUTE_MAP.md`.

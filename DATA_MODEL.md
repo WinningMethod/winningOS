@@ -123,9 +123,10 @@ deleted_at timestamptz nullable
 
 Notes:
 
-- A deployment may begin with one default workspace.
-- Multiple workspaces should remain possible.
+- Core v0.1 begins with exactly one seeded workspace for the deployment.
+- Multiple active workspaces, workspace switching, and workspace creation UI are out of scope.
 - Workspace data is the primary scoping boundary for memberships, roles, branding, and future plugin data.
+- Future cross-workspace behavior should be handled by explicit export/integration plugins or a separate receiving Core style.
 - `deleted_at` is a candidate soft-delete field for records that should remain auditable instead of being hard-deleted. Whether it belongs on every table should be decided with the first migration, not assumed everywhere prematurely.
 
 ## `core_memberships`
@@ -348,9 +349,10 @@ Do not implement these before the initial schema is finalized.
 
 ## Open questions
 
-1. Should each deployment enforce exactly one default workspace initially?
+1. Should the database enforce the one-workspace rule with a singleton constraint, or should seed/bootstrap code enforce it for Core v0.1?
 2. How much role customization is needed in Core v0.1?
 3. Which tables should use `deleted_at` soft-delete fields in the first migration?
+4. Should `core_agent_settings` exist in the first migration, or wait until provider secret strategy is clearer?
 
 ## Current recommendation
 

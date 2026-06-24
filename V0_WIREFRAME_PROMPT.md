@@ -28,7 +28,7 @@ Create a polished app wireframe with these screens:
 - subtle note that auth is not wired in this wireframe
 
 2. Authenticated app shell
-- sidebar or primary navigation
+- primary navigation limited to Home, Members, and Settings
 - topbar/header
 - static workspace display only; no workspace switcher
 - profile/account menu placeholder
@@ -36,22 +36,23 @@ Create a polished app wireframe with these screens:
 - responsive layout concept
 
 Navigation:
-- Dashboard
+- Home
 - Members
-- Roles & Permissions
+- Settings
+
+Settings sections:
+- Workspace
+- Roles
 - Branding
 - Agent
-- Settings
-- Optional disabled/future item: Modules
 
-3. Dashboard
+3. Home
 - workspace overview
 - setup checklist
-- recent admin activity placeholder
 - members summary
 - branding status
 - agent provider status
-- future modules placeholder
+- future modules placeholder, if present, must be restrained and non-primary
 
 4. Members
 - member list/table
@@ -61,38 +62,21 @@ Navigation:
 - invite member button placeholder
 - search/filter concept
 
-5. Roles & Permissions
-- system roles: Owner, Admin, Member, Viewer
-- permission groups: Workspace, Members, Roles, Branding, Settings, Agent, Modules
-- clear read-only or coming-later framing for deep customization
-- make permissions explicit and boring, not magical
-
-6. Branding
-- brand name field placeholder
-- logo placeholder/upload mock
-- color token controls mock
-- radius/style token controls mock
-- light/dark preview area
-- save button placeholder
-- present branding as token-based
-
-7. Agent
-- provider-neutral agent/chat settings and preview page
-- current provider status card
-- provider configuration placeholder
-- chat preview panel
-- example provider names can include Hermes, OpenAI, Anthropic, Local, Custom
-- do not hardcode Hermes as the only provider
-- do not implement real API calls
-
-8. Settings
+5. Settings
 - workspace name/slug placeholders
 - workspace metadata card
-- restrained danger-zone placeholder
-- security/settings sections
+- roles section with system roles: Owner, Admin, Member, Viewer
+- branding section with token-based brand name/logo/color/radius placeholders
+- agent section with provider-neutral status/configuration/chat preview placeholders
+- no single sign-on settings until auth provider strategy is explicitly scoped
 - no destructive behavior implemented
 
-9. Empty/restricted states
+Settings role notes:
+- permission groups may be shown as Workspace, Members, Roles, Branding, Settings, Agent, Modules
+- keep deep customization read-only or coming-later
+- make permissions explicit and boring, not magical
+
+6. Empty/restricted states
 - no members invited yet
 - provider not configured
 - insufficient permission
