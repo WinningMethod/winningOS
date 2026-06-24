@@ -30,7 +30,7 @@ Create a polished app wireframe with these screens:
 2. Authenticated app shell
 - sidebar or primary navigation
 - topbar/header
-- workspace switcher or workspace display
+- static workspace display only; no workspace switcher
 - profile/account menu placeholder
 - active nav state
 - responsive layout concept

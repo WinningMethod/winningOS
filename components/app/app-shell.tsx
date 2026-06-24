@@ -2,20 +2,17 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Check, ChevronsUpDown, LogOut, Menu, Plus, UserRound, X } from "lucide-react"
+import { LogOut, Menu, UserRound, X } from "lucide-react"
 import { SidebarContent } from "@/components/app/sidebar"
 import { ThemeToggle } from "@/components/app/theme-toggle"
-import { Dropdown, DropdownItem, DropdownLabel, DropdownSeparator } from "@/components/ui/dropdown"
+import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/dropdown"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { workspaces, currentWorkspace, currentProfile } from "@/lib/mock-data"
+import { currentWorkspace, currentProfile } from "@/lib/mock-data"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [activeWorkspace, setActiveWorkspace] = useState(currentWorkspace.id)
-
-  const workspace = workspaces.find((w) => w.id === activeWorkspace) ?? currentWorkspace
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -57,47 +54,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Menu className="h-4 w-4" />
           </Button>
 
-          {/* Workspace switcher */}
-          <Dropdown
-            menuLabel="Switch workspace"
-            trigger={({ open }) => (
-              <span
-                className={cn(
-                  "flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm transition-colors hover:bg-accent",
-                  open && "bg-accent",
-                )}
-              >
-                <span className="flex h-6 w-6 items-center justify-center rounded bg-primary text-[11px] font-semibold text-primary-foreground">
-                  {workspace.name.slice(0, 1)}
-                </span>
-                <span className="hidden font-medium sm:inline">{workspace.name}</span>
-                <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-              </span>
-            )}
-          >
-            <DropdownLabel>Workspaces</DropdownLabel>
-            {workspaces.map((w) => (
-              <DropdownItem
-                key={w.id}
-                active={w.id === activeWorkspace}
-                onClick={() => setActiveWorkspace(w.id)}
-              >
-                <span className="flex h-6 w-6 items-center justify-center rounded bg-secondary text-[11px] font-semibold text-secondary-foreground">
-                  {w.name.slice(0, 1)}
-                </span>
-                <span className="flex-1">
-                  <span className="block text-sm">{w.name}</span>
-                  <span className="block text-xs text-muted-foreground">{w.slug}</span>
-                </span>
-                {w.id === activeWorkspace && <Check className="h-4 w-4 text-primary" />}
-              </DropdownItem>
-            ))}
-            <DropdownSeparator />
-            <DropdownItem className="text-muted-foreground" disabled>
-              <Plus className="h-4 w-4" />
-              New workspace
-            </DropdownItem>
-          </Dropdown>
+          {/* Single workspace display. Core v0.1 intentionally has no workspace switching. */}
+          <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm">
+            <span className="flex h-6 w-6 items-center justify-center rounded bg-primary text-[11px] font-semibold text-primary-foreground">
+              {currentWorkspace.name.slice(0, 1)}
+            </span>
+            <span className="hidden font-medium sm:inline">{currentWorkspace.name}</span>
+          </div>
 
           <div className="ml-auto flex items-center gap-1">
             <ThemeToggle />

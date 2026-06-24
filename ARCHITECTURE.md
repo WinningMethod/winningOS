@@ -88,7 +88,7 @@ The root operating object is a workspace.
 
 A workspace represents the company-owned operating context inside a WinningOS deployment.
 
-A deployment may start with one default workspace, but the architecture should not prevent multiple workspaces later.
+For Core v0.1, a deployment has exactly one workspace. The architecture should not include workspace switching or multi-workspace management in the Core shell. Future cross-workspace data exchange should be modeled as explicit plugin/export behavior or a separate receiving Core style.
 
 Use workspace language in core APIs, database tables, permissions, and documentation unless a more specific domain concept is clearly needed.
 
@@ -124,7 +124,7 @@ The app shell includes:
 - root authenticated layout
 - sidebar or primary navigation
 - topbar/header area
-- workspace switcher or workspace display area
+- static workspace display area
 - account/settings access
 - theme application
 - permission-aware navigation display

@@ -73,7 +73,7 @@ Must include:
 
 - sidebar or primary navigation
 - topbar/header area
-- workspace switcher or workspace display
+- static workspace display only; no workspace switcher
 - profile/account menu placeholder
 - settings access
 - clear active nav state

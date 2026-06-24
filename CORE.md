@@ -86,13 +86,14 @@ If an instruction applies only to one tool, it must be optional and must not be 
 
 A WinningOS deployment represents a company-owned operating system.
 
-The framework should support multiple internal workspaces if useful, but it should not force SaaS-style tenant assumptions into every core decision.
+For Core v0.1, one deployed WinningOS Core instance equals one workspace. Core should not include workspace switching, workspace creation, or multi-workspace management. Keeping this boundary tight avoids premature permission complexity.
 
 Default assumption:
 
 - one deployed WinningOS instance is owned by one company or operating group
-- that instance may contain multiple workspaces, departments, or operating contexts
-- data should be scoped and permissioned clearly even within a single-company deployment
+- that instance contains one workspace
+- data is scoped and permissioned inside that workspace
+- future cross-workspace needs should be handled by explicit export/integration plugins or a separate receiving Core style designed to aggregate data from multiple workspaces
 
 ## Supabase assumption
 
@@ -131,7 +132,7 @@ Permissions must be explicit and boring.
 
 Core permissions should protect core actions like:
 
-- managing workspaces
+- managing the active workspace
 - managing members
 - managing roles
 - managing branding

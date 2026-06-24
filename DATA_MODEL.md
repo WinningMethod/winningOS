@@ -24,7 +24,7 @@ The root operating object is a workspace.
 
 A workspace represents the company-owned operating context inside a WinningOS deployment.
 
-A deployment may have one default workspace at first, but the model should support multiple workspaces later without rewriting core assumptions.
+For Core v0.1, one deployment has one workspace. The model should stay intentionally single-workspace until a future plugin or receiving Core style is explicitly designed for cross-workspace data exchange.
 
 ## Conceptual entity model
 
@@ -155,7 +155,7 @@ removed
 
 Notes:
 
-- A profile can belong to multiple workspaces.
+- A profile belongs to the single instance workspace in Core v0.1.
 - A workspace can have many profiles.
 - Role assignment should happen through membership.
 

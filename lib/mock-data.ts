@@ -30,12 +30,13 @@ export type ActivityEntry = {
   at: string
 }
 
-export const workspaces: Workspace[] = [
-  { id: "ws_acme", name: "Acme Operations", slug: "acme-operations", plan: "Core", createdOn: "Jan 2026" },
-  { id: "ws_north", name: "Northwind Field Ops", slug: "northwind-field", plan: "Core", createdOn: "Feb 2026" },
-]
-
-export const currentWorkspace = workspaces[0]
+export const currentWorkspace: Workspace = {
+  id: "ws_acme",
+  name: "Acme Operations",
+  slug: "acme-operations",
+  plan: "Core",
+  createdOn: "Jan 2026",
+}
 
 export const currentProfile = {
   name: "Dana Whitfield",
