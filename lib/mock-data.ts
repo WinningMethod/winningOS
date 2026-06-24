@@ -22,14 +22,6 @@ export type Member = {
   joinedOn: string
 }
 
-export type ActivityEntry = {
-  id: string
-  actor: string
-  action: string
-  target: string
-  at: string
-}
-
 export const currentWorkspace: Workspace = {
   id: "ws_acme",
   name: "Acme Operations",
@@ -137,13 +129,6 @@ export const permissionGroups: PermissionGroup[] = [
   },
 ]
 
-export const activity: ActivityEntry[] = [
-  { id: "a_1", actor: "Dana Whitfield", action: "updated", target: "branding tokens", at: "2h ago" },
-  { id: "a_2", actor: "Marcus Lindqvist", action: "invited", target: "wen@acme.example", at: "5h ago" },
-  { id: "a_3", actor: "Dana Whitfield", action: "assigned role", target: "Admin to Marcus", at: "Yesterday" },
-  { id: "a_4", actor: "System", action: "created", target: "workspace Acme Operations", at: "Jan 12, 2026" },
-]
-
 export const setupChecklist = [
   { id: "c_1", label: "Create workspace", done: true },
   { id: "c_2", label: "Set workspace name and slug", done: true },
@@ -162,5 +147,4 @@ export const brandTokens = {
     { token: "--accent", label: "Accent", value: "#eef1f8" },
   ],
   radius: "0.5rem",
-  density: "Comfortable",
 }
