@@ -14,7 +14,7 @@ WinningOS is:
 
 - an agent-agnostic framework for building custom company operating systems
 - a source-owned, build-time modular web application foundation
-- a Supabase-backed system for identity, teams, permissions, branding, and shared data boundaries
+- a Supabase-backed system for identity, workspaces, permissions, branding, and shared data boundaries
 - a base that can be cloned, customized, extended, and deployed by each company
 - a platform where agents can help build, maintain, and extend the system without owning the architecture
 
@@ -34,7 +34,7 @@ WinningOS Core owns the primitives that every deployment needs:
 
 1. Identity and session boundaries
 2. Supabase integration conventions
-3. Company/team/workspace data model
+3. Workspace data model
 4. Membership model
 5. Roles and permissions
 6. Branding and theme tokens
@@ -86,12 +86,12 @@ If an instruction applies only to one tool, it must be optional and must not be 
 
 A WinningOS deployment represents a company-owned operating system.
 
-The framework should support multiple internal teams or workspaces if useful, but it should not force SaaS-style tenant assumptions into every core decision.
+The framework should support multiple internal workspaces if useful, but it should not force SaaS-style tenant assumptions into every core decision.
 
 Default assumption:
 
 - one deployed WinningOS instance is owned by one company or operating group
-- that instance may contain multiple teams, departments, or workspaces
+- that instance may contain multiple workspaces, departments, or operating contexts
 - data should be scoped and permissioned clearly even within a single-company deployment
 
 ## Supabase assumption
@@ -131,7 +131,7 @@ Permissions must be explicit and boring.
 
 Core permissions should protect core actions like:
 
-- managing teams
+- managing workspaces
 - managing members
 - managing roles
 - managing branding
@@ -183,7 +183,7 @@ WinningOS Core v0.1 should eventually include:
 
 - Next.js app foundation
 - Supabase auth/data foundation
-- core profile/team/membership model
+- core profile/workspace/membership model
 - basic role and permission model
 - app shell and navigation model
 - branding/theme token model

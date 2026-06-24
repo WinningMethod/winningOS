@@ -118,6 +118,7 @@ slug text
 created_by_profile_id uuid references core_profiles(id)
 created_at timestamptz
 updated_at timestamptz
+deleted_at timestamptz nullable
 ```
 
 Notes:
@@ -125,6 +126,7 @@ Notes:
 - A deployment may begin with one default workspace.
 - Multiple workspaces should remain possible.
 - Workspace data is the primary scoping boundary for memberships, roles, branding, and future plugin data.
+- `deleted_at` is a candidate soft-delete field for records that should remain auditable instead of being hard-deleted. Whether it belongs on every table should be decided with the first migration, not assumed everywhere prematurely.
 
 ## `core_memberships`
 
@@ -186,6 +188,7 @@ viewer
 Notes:
 
 - `workspace_id` can be nullable for global system role templates if useful.
+- Because `workspace_id` is nullable, role-key uniqueness should be explicit in the first migration. A likely design is one partial unique index for global role templates where `workspace_id IS NULL`, and one unique index on `(workspace_id, key)` for workspace-specific roles where `workspace_id IS NOT NULL`.
 - Custom workspace-specific roles can be added later.
 - Do not overbuild role customization in the first implementation.
 
@@ -203,6 +206,8 @@ description text nullable
 namespace text
 created_at timestamptz
 ```
+
+`namespace` should mean the bare prefix before the dot, such as `workspace`, not the wildcard form `workspace.*`. Because namespace is derivable from `key`, the first implementation should either derive it in code or enforce a database check so `key` starts with `namespace || '.'`. Do not allow namespace and key to drift.
 
 Initial permission namespaces:
 
@@ -274,6 +279,8 @@ Notes:
 
 - Theme details can begin as JSON while the token model matures.
 - The application should expose typed theme helpers rather than spreading raw JSON everywhere.
+- `theme_json` is a storage carrier, not the long-term component API. Components should consume named core theme tokens.
+- Branding is intended to be one row per workspace unless a future theme-history/versioning feature is explicitly designed. The first migration should enforce `UNIQUE(workspace_id)` so a workspace cannot accumulate conflicting active brand settings.
 
 ## Future: `core_agent_providers`
 
@@ -330,7 +337,7 @@ Membership, branding, roles, permissions, and future plugin records are workspac
 
 Row Level Security should enforce workspace membership for workspace-scoped data.
 
-The core model should eventually provide helper SQL functions such as:
+The first migration that introduces RLS should co-document the helper functions and the policies that depend on them. The core model should eventually provide helper SQL functions such as:
 
 ```sql
 core_is_workspace_member(workspace_id uuid)
@@ -341,10 +348,9 @@ Do not implement these before the initial schema is finalized.
 
 ## Open questions
 
-1. Should system roles be stored in database rows from day one, or seeded from code first?
-2. Should permissions be database rows from day one, or typed constants first?
-3. Should each deployment enforce exactly one default workspace initially?
-4. How much role customization is needed in Core v0.1?
+1. Should each deployment enforce exactly one default workspace initially?
+2. How much role customization is needed in Core v0.1?
+3. Which tables should use `deleted_at` soft-delete fields in the first migration?
 
 ## Current recommendation
 
@@ -352,6 +358,8 @@ For Core v0.1:
 
 - Use `workspace` as the root operating object.
 - Start with system roles: owner, admin, member, viewer.
+- Define permissions as typed string constants in code for the first implementation slice.
+- Seed the four system roles and their permission mappings from code or a simple seed path.
+- Defer full `core_permissions` / `core_role_permissions` database tables and role editor UI until the permission check surface is proven.
 - Keep permissions explicit and string-keyed.
-- Prefer simple seeded roles/permissions before building a full role editor.
 - Use Supabase RLS for workspace-scoped data once migrations begin.

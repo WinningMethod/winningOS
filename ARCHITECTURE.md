@@ -148,6 +148,8 @@ Core should eventually define tokens for:
 
 Future modules should consume core theme tokens.
 
+In early implementations, `theme_json` may act as a pragmatic storage carrier for theme values. That JSON should not become the long-term programming interface. Core should evolve toward strongly typed theme token helpers so components consume named tokens rather than raw arbitrary JSON.
+
 ## Permission boundary
 
 Core owns the permission system.
@@ -181,6 +183,38 @@ Hermes, OpenAI, Anthropic, local agents, or custom company agents can implement 
 
 WinningOS should not hardcode itself to Hermes, Claude, Codex, or any one provider.
 
+For Core v0.1, provider-neutral means the app code talks to a minimal chat-oriented contract rather than to a specific vendor SDK or agent process. A future TypeScript shape may look like:
+
+```ts
+type AgentMessageRole = 'system' | 'user' | 'assistant' | 'tool';
+
+type AgentMessage = {
+  id?: string;
+  role: AgentMessageRole;
+  content: string;
+};
+
+type AgentRequest = {
+  workspaceId: string;
+  threadId?: string;
+  messages: AgentMessage[];
+  metadata?: Record<string, unknown>;
+};
+
+type AgentResponse = {
+  message: AgentMessage;
+  metadata?: Record<string, unknown>;
+};
+
+type AgentProvider = {
+  id: string;
+  displayName: string;
+  sendMessage(request: AgentRequest): Promise<AgentResponse>;
+};
+```
+
+This is intentionally chat-oriented. Coding-agent orchestration, background jobs, tool execution, and provider-specific capabilities should not be baked into the first interface until the core chat path is proven.
+
 ## Future plugin boundary
 
 WinningOS will use build-time plugins.
@@ -193,7 +227,7 @@ Plugin implementation should wait until core architecture, data model, security 
 
 ## File direction
 
-The future app scaffold should likely move toward this shape:
+An example expected Next.js app structure may eventually move toward this shape:
 
 ```text
 app/

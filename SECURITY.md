@@ -95,13 +95,13 @@ RLS should be enabled on all user/workspace-scoped tables once Supabase migratio
 
 Expected RLS direction:
 
-- profiles: users can read/update their own profile, with carefully limited visibility for other workspace members
+- profiles: users can read/update their own profile; limited visibility of other profiles must be derived through shared active workspace membership joins, because `core_profiles` is user-scoped and has no `workspace_id`
 - workspaces: active members can read their workspace records
 - memberships: active members can read relevant membership records; management requires elevated permission
 - roles/permissions: active members can read role definitions; management requires elevated permission
 - branding: active members can read; management requires `branding.manage`
 
-RLS policy details should be defined with the first schema migration, not guessed prematurely.
+RLS policy details should be defined with the first schema migration, not guessed prematurely. Profile visibility deserves special care because cross-profile reads cannot use a direct workspace-scoped helper without joining through memberships.
 
 ## Service role key
 
