@@ -1,4 +1,4 @@
-import { KeyRound, ShieldAlert } from "lucide-react"
+import { ShieldAlert } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,14 +41,6 @@ export function WorkspaceSection() {
           <CardDescription>Access controls. Authentication will be Supabase-backed in a later build.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-1">
-          <SettingRow
-            icon={<KeyRound className="h-4 w-4" />}
-            title="Require single sign-on"
-            description="Members must authenticate through your identity provider."
-          >
-            <Switch label="Require single sign-on" />
-          </SettingRow>
-          <Separator />
           <SettingRow
             icon={<ShieldAlert className="h-4 w-4" />}
             title="Restrict invitations to admins"
