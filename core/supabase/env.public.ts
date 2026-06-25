@@ -1,0 +1,14 @@
+function requirePublicEnv(name: string, value: string | undefined): string {
+  if (!value?.trim()) {
+    throw new Error(`Missing required environment variable: ${name}`)
+  }
+
+  return value
+}
+
+export function getPublicSupabaseEnv() {
+  return {
+    url: requirePublicEnv("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL),
+    anonKey: requirePublicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+  }
+}

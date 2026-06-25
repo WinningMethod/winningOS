@@ -87,7 +87,8 @@ Rules:
 The helper skeletons live in:
 
 ```text
-core/supabase/env.ts
+core/supabase/env.public.ts
+core/supabase/env.server.ts
 core/supabase/browser.ts
 core/supabase/server.ts
 core/supabase/service-role.ts
@@ -95,10 +96,11 @@ core/supabase/service-role.ts
 
 Expected boundaries:
 
-- `browser.ts` creates a browser-safe client with public env vars only.
+- `env.public.ts` validates browser-safe public Supabase variables only.
+- `env.server.ts` is guarded with `server-only` and validates server-only variables.
+- `browser.ts` creates a memoized browser-safe client with public env vars only.
 - `server.ts` creates a cookie-aware server client for Server Components, Server Actions, and Route Handlers.
 - `service-role.ts` creates a server-only admin client and must remain exceptional.
-- `env.ts` centralizes environment variable validation.
 
 Do not import `service-role.ts` from client components.
 
