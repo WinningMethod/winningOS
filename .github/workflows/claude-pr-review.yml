@@ -32,6 +32,11 @@ jobs:
           # OAuth token from a Claude subscription (run `claude setup-token`),
           # stored as a repo secret. No Anthropic API key / per-use billing.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Use the workflow's built-in token for GitHub API calls (posting the
+          # review comment). This avoids requiring the Claude GitHub App to be
+          # installed on the repo; the `permissions:` block below scopes it.
+          # Comments will appear from github-actions[bot].
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             Review the pull request #${{ github.event.pull_request.number }} in
             ${{ github.repository }}.
