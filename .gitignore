@@ -5,8 +5,7 @@ node_modules
 .DS_Store
 *.pem
 npm-debug.log*
-.env*.local
-.env
+.env*
 !.env.example
 .vercel
 *.tsbuildinfo
