@@ -1,16 +1,10 @@
 import "server-only"
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
-import { getPublicSupabaseEnv } from "./env"
+import { getPublicSupabaseEnv, requireEnv } from "./env"
 
 function getServiceRoleKey(): string {
-  const value = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!value) {
-    throw new Error("Missing required environment variable: SUPABASE_SERVICE_ROLE_KEY")
-  }
-
-  return value
+  return requireEnv("SUPABASE_SERVICE_ROLE_KEY", process.env.SUPABASE_SERVICE_ROLE_KEY)
 }
 
 export function createServiceRoleClient() {
