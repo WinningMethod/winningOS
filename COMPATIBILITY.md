@@ -42,6 +42,8 @@ The initial compatibility level is:
 core-v0
 ```
 
+`core-v0` is a compatibility level, not the same thing as the product version `v0.1`. The compatibility level is intentionally coarser so multiple early Core product versions can share the same plugin contract until the contract itself changes.
+
 `core-v0` means:
 
 - single-workspace WinningOS Core
@@ -232,6 +234,8 @@ settings.*
 plugins.*
 ```
 
+The plural `plugins.*` namespace is Core-owned and protects Core plugin-management/readiness actions. The singular `plugin.{plugin_id}.*` namespace is future plugin-owned and protects actions inside a specific plugin. They differ intentionally; reviewers should be careful not to glob or typo them as interchangeable names.
+
 Future plugin permissions should use this convention:
 
 ```text
@@ -278,6 +282,10 @@ plugin_meeting_notes_sources
 plugin_agent_threads
 plugin_agent_messages
 ```
+
+Parsing rule:
+
+The `plugin_{plugin_id}_{table}` convention is a naming convention, not a reliable parser format. Because plugin ids may contain underscores, code must not derive `plugin_id` by splitting the table name on `_`. Plugin identity should come from the future plugin manifest/registry, and the table list should be declared explicitly.
 
 Rules:
 
