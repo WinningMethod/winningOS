@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { LogOut, Menu, UserRound, X } from "lucide-react"
 import { SidebarContent } from "@/components/app/sidebar"
 import { ThemeToggle } from "@/components/app/theme-toggle"
@@ -13,6 +13,7 @@ import { currentWorkspace, currentProfile } from "@/lib/mock-data"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const router = useRouter()
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -85,12 +86,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <UserRound className="h-4 w-4" />
                 Profile
               </DropdownItem>
-              <Link href="/settings">
-                <DropdownItem>
-                  <UserRound className="h-4 w-4" />
-                  Workspace settings
-                </DropdownItem>
-              </Link>
+              {/* Navigate via the router so the menu item stays a real <button> —
+                  nesting a button inside <Link>'s <a> is invalid HTML. */}
+              <DropdownItem onClick={() => router.push("/settings")}>
+                <UserRound className="h-4 w-4" />
+                Workspace settings
+              </DropdownItem>
               <DropdownSeparator />
               <DropdownItem disabled className="text-muted-foreground">
                 <LogOut className="h-4 w-4" />
