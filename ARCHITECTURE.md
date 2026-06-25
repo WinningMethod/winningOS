@@ -128,7 +128,7 @@ The app shell includes:
 - theme application
 - permission-aware navigation display
 
-Future plugins may contribute navigation entries, but they must not replace the core shell.
+Future plugins may request navigation entries through the compatibility contract, but they must not replace the core shell.
 
 ## Branding and theme boundary
 
@@ -187,11 +187,11 @@ This keeps Core focused on user management, workspace settings, branding, permis
 
 WinningOS will use build-time plugins.
 
-A build-time plugin is source code included in the repo before build/deploy. It is inspected, version-controlled, validated, and deployed as part of the company OS.
+A build-time plugin is source code included in a deployment before build/deploy. A plugin may eventually come from a separate GitHub repository, but it is not runtime-loaded; it is inspected, version-controlled, validated, and deployed as part of the company OS.
 
 Runtime plugin loading is out of scope.
 
-Plugin implementation should wait until core architecture, data model, security model, and compatibility rules are clear.
+Plugin implementation should wait until core architecture, data model, security model, compatibility rules, and the operational Supabase-backed Core are complete and tested.
 
 ## File direction
 

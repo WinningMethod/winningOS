@@ -184,7 +184,7 @@ These should be the next pieces after the implementation contract is reviewed.
 
 ### 1. Compatibility contract
 
-Needed file:
+Added file:
 
 ```text
 COMPATIBILITY.md
@@ -193,14 +193,13 @@ COMPATIBILITY.md
 Purpose:
 
 - define future build-time plugin boundaries
-- define what plugins may import/use
-- define what plugins must not mutate
+- define external plugin repo expectations
+- define future `IMPLEMENTATION.md` expectations
 - define table naming conventions for plugins
 - define navigation contribution rules
 - define plugin permission registration rules
 - define compatibility validation expectations
-
-This should happen before any plugin code or plugin skeletons.
+- explicitly defer `Example_Plugin` and real plugins until Core is operational and tested
 
 ### 2. Environment example
 
@@ -282,7 +281,7 @@ Before Agent/chat functionality returns, decide:
 
 ## Recommended next PR after this one
 
-After this documentation/wireframe PR is reviewed and merged, the next PR should be small implementation groundwork:
+After the compatibility contract is reviewed and merged, the next PR should be small implementation groundwork:
 
 ```text
 chore: add Supabase environment contract
@@ -306,4 +305,4 @@ Before merging implementation work, answer:
 2. Should first-owner bootstrap be command-based or setup-route-based?
 3. Should the database enforce one workspace or should app/bootstrap logic enforce it for now?
 4. Should audit events be deferred until after the first privileged write actions?
-5. Should `COMPATIBILITY.md` be the next docs PR before the first Supabase code PR?
+5. Should `Example_Plugin` wait until after Core is operational and tested? Current decision: yes.
