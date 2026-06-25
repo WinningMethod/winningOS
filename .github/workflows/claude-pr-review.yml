@@ -37,6 +37,8 @@ jobs:
           # installed on the repo; the `permissions:` block below scopes it.
           # Comments will appear from github-actions[bot].
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          # TEMP: surface the full Claude error in logs while debugging auth.
+          show_full_output: true
           prompt: |
             Review the pull request #${{ github.event.pull_request.number }} in
             ${{ github.repository }}.
