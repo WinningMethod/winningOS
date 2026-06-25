@@ -97,14 +97,16 @@ npm run build
 
 Goal: make the existing wireframe ready for real app wiring.
 
-Tasks:
+Status: environment contract and client-helper skeletons are now established.
+
+Completed groundwork:
 
 1. Confirm package scripts work.
-2. Add or fix lint/typecheck scripts if needed.
+2. Add `typecheck` script.
 3. Confirm `.env.local` is ignored.
 4. Add `.env.example` with non-secret placeholders.
 5. Keep mock data isolated so it can be replaced cleanly.
-6. Document local development setup.
+6. Document local development setup in `DEVELOPMENT.md`.
 
 Validation:
 
@@ -123,12 +125,14 @@ npm run typecheck
 
 Goal: define environment variables and client boundaries before schema work.
 
-Tasks:
+Status: initial contract added.
+
+Completed groundwork:
 
 1. Add browser-safe Supabase client helper.
 2. Add server-side Supabase client helper.
 3. Document public vs server-only variables.
-4. Ensure service role key is never imported into client components.
+4. Keep service-role helper isolated in a server-only module.
 5. Add a local setup note for connecting a Supabase project.
 
 Required public variables:
@@ -278,22 +282,25 @@ Tasks:
 4. Decide whether Core is ready for `Example_Plugin`.
 5. Keep Agent and Meeting Notes as validation examples only until this gate passes.
 
-## First implementation PR after this contract
+## Next implementation PR after this contract
 
-The next code PR after this documentation should be small.
+The next PR after the Supabase environment contract should introduce the initial schema carefully.
 
 Recommended PR:
 
 ```text
-chore: add Supabase environment contract
+feat: add initial Core Supabase schema
 ```
 
 Scope:
 
-- `.env.example`
-- Supabase client helper skeletons
-- local setup docs
-- no schema migrations yet
+- `supabase/migrations/`
+- `core_workspaces`
+- `core_profiles`
+- `core_memberships`
+- `core_roles`
+- `core_brand_settings`
+- seed/bootstrap direction for one workspace and system roles
 - no auth UI replacement yet
 - no plugin work yet
 - no agent/chat work yet
