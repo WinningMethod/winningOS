@@ -39,8 +39,8 @@ WinningOS Core owns the primitives that every deployment needs:
 5. Roles and permissions
 6. Branding and theme tokens
 7. App shell and navigation rules
-8. Build-time plugin readiness boundary, later
-9. Compatibility rules, later
+8. Build-time plugin readiness boundary
+9. Compatibility rules
 10. Repo-wide development and agent contribution rules
 
 ## Core non-goals
@@ -73,7 +73,7 @@ The canonical project rules live in repo-native documents such as:
 - future `ARCHITECTURE.md`
 - future `DATA_MODEL.md`
 - future `SECURITY.md`
-- future `COMPATIBILITY.md`
+- `COMPATIBILITY.md`
 
 Agent-specific files are not part of the required core contract.
 
@@ -160,7 +160,7 @@ Hermes or another provider may become a reference plugin later, but WinningOS Co
 
 ## Plugin timing
 
-Plugins are intentionally not part of the first core slice.
+Plugins are intentionally not part of Core v0.1 implementation work.
 
 Before plugins are implemented, WinningOS Core must first define:
 
@@ -184,4 +184,4 @@ WinningOS Core v0.1 should eventually include:
 - compatibility contract for future build-time plugins
 - agent-agnostic contribution rules
 
-The first repo slice is documentation only: this charter and the initial agent-agnostic contribution rules.
+Core v0.1 should become operational and tested before any plugin repo, example plugin, or real plugin is created.

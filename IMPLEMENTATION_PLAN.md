@@ -16,6 +16,7 @@ WinningOS Core has:
 - a simplified static frontend wireframe
 - one-workspace Core scope
 - Vercel deployment configured for Next.js
+- compatibility contract for future build-time plugins
 
 The next phase is not plugin work. The next phase is to make the Core shell real while preserving the existing boundaries.
 
@@ -72,6 +73,25 @@ It creates extra product and security surface:
 Those belong behind the future plugin boundary. Core should be strong enough to accept an Agent plugin later, but should not ship Agent UI, Agent permissions, provider settings, or chat contracts in v0.1.
 
 ## Implementation sequence
+
+### Phase 0: Compatibility contract
+
+Goal: finish the future plugin contract without building plugin code.
+
+Tasks:
+
+1. Add `COMPATIBILITY.md`.
+2. Define future external plugin repo expectations.
+3. Define future `IMPLEMENTATION.md` expectations for plugin repos.
+4. Define plugin permission and table naming.
+5. Explicitly state that Core must be operational and tested before `Example_Plugin` or real plugins.
+
+Validation:
+
+```bash
+git diff --check
+npm run build
+```
 
 ### Phase 1: App foundation hygiene
 
@@ -246,18 +266,17 @@ role.changed
 
 Audit events can be deferred until after settings writes exist.
 
-### Phase 9: Compatibility and plugin preparation
+### Phase 9: Plugin readiness review
 
-Goal: prepare for future plugin work without building plugins yet.
+Goal: verify Core is ready before any plugin repo or example plugin exists.
 
 Tasks:
 
-1. Write `COMPATIBILITY.md`.
-2. Define what plugins may and may not touch.
-3. Define plugin table naming and RLS expectations.
-4. Define how plugins contribute navigation in the future.
-5. Define how plugins introduce their own permissions.
-6. Use future plugins, including possible Agent or meeting-notes plugins, only as validation examples.
+1. Confirm Core is operational with Supabase.
+2. Confirm auth, membership, permissions, RLS, and settings are tested.
+3. Reconcile implementation with `COMPATIBILITY.md`.
+4. Decide whether Core is ready for `Example_Plugin`.
+5. Keep Agent and Meeting Notes as validation examples only until this gate passes.
 
 ## First implementation PR after this contract
 
@@ -292,6 +311,8 @@ Before writing migrations, confirm:
 Before adding plugin code, confirm:
 
 - `COMPATIBILITY.md` exists
+- Core is operational and tested
 - core schema is stable enough to extend
 - plugin security expectations are documented
 - plugin permission and navigation contribution rules are documented
+- `Example_Plugin` has been explicitly approved as the next validation step

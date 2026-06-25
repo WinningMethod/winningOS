@@ -23,7 +23,7 @@ As the repo matures, additional source-of-truth documents may be added, such as:
 
 WinningOS Core is in implementation-contract phase.
 
-The repo has an initial static frontend wireframe. The immediate priority is to lock the Supabase/auth/data/route contract before adding real backend behavior, migrations, plugins, or business workflows.
+The repo has an initial static frontend wireframe and a compatibility contract for future build-time plugins. The immediate priority is to make Core operational with Supabase/auth/data while keeping plugin work deferred until Core is fully tested.
 
 Do not jump ahead to plugin implementation or business-specific features unless explicitly asked.
 
@@ -75,11 +75,11 @@ When permission implementation begins, permission checks must be designed for bo
 
 ## Plugin rules
 
-Plugins are out of scope until WinningOS Core is locked enough to support them.
+Plugins are out of scope until WinningOS Core is operational, tested, and ready to support them.
 
 The meeting notes plugin is a future validation use case, not current core scope.
 
-Do not add plugin folders, plugin manifests, or plugin implementations until explicitly approved.
+Do not add plugin folders, plugin manifests, plugin repositories, or plugin implementations until Core is operational/tested and plugin work is explicitly approved.
 
 ## Validation rules
 
@@ -118,14 +118,12 @@ For major changes:
 
 The current repo may contain Core docs and the static frontend wireframe.
 
-Until the implementation contract is accepted:
+Until Core implementation begins in the approved sequence:
 
-- no Supabase migrations yet
-- no real auth flow yet
 - no plugin code
 - no meeting-notes plugin
 - no agent/chat functionality in Core
 - no business-specific workflows
 - no workspace switcher or multi-workspace management
 
-When implementation begins, work in small PRs that map back to the accepted implementation contract.
+Implementation should now proceed in small PRs that map back to `IMPLEMENTATION_PLAN.md`, `SUPABASE_CONTRACT.md`, `ROUTE_MAP.md`, and `COMPATIBILITY.md`.
