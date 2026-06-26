@@ -21,7 +21,7 @@ insert into public.core_roles (id, workspace_id, key, name, description, is_syst
 values
   (
     '00000000-0000-4000-8000-000000000101',
-    '00000000-0000-4000-8000-000000000001',
+    (select id from public.core_workspaces where slug = 'winningos'),
     'owner',
     'Owner',
     'Full Core administration for the single WinningOS workspace.',
@@ -29,7 +29,7 @@ values
   ),
   (
     '00000000-0000-4000-8000-000000000102',
-    '00000000-0000-4000-8000-000000000001',
+    (select id from public.core_workspaces where slug = 'winningos'),
     'admin',
     'Admin',
     'Can manage workspace settings, members, branding, and most Core operations.',
@@ -37,7 +37,7 @@ values
   ),
   (
     '00000000-0000-4000-8000-000000000103',
-    '00000000-0000-4000-8000-000000000001',
+    (select id from public.core_workspaces where slug = 'winningos'),
     'member',
     'Member',
     'Can view core workspace information and participate in the workspace.',
@@ -45,7 +45,7 @@ values
   ),
   (
     '00000000-0000-4000-8000-000000000104',
-    '00000000-0000-4000-8000-000000000001',
+    (select id from public.core_workspaces where slug = 'winningos'),
     'viewer',
     'Viewer',
     'Read-only Core workspace access.',
@@ -67,7 +67,7 @@ insert into public.core_brand_settings (
 )
 values (
   '00000000-0000-4000-8000-000000000201',
-  '00000000-0000-4000-8000-000000000001',
+  (select id from public.core_workspaces where slug = 'winningos'),
   'WinningOS',
   null,
   jsonb_build_object(
@@ -79,6 +79,6 @@ values (
 on conflict (workspace_id) do update
 set
   brand_name = excluded.brand_name,
-  logo_url = excluded.logo_url,
+  logo_url = coalesce(public.core_brand_settings.logo_url, excluded.logo_url),
   theme_json = excluded.theme_json,
   updated_at = now();

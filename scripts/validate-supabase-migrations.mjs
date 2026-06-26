@@ -121,11 +121,24 @@ assertIncludes(
   "does not grant direct private schema usage to authenticated users",
 )
 
-assertIncludes(
-  migrationText,
-  "revoke execute on function private.core_profiles_share_active_workspace(uuid) from public;",
-  "revokes default public execute from private RLS helpers",
-)
+for (const helperSignature of [
+  "private.core_current_profile_id()",
+  "private.core_is_active_member(uuid)",
+  "private.core_is_active_member_of_any_workspace()",
+  "private.core_profiles_share_active_workspace(uuid)",
+]) {
+  assertIncludes(
+    migrationText,
+    `revoke execute on function ${helperSignature} from public;`,
+    `revokes default public execute from ${helperSignature}`,
+  )
+}
+
+if (/grant\s+execute\s+on\s+function\s+private\./i.test(migrationText)) {
+  fail("private RLS helper functions should not be directly granted to authenticated roles")
+} else {
+  pass("private RLS helpers are not directly granted for application calls")
+}
 
 assertIncludes(
   migrationText,
@@ -147,8 +160,8 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
-  "private.core_is_active_member",
-  "defines active membership RLS helper",
+  "private.core_is_active_member(target_workspace_id uuid)",
+  "defines per-workspace active membership RLS helper",
 )
 
 assertIncludes(
@@ -183,6 +196,12 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
+  "and status = 'active'",
+  "membership read policy exposes only active target membership rows",
+)
+
+assertIncludes(
+  migrationText,
   "create or replace trigger core_profiles_touch_updated_at",
   "uses replaceable updated_at triggers for local replay",
 )
@@ -193,10 +212,22 @@ assertIncludes(
   "upserts the default workspace by slug",
 )
 
+assertIncludes(
+  seedText,
+  "(select id from public.core_workspaces where slug = 'winningos')",
+  "links seed rows to the surviving workspace id by slug",
+)
+
 assertMatch(
   seedText,
   /deleted_at\s*=\s*null/i,
   "default workspace conflict resolution clears deleted_at",
+)
+
+assertIncludes(
+  seedText,
+  "logo_url = coalesce(public.core_brand_settings.logo_url, excluded.logo_url)",
+  "brand settings seed preserves existing logo_url on reset",
 )
 
 if (process.exitCode) {

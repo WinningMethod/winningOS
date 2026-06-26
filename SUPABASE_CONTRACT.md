@@ -111,6 +111,12 @@ Required constraints:
 
 - `slug` should be unique.
 - Core v0.1 should seed exactly one workspace.
+
+Seed idempotency rules:
+
+- The default workspace seed clears `deleted_at` if the deterministic slug already exists as a soft-deleted row.
+- Role and branding seeds resolve the workspace by slug so a non-fresh development database does not fail role foreign keys because of an old manually-created workspace id.
+- The branding seed preserves an existing `logo_url` on conflict so local resets do not wipe an uploaded logo placeholder.
 - The app should not expose workspace creation or switching.
 
 Open implementation decision:
@@ -364,7 +370,7 @@ private.core_is_active_member_of_any_workspace()
 private.core_profiles_share_active_workspace(profile_id uuid)
 ```
 
-These helpers live in the non-exposed `private` schema so they can support RLS policies without becoming public PostgREST RPC endpoints. The migration also explicitly revokes private schema usage from public/anon/authenticated roles and revokes default public execute on the helper functions.
+These helpers live in the non-exposed `private` schema so they can support RLS policies without becoming public PostgREST RPC endpoints. The migration explicitly revokes private schema usage from public/anon/authenticated roles and revokes default public execute on the helper functions. The helpers are intended for RLS policy use, not direct application RPC calls.
 
 Deferred helper functions:
 
@@ -376,7 +382,7 @@ Policy direction:
 
 - profiles: users can read/update their own profile; shared workspace profile visibility requires membership joins
 - workspaces: active members can read the single workspace
-- memberships: active members can read; management requires elevated permissions
+- memberships: active members can read active membership rows in their workspace; invited/disabled/removed rows require later elevated management policies
 - roles: active members can read workspace roles; authenticated users with at least one active membership can read global role templates if those are introduced later
 - brand settings: active members can read; `branding.manage` required to update
 

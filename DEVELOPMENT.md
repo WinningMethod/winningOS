@@ -142,9 +142,9 @@ Expected routes remain:
 
 ## Supabase migration safety notes
 
-The initial RLS helper functions live in the non-exposed `private` schema. Keep security-definer helpers out of the public PostgREST RPC surface unless there is an explicit product reason to expose them. Do not grant direct private schema usage to browser-facing roles.
+The initial RLS helper functions live in the non-exposed `private` schema. Keep security-definer helpers out of the public PostgREST RPC surface unless there is an explicit product reason to expose them. Do not grant direct private schema usage to browser-facing roles, and do not add direct `GRANT EXECUTE` paths for private RLS helpers unless a future server-only use case is deliberately designed.
 
-The seed migration must revive/update the deterministic default workspace row by clearing `deleted_at` rather than silently no-oping or leaving a soft-deleted slug invisible to RLS. Future seed changes should remain idempotent and should not assume a hidden workspace-switching feature.
+The seed migration must revive/update the deterministic default workspace row by clearing `deleted_at` rather than silently no-oping or leaving a soft-deleted slug invisible to RLS. Role and branding seeds should resolve the active default workspace by slug, and branding reset behavior should preserve any existing `logo_url`. Future seed changes should remain idempotent and should not assume a hidden workspace-switching feature.
 
 ## Migration validation
 

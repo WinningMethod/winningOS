@@ -207,10 +207,6 @@ revoke execute on function private.core_is_active_member(uuid) from public;
 revoke execute on function private.core_is_active_member_of_any_workspace() from public;
 revoke execute on function private.core_profiles_share_active_workspace(uuid) from public;
 
-grant execute on function private.core_current_profile_id() to authenticated;
-grant execute on function private.core_is_active_member(uuid) to authenticated;
-grant execute on function private.core_is_active_member_of_any_workspace() to authenticated;
-grant execute on function private.core_profiles_share_active_workspace(uuid) to authenticated;
 
 alter table public.core_profiles enable row level security;
 alter table public.core_workspaces enable row level security;
@@ -271,7 +267,10 @@ create policy "Active members can read workspace memberships"
   on public.core_memberships
   for select
   to authenticated
-  using (private.core_is_active_member(workspace_id));
+  using (
+    private.core_is_active_member(workspace_id)
+    and status = 'active'
+  );
 
 drop policy if exists "Active members can read workspace branding" on public.core_brand_settings;
 

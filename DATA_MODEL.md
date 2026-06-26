@@ -156,6 +156,7 @@ Notes:
 - A profile belongs to the single instance workspace in Core v0.1.
 - A workspace can have many profiles.
 - Role assignment should happen through membership.
+- Initial member-facing reads expose active membership rows only; invited/disabled/removed rows require later elevated management policies.
 
 ## `core_roles`
 
@@ -327,7 +328,7 @@ private.core_is_active_member_of_any_workspace()
 private.core_profiles_share_active_workspace(profile_id uuid)
 ```
 
-These helper functions live in the non-exposed `private` schema so they can support RLS without becoming public PostgREST RPC endpoints. The migration also explicitly revokes private schema usage from public/anon/authenticated roles and revokes default public execute on the helper functions.
+These helper functions live in the non-exposed `private` schema so they can support RLS without becoming public PostgREST RPC endpoints. The migration explicitly revokes private schema usage from public/anon/authenticated roles and revokes default public execute on the helper functions. They are intended for RLS policy use, not direct application RPC calls.
 
 Permission-aware helpers such as `core_has_permission(workspace_id uuid, permission_key text)` remain deferred until the permission-helper slice.
 
