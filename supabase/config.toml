@@ -26,7 +26,20 @@ file_size_limit = "50MiB"
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://127.0.0.1:3000"]
+site_url = "https://winning-os.vercel.app"
+additional_redirect_urls = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://winning-os.vercel.app",
+  "https://winning-os-git-feat-auth-prof-ab1cc8-carter-turnbull-s-projects.vercel.app",
+  "https://*-carter-turnbull-s-projects.vercel.app",
+]
 jwt_expiry = 3600
 enable_signup = true
+
+[auth.email]
+sender_name = "WinningOS Core"
+
+[auth.email.template.magic_link]
+subject = "Sign in to WinningOS Core"
+content_path = "./supabase/templates/magic_link.html"
