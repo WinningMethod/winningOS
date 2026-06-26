@@ -53,6 +53,10 @@ create index if not exists core_workspaces_created_by_profile_id_idx
   on public.core_workspaces (created_by_profile_id)
   where created_by_profile_id is not null;
 
+create unique index if not exists core_workspaces_single_active_workspace
+  on public.core_workspaces ((true))
+  where deleted_at is null;
+
 create table if not exists public.core_roles (
   id uuid primary key default extensions.gen_random_uuid(),
   workspace_id uuid references public.core_workspaces(id) on delete cascade,
@@ -149,7 +153,7 @@ returns uuid
 language sql
 stable
 security definer
-set search_path = public, auth
+set search_path = auth, public
 as $$
   select id
   from public.core_profiles
@@ -162,7 +166,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public, auth
+set search_path = auth, public
 as $$
   select exists (
     select 1
@@ -181,7 +185,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public, auth
+set search_path = auth, public
 as $$
   select exists (
     select 1
@@ -199,7 +203,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public, auth
+set search_path = auth, public
 as $$
   select exists (
     select 1
@@ -246,6 +250,14 @@ create policy "Members can read profiles in their active workspace"
   for select
   to authenticated
   using (private.core_profiles_share_active_workspace(id));
+
+drop policy if exists "Users can create their own profile" on public.core_profiles;
+
+create policy "Users can create their own profile"
+  on public.core_profiles
+  for insert
+  to authenticated
+  with check (user_id = auth.uid());
 
 drop policy if exists "Users can update their own profile" on public.core_profiles;
 

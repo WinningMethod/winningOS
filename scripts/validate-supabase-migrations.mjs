@@ -1,7 +1,9 @@
 import { readFileSync, readdirSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
+import { fileURLToPath } from "node:url"
 
-const migrationsDir = "supabase/migrations"
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const migrationsDir = join(__dirname, "../supabase/migrations")
 const forbiddenPatterns = [
   /core_agent/i,
   /core_chat/i,
@@ -148,7 +150,7 @@ for (const helperSignature of [
   )
 }
 
-if (/grant\s+execute\s+on\s+function\s+private\.[^;]*\s+to\s+(authenticated|anon)\s*;/i.test(migrationText)) {
+if (/grant\s+execute\s+on\s+function\s+private\.[^;]*\s+to\s+[^;]*(authenticated|anon|public)/i.test(migrationText)) {
   fail("private RLS helper functions should not be directly granted to browser-facing roles")
 } else {
   pass("private RLS helpers are not directly granted to browser-facing roles")
@@ -241,7 +243,31 @@ assertIncludes(
 assertIncludes(
   migrationText,
   "set search_path = public",
-  "sets search_path on trigger/helper functions",
+  "sets search_path on trigger function",
+)
+
+assertIncludes(
+  migrationText,
+  "set search_path = auth, public",
+  "sets auth-first search_path on private RLS helpers",
+)
+
+assertIncludes(
+  migrationText,
+  `create policy "Users can create their own profile"`,
+  "allows authenticated users to create their own profile",
+)
+
+assertIncludes(
+  migrationText,
+  "with check (user_id = auth.uid())",
+  "guards profile inserts by authenticated user id",
+)
+
+assertIncludes(
+  migrationText,
+  "create unique index if not exists core_workspaces_single_active_workspace",
+  "enforces one active workspace structurally",
 )
 
 assertIncludes(
@@ -281,7 +307,7 @@ assertIncludes(
 )
 
 if (migrationText.includes("deleted_at is null and private.core_is_active_member(id)")) {
-  fail("workspace RLS should rely on core_is_active_member for soft-delete checks")
+  fail("workspace RLS has redundant inline deleted_at check; core_is_active_member already handles it")
 } else {
   pass("workspace RLS avoids duplicate deleted_at helper logic")
 }

@@ -110,7 +110,7 @@ deleted_at timestamptz nullable
 Required constraints:
 
 - `slug` should be unique.
-- Core v0.1 should seed exactly one workspace.
+- Core v0.1 should seed exactly one active workspace.
 
 Seed idempotency rules:
 
@@ -366,9 +366,9 @@ Implemented helper functions:
 
 ```sql
 private.core_current_profile_id()
-private.core_is_active_member(workspace_id uuid)
+private.core_is_active_member(target_workspace_id uuid)
 private.core_is_active_member_of_any_workspace()
-private.core_profiles_share_active_workspace(profile_id uuid)
+private.core_profiles_share_active_workspace(target_profile_id uuid)
 ```
 
 These helpers live in the non-exposed `private` schema so they can support RLS policies without becoming public PostgREST RPC endpoints. The migration explicitly revokes private schema usage from public/anon/authenticated roles and revokes default public execute on the helper functions. The helpers are intended for RLS policy use, not direct application RPC calls. Direct grants to browser-facing roles are not allowed.
@@ -383,7 +383,7 @@ Policy direction:
 
 - profiles: users can read/update their own profile; shared workspace profile visibility requires membership joins
 - workspaces: active members can read the single workspace
-- memberships: active members can read active membership rows in non-deleted workspaces; invited/disabled/removed rows require later elevated management policies
+- memberships: active members can read active membership rows in non-deleted workspaces; invited/disabled/removed rows require later elevated management policies before any member-management UI is wired
 - roles: active members can read workspace roles; authenticated users with at least one active membership can read global role templates if those are introduced later; workspace-scoped checks guard against null workspace ids explicitly
 - brand settings: active members can read; `branding.manage` required to update
 

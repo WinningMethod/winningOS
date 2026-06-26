@@ -156,7 +156,7 @@ Notes:
 - A profile belongs to the single instance workspace in Core v0.1.
 - A workspace can have many profiles.
 - Role assignment should happen through membership.
-- Initial member-facing reads expose active membership rows in non-deleted workspaces only; invited/disabled/removed rows require later elevated management policies. Role and workspace foreign-key columns used for lifecycle checks are indexed in the initial schema.
+- Initial member-facing reads expose active membership rows in non-deleted workspaces only; invited/disabled/removed rows require later elevated management policies before any member-management UI is wired. Role and workspace foreign-key columns used for lifecycle checks are indexed in the initial schema.
 
 ## `core_roles`
 
@@ -323,9 +323,9 @@ The initial schema migration enables RLS and co-documents the helper functions a
 
 ```sql
 private.core_current_profile_id()
-private.core_is_active_member(workspace_id uuid)
+private.core_is_active_member(target_workspace_id uuid)
 private.core_is_active_member_of_any_workspace()
-private.core_profiles_share_active_workspace(profile_id uuid)
+private.core_profiles_share_active_workspace(target_profile_id uuid)
 ```
 
 These helper functions live in the non-exposed `private` schema so they can support RLS without becoming public PostgREST RPC endpoints. The migration explicitly revokes private schema usage from public/anon/authenticated roles and revokes default public execute on the helper functions. They are intended for RLS policy use, not direct application RPC calls. Browser-facing roles must not receive direct execute grants for these private helpers.
