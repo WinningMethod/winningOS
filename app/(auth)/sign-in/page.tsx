@@ -117,7 +117,7 @@ export default async function SignInPage({
   const params = await searchParams
   const errorParam = params?.error
   const errorMessage = signInErrorMessage(isSignInErrorCode(errorParam) ? errorParam : undefined)
-  const sent = params?.sent === "1" && !errorMessage
+  const sent = params?.sent === "1" && !errorParam
   const session = await ensureCoreSession()
 
   if (session.hasActiveMembership) {

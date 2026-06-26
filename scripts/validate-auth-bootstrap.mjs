@@ -96,7 +96,7 @@ assert(!signInPage.includes("x-forwarded-host"), "sign-in page does not trust fo
 assert(!signInPage.includes("encodeURIComponent(email)"), "sign-in page does not reflect email from URL query")
 assert(signInPage.includes('role="status"'), "sign-in page exposes successful OTP state as status")
 assert(signInPage.includes('role="alert"'), "sign-in page alerts error state on initial render")
-assert(["missing-email", "rate-limited", "email-provider", "auth-failed", "missing-code", "callback-failed", "signout-failed"].every((code) => signInPage.includes(code)), "sign-in page handles each auth error code")
+assert(["missing-email", "rate-limited", "email-provider", "auth-failed", "missing-code", "callback-failed", "signout-failed"].every((code) => signInPage.includes(`case "${code}":`)), "sign-in page handles each auth error code")
 assert(signInPage.includes("Email required") && signInPage.includes("Too many magic-link requests") && signInPage.includes("Email provider unavailable") && signInPage.includes("Sign-in failed") && signInPage.includes("Sign-in link is incomplete") && signInPage.includes("Sign-in link could not be verified") && signInPage.includes("Sign-out failed"), "sign-in page has distinct user-facing auth error messages")
 assert(!signInPage.includes("Supabase is temporarily") && !signInPage.includes("Supabase could not"), "sign-in page does not expose auth vendor in user-facing OTP errors")
 assert(!signInPage.includes("message: error.message"), "sign-in page does not log submitted-email-bearing OTP messages")
