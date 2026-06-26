@@ -237,13 +237,20 @@ This is paired with `.env.example` and the Supabase helper skeletons.
 
 ### 4. Supabase migration folder
 
-Potential path:
+Added paths:
 
 ```text
+supabase/config.toml
 supabase/migrations/
 ```
 
-This should wait until the schema contract is accepted.
+Purpose:
+
+- define the initial Core tables
+- seed one default workspace
+- seed owner/admin/member/viewer system roles
+- seed default branding
+- enable initial active-member RLS read boundaries
 
 ### 5. Permission helper API
 
@@ -281,19 +288,19 @@ Before Agent/chat functionality returns, decide:
 
 ## Recommended next PR after this one
 
-After the Supabase environment-contract PR is reviewed and merged, the next PR should add initial schema groundwork:
+After the initial schema PR is reviewed and merged, the next PR should wire auth/profile bootstrap:
 
 ```text
-feat: add initial Core Supabase schema
+feat: add auth profile bootstrap
 ```
 
 Suggested scope:
 
-- `supabase/migrations/`
-- initial Core tables
-- one-workspace seed/bootstrap direction
-- system roles
-- no real auth flow yet
+- sign-in/sign-out path
+- authenticated profile lookup/create helper
+- explicit first-owner bootstrap decision
+- membership resolution for the seeded workspace
+- protected app routes
 - no plugin work
 - no agent/chat work
 
@@ -301,8 +308,8 @@ Suggested scope:
 
 Before merging implementation work, answer:
 
-1. Is the table list in `SUPABASE_CONTRACT.md` correct for Core v0.1?
-2. Should first-owner bootstrap be command-based or setup-route-based?
-3. Should the database enforce one workspace or should app/bootstrap logic enforce it for now?
-4. Should audit events be deferred until after the first privileged write actions?
+1. Should first-owner bootstrap be command-based or setup-route-based?
+2. Should profile bootstrap create display names from auth metadata, email, or an explicit setup form?
+3. Should the first auth slice use Supabase email/password, magic links, or both?
+4. Should audit events be deferred until after the first privileged write actions? Current direction: yes.
 5. Should `Example_Plugin` wait until after Core is operational and tested? Current decision: yes.

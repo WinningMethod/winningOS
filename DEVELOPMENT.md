@@ -128,7 +128,7 @@ npm run typecheck
 
 During this phase, the UI still uses mock data.
 
-The Supabase helpers exist so future PRs can wire real auth/data safely without inventing environment boundaries inside feature work.
+The Supabase helpers and initial migrations exist so future PRs can wire real auth/data safely without inventing environment boundaries or schema shape inside feature work.
 
 Expected routes remain:
 
@@ -139,16 +139,25 @@ Expected routes remain:
 /settings
 ```
 
+## Migration validation
+
+Validate the migration contract without needing a running Supabase container:
+
+```bash
+npm run db:validate
+```
+
+This checks that the expected Core migrations, tables, seed records, RLS enables, and helper functions are present. It is not a replacement for applying migrations to a real Supabase project.
+
 ## Next implementation steps
 
-After this environment-contract phase, the next implementation slices should be:
+After this initial schema phase, the next implementation slices should be:
 
-1. initial Core schema migrations
-2. seed/bootstrap path for the single workspace and system roles
-3. auth/profile bootstrap
-4. membership and permission helpers
-5. RLS policies
-6. replacement of mock reads with Supabase reads
-7. persisted settings writes
+1. auth/profile bootstrap
+2. first-owner bootstrap path for the seeded workspace
+3. membership and permission helpers
+4. replacement of mock reads with Supabase reads
+5. persisted settings writes
+6. RLS policy expansion for permission-aware writes
 
 Do not start plugin work until Core is operational and tested.

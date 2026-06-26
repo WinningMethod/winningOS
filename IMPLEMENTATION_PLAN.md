@@ -152,7 +152,9 @@ SUPABASE_SERVICE_ROLE_KEY
 
 Goal: introduce the minimum schema needed for a single-workspace Core.
 
-Initial tables:
+Status: initial migrations are being added in the schema slice.
+
+Implemented initial tables:
 
 ```text
 core_workspaces
@@ -162,7 +164,7 @@ core_roles
 core_brand_settings
 ```
 
-Initial seed data:
+Implemented initial seed data:
 
 ```text
 one workspace
@@ -174,13 +176,16 @@ Important: permissions should start as typed constants in app code. Full permiss
 
 Validation:
 
-- migration applies cleanly
-- seed path creates exactly one workspace
+- migration contract validation passes with `npm run db:validate`
+- seed path creates exactly one workspace row
 - unique constraints prevent conflicting settings rows
+- RLS is enabled for initial core tables
 
 ### Phase 4: Auth and profile bootstrap
 
 Goal: connect Supabase Auth to Core profile records.
+
+This is the next implementation slice after initial schema migrations merge.
 
 Tasks:
 

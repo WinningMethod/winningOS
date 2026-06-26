@@ -4,7 +4,7 @@
 
 This document turns the conceptual Core data model into an implementation-facing Supabase contract.
 
-It does not contain SQL migrations yet. It defines what the first migrations should implement and what they should avoid.
+The first schema/seed migrations now implement this contract. This document remains the implementation-facing reference for what the migrations include and what later slices must still add.
 
 ## Core assumptions
 
@@ -58,9 +58,9 @@ The helpers should make unsafe usage hard:
 
 ## Initial schema
 
-The first schema should stay small.
+The first schema stays small.
 
-Recommended initial tables:
+Implemented initial tables:
 
 ```text
 core_workspaces
@@ -353,13 +353,18 @@ created_at timestamptz not null default now()
 
 ## RLS expectations
 
-RLS should be enabled on all core user/workspace tables once migrations begin.
+RLS is enabled in the initial schema migration for all core user/workspace tables.
 
-Expected helper functions:
+Implemented helper functions:
 
 ```sql
 core_current_profile_id()
 core_is_active_member(workspace_id uuid)
+```
+
+Deferred helper functions:
+
+```sql
 core_has_permission(workspace_id uuid, permission_key text)
 ```
 
@@ -371,7 +376,7 @@ Policy direction:
 - roles: active members can read system roles
 - brand settings: active members can read; `branding.manage` required to update
 
-Do not rely on client-supplied workspace IDs without RLS/server verification.
+Do not rely on client-supplied workspace IDs without RLS/server verification. The initial policies allow active-member reads and own-profile updates; permission-aware write policies are deferred until permission helpers exist.
 
 ## Bootstrap behavior
 
@@ -389,7 +394,7 @@ default brand settings row
 Open implementation decision:
 
 - whether the first authenticated user becomes owner automatically
-- whether owner bootstrap requires an explicit admin seed command
+- whether owner bootstrap requires an explicit admin seed command or protected setup route
 
 Recommendation:
 
@@ -397,11 +402,11 @@ Do not silently make any arbitrary first login an owner in production unless dep
 
 ## Migration conventions
 
-Initial migration naming should be boring:
+Initial migration naming is boring and timestamped:
 
 ```text
-YYYYMMDDHHMMSS_create_core_schema.sql
-YYYYMMDDHHMMSS_seed_core_defaults.sql
+20260625231000_create_core_schema.sql
+20260625232000_seed_core_defaults.sql
 ```
 
 Each migration that adds RLS should document:
@@ -411,9 +416,9 @@ Each migration that adds RLS should document:
 - policies added
 - expected access matrix
 
-## Non-goals for first Supabase PR
+## Non-goals for first Supabase schema PR
 
-Do not include these in the first Supabase implementation PR:
+Do not include these in the first Supabase schema PR:
 
 - plugin tables
 - meeting notes tables
