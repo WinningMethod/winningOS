@@ -52,7 +52,8 @@ assert(authMigration.includes("display_name text"), "bootstrap RPC returns store
 assert(authMigration.includes("m.workspace_id = target_workspace_id") && authMigration.includes("for update"), "bootstrap RPC scopes first-owner count and lock")
 assert(authMigration.includes("on conflict (workspace_id, profile_id) do nothing"), "bootstrap RPC does not promote inactive conflicting memberships")
 assert(authMigration.includes("Preserve an existing display name"), "bootstrap RPC documents immutable display names")
-assert(authMigration.includes("and display_name is null"), "bootstrap RPC avoids no-op profile writes")
+assert(authMigration.includes("and public.core_profiles.display_name is null"), "bootstrap RPC avoids no-op profile writes without ambiguous output names")
+assert(authMigration.includes("select p.id, p.display_name"), "bootstrap RPC qualifies profile display name reads")
 assert(
   authMigration.includes("revoke all on function public.core_bootstrap_current_user(text) from public"),
   "bootstrap RPC revokes default public execute",
