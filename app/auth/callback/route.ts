@@ -1,19 +1,10 @@
 import { NextResponse } from "next/server"
+import { resolveAppOriginFromRequest } from "@/core/auth/origin"
 import { createClient } from "@/core/supabase/server"
-
-function appOrigin(request: Request): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
-
-  if (appUrl) {
-    return new URL(appUrl).origin
-  }
-
-  return new URL(request.url).origin
-}
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
-  const origin = appOrigin(request)
+  const origin = resolveAppOriginFromRequest(request)
   const code = requestUrl.searchParams.get("code")
   const redirectTo = new URL("/home", origin)
 

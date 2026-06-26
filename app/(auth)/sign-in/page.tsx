@@ -8,27 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/app/theme-toggle"
 import { ensureCoreSession } from "@/core/auth/bootstrap"
+import { resolveAppOriginFromHeaders } from "@/core/auth/origin"
 import { createClient } from "@/core/supabase/server"
-
-function appOriginFromHeaders(headerStore: Headers): string {
-  const explicitAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
-
-  if (explicitAppUrl) {
-    return explicitAppUrl.replace(/\/$/, "")
-  }
-
-  const origin = headerStore.get("origin")
-
-  if (origin?.startsWith("http://localhost") || origin?.startsWith("http://127.0.0.1")) {
-    return origin
-  }
-
-  if (process.env.NODE_ENV !== "production") {
-    return "http://localhost:3000"
-  }
-
-  throw new Error("NEXT_PUBLIC_APP_URL is required for production auth redirects")
-}
 
 export default async function SignInPage({
   searchParams,
@@ -56,7 +37,7 @@ export default async function SignInPage({
     }
 
     const headerStore = await headers()
-    const origin = appOriginFromHeaders(headerStore)
+    const origin = resolveAppOriginFromHeaders(headerStore)
     const supabase = await createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -115,7 +96,7 @@ export default async function SignInPage({
               </Button>
             </form>
 
-            <div aria-live="polite" className="mt-4 min-h-12">
+            <div className="mt-4 min-h-12">
               {params?.sent && (
                 <div role="status" className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
                   <p className="font-medium text-foreground">Check your email</p>

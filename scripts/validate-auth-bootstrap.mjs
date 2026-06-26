@@ -52,6 +52,7 @@ assert(authMigration.includes("display_name text"), "bootstrap RPC returns store
 assert(authMigration.includes("m.workspace_id = target_workspace_id") && authMigration.includes("for update"), "bootstrap RPC scopes first-owner count and lock")
 assert(authMigration.includes("on conflict (workspace_id, profile_id) do nothing"), "bootstrap RPC does not promote inactive conflicting memberships")
 assert(authMigration.includes("Preserve an existing display name"), "bootstrap RPC documents immutable display names")
+assert(authMigration.includes("and display_name is null"), "bootstrap RPC avoids no-op profile writes")
 assert(
   authMigration.includes("revoke all on function public.core_bootstrap_current_user(text) from public"),
   "bootstrap RPC revokes default public execute",
@@ -62,20 +63,24 @@ assert(authCore.includes("ensureCoreSession"), "exports ensureCoreSession helper
 assert(authCore.includes("core_bootstrap_current_user"), "helper calls bootstrap RPC")
 assert(authCore.includes("hasActiveMembership"), "helper exposes active membership state")
 
+const originUtility = read("core/auth/origin.ts")
+assert(originUtility.includes("resolveAppOriginFromHeaders") && originUtility.includes("resolveAppOriginFromRequest"), "uses shared auth origin utility")
+assert(originUtility.includes("NODE_ENV === \"production\""), "origin utility guards production fallback")
+
 const signInPage = read("app/(auth)/sign-in/page.tsx")
 assert(signInPage.includes("signInWithOtp"), "sign-in page submits Supabase email OTP")
 assert(signInPage.includes("emailRedirectTo"), "sign-in page supplies auth callback redirect")
-assert(signInPage.includes("NEXT_PUBLIC_APP_URL"), "sign-in page avoids Supabase URL as app callback fallback")
-assert(signInPage.includes("NEXT_PUBLIC_APP_URL is required"), "sign-in page requires explicit production app URL")
+assert(signInPage.includes("resolveAppOriginFromHeaders"), "sign-in page uses shared origin resolver")
+assert(originUtility.includes("NEXT_PUBLIC_APP_URL"), "origin utility avoids Supabase URL as app callback fallback")
+assert(originUtility.includes("NEXT_PUBLIC_APP_URL is required"), "origin utility requires explicit production app URL")
 assert(!signInPage.includes("x-forwarded-host"), "sign-in page does not trust forwarded host for auth redirect")
 assert(!signInPage.includes("encodeURIComponent(email)"), "sign-in page does not reflect email from URL query")
-assert(signInPage.includes('aria-live="polite"'), "sign-in page keeps a live status region")
 assert(signInPage.includes('role="status"'), "sign-in page exposes successful OTP state as status")
 assert(signInPage.includes('role="alert"'), "sign-in page alerts error state on initial render")
 
 const callbackRoute = read("app/auth/callback/route.ts")
 assert(callbackRoute.includes("exchangeCodeForSession"), "auth callback exchanges code for session")
-assert(callbackRoute.includes("NEXT_PUBLIC_APP_URL"), "auth callback uses configured app origin")
+assert(callbackRoute.includes("resolveAppOriginFromRequest"), "auth callback uses configured app origin")
 assert(callbackRoute.includes("/home"), "auth callback redirects authenticated users home")
 
 const appLayout = read("app/(app)/layout.tsx")
@@ -89,7 +94,7 @@ assert(appShell.includes('form="core-sign-out-form"') && appShell.includes('id="
 
 const signOutRoute = read("app/auth/sign-out/route.ts")
 assert(signOutRoute.includes("isSameOrigin"), "sign-out route guards same-origin POSTs")
-assert(signOutRoute.includes("NEXT_PUBLIC_APP_URL"), "sign-out route uses configured app origin")
+assert(signOutRoute.includes("resolveAppOriginFromRequest"), "sign-out route uses configured app origin")
 assert(signOutRoute.includes("origin !== null"), "sign-out route requires Origin header")
 assert(signOutRoute.includes("signout-failed"), "sign-out route redirects failures instead of returning JSON")
 
@@ -97,3 +102,6 @@ const pendingAccess = read("app/pending-access/page.tsx")
 assert(pendingAccess.includes("hasActiveMembership"), "pending access page reads membership state")
 
 console.log("Auth bootstrap validation passed.")
+
+const nextConfig = read("next.config.mjs")
+assert(nextConfig.includes("X-Frame-Options") && nextConfig.includes("Referrer-Policy"), "auth routes have security headers")

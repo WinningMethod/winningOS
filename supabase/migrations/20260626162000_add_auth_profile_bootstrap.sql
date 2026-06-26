@@ -42,12 +42,27 @@ begin
 
   insert into public.core_profiles (user_id, display_name)
   values (current_user_id, nullif(trim(profile_display_name), ''))
-  -- Preserve an existing display name; later manual profile editing should own renames.
-  on conflict (user_id) do update
-  set
-    display_name = coalesce(public.core_profiles.display_name, excluded.display_name),
-    updated_at = now()
+  on conflict (user_id) do nothing
   returning id, display_name into target_profile_id, target_display_name;
+
+  if target_profile_id is null then
+    -- Preserve an existing display name; later manual profile editing should own renames.
+    update public.core_profiles
+    set
+      display_name = nullif(trim(profile_display_name), ''),
+      updated_at = now()
+    where user_id = current_user_id
+      and display_name is null
+      and nullif(trim(profile_display_name), '') is not null
+    returning id, display_name into target_profile_id, target_display_name;
+  end if;
+
+  if target_profile_id is null then
+    select id, display_name
+    into target_profile_id, target_display_name
+    from public.core_profiles
+    where user_id = current_user_id;
+  end if;
 
   select w.id, w.name
   into target_workspace_id, target_workspace_name

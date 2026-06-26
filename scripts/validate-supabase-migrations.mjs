@@ -367,6 +367,12 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
+  "and display_name is null",
+  "bootstrap RPC avoids no-op profile updates",
+)
+
+assertIncludes(
+  migrationText,
   "grant execute on function public.core_bootstrap_current_user(text) to authenticated;",
   "bootstrap RPC is executable by authenticated users",
 )

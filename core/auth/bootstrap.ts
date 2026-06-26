@@ -57,7 +57,8 @@ export async function ensureCoreSession(): Promise<CoreSession> {
   } = await supabase.auth.getUser()
 
   if (userError) {
-    throw new Error(`Failed to read Supabase user: ${userError.message}`)
+    console.error("Failed to read Supabase user", userError)
+    throw new Error("Session bootstrap failed")
   }
 
   if (!user) {
@@ -77,7 +78,8 @@ export async function ensureCoreSession(): Promise<CoreSession> {
     .single<BootstrapRow>()
 
   if (error) {
-    throw new Error(`Failed to bootstrap Core session: ${error.message}`)
+    console.error("Failed to bootstrap Core session", error)
+    throw new Error("Session bootstrap failed")
   }
 
   const hasActiveMembership = data.has_active_membership === true
