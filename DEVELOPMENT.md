@@ -80,6 +80,23 @@ WinningOS derives the JWKS URL from `SUPABASE_URL` when `SUPABASE_JWKS_URL` is b
 
 Copy the real values from the Supabase dashboard Connect dialog. Never commit the secret key.
 
+## Supabase hosted Auth URL and email setup
+
+The hosted Supabase Auth project must use the same redirect and email-template contract as `supabase/config.toml`:
+
+- Site URL: `https://winning-os.vercel.app`
+- Redirect allow-list includes local development, production, the stable PR branch alias, and Vercel preview wildcard URLs.
+- Magic-link subject: `Sign in to WinningOS Core`
+- Magic-link template: `supabase/templates/magic_link.html`
+
+After changing `supabase/config.toml` or auth email templates, push the hosted Auth config with a Supabase access token:
+
+```bash
+SUPABASE_ACCESS_TOKEN=<token> npx supabase config push --project-ref <project-ref> --yes
+```
+
+Do not rely on local `config.toml` alone for hosted Auth behavior; hosted magic-link URLs and email branding come from the Supabase project Auth configuration.
+
 ## Environment variable rules
 
 ### Browser-safe variables

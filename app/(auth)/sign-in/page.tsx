@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/app/theme-toggle"
+import { getCoreAuthBrand } from "@/core/auth/brand"
 import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { resolveAppOriginFromHeaders } from "@/core/auth/origin"
 import { createClient } from "@/core/supabase/server"
@@ -38,11 +39,15 @@ export default async function SignInPage({
 
     const headerStore = await headers()
     const origin = resolveAppOriginFromHeaders(headerStore)
+    const authBrand = await getCoreAuthBrand()
     const supabase = await createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: `${origin}/auth/callback`,
+        data: {
+          brand_name: authBrand.name,
+        },
       },
     })
 

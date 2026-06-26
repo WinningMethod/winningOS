@@ -65,9 +65,25 @@ assert(authCore.includes("hasActiveMembership"), "helper exposes active membersh
 assert(authCore.includes("AuthSessionMissingError"), "helper treats missing auth sessions as unauthenticated")
 assert(authCore.includes("Session bootstrap failed"), "helper uses generic Supabase failure messages")
 
+const authBrand = read("core/auth/brand.ts")
+assert(authBrand.includes("getCoreAuthBrand"), "exports Core auth brand helper")
+assert(authBrand.includes("core_brand_settings") && authBrand.includes("brand_name"), "auth brand helper reads Core branding settings")
+
 const originUtility = read("core/auth/origin.ts")
 assert(originUtility.includes("resolveAppOriginFromHeaders") && originUtility.includes("resolveAppOriginFromRequest"), "uses shared auth origin utility")
 assert(originUtility.includes("NODE_ENV === \"production\""), "origin utility guards production fallback")
+
+const supabaseConfig = read("supabase/config.toml")
+assert(supabaseConfig.includes('site_url = "https://winning-os.vercel.app"'), "Supabase hosted auth site URL is production, not localhost")
+assert(supabaseConfig.includes("winning-os-git-feat-auth-prof") && supabaseConfig.includes("*-carter-turnbull-s-projects.vercel.app"), "Supabase auth redirects allow Vercel preview URLs")
+assert(supabaseConfig.includes("[auth.email.template.magic_link]") && supabaseConfig.includes('subject = "Sign in to WinningOS Core"'), "Supabase magic-link email uses WinningOS Core subject")
+assert(supabaseConfig.includes('content_path = "./supabase/templates/magic_link.html"'), "Supabase magic-link email uses a repo-owned template")
+
+const magicLinkTemplate = read("supabase/templates/magic_link.html")
+assert(magicLinkTemplate.includes("WinningOS Core"), "magic-link template is branded as WinningOS Core")
+assert(magicLinkTemplate.includes("{{ .Data.brand_name }}"), "magic-link template can render the Core branding name")
+assert(magicLinkTemplate.includes("{{ .ConfirmationURL }}"), "magic-link template uses Supabase confirmation URL")
+assert(!magicLinkTemplate.toLowerCase().includes("powered by supabase"), "magic-link template removes Supabase powered-by copy")
 
 const signInPage = read("app/(auth)/sign-in/page.tsx")
 assert(signInPage.includes("signInWithOtp"), "sign-in page submits Supabase email OTP")
