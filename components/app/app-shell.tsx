@@ -95,17 +95,17 @@ export function AppShell({ children, workspaceName, profileName, profileEmail, r
                 </DropdownItem>
               </Link>
               <DropdownSeparator />
-              <form action="/auth/sign-out" method="post">
-                <button
-                  type="submit"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sign out
-                </button>
-              </form>
+              <button
+                type="submit"
+                form="core-sign-out-form"
+                role="menuitem"
+                className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </button>
             </Dropdown>
+            <form id="core-sign-out-form" action="/auth/sign-out" method="post" className="hidden" />
           </div>
         </header>
 

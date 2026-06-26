@@ -337,6 +337,12 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
+  "display_name text",
+  "bootstrap RPC returns profile display name",
+)
+
+assertIncludes(
+  migrationText,
   "raise exception 'core_bootstrap_current_user requires an authenticated user'",
   "bootstrap RPC rejects unauthenticated calls",
 )

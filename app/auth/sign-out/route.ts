@@ -1,10 +1,28 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/core/supabase/server"
 
-function appOrigin(): string | null {
+function appOrigin(request: Request): string | null {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
 
-  return appUrl ? new URL(appUrl).origin : null
+  if (appUrl) {
+    return new URL(appUrl).origin
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    return new URL(request.url).origin
+  }
+
+  return null
+}
+
+function signInRedirect(origin: string, error?: string): NextResponse {
+  const url = new URL("/sign-in", origin)
+
+  if (error) {
+    url.searchParams.set("error", error)
+  }
+
+  return NextResponse.redirect(url)
 }
 
 function isSameOrigin(request: Request, expectedOrigin: string): boolean {
@@ -14,18 +32,19 @@ function isSameOrigin(request: Request, expectedOrigin: string): boolean {
 }
 
 export async function POST(request: Request) {
-  const expectedOrigin = appOrigin()
+  const expectedOrigin = appOrigin(request)
+  const fallbackOrigin = expectedOrigin ?? new URL(request.url).origin
 
   if (!expectedOrigin || !isSameOrigin(request, expectedOrigin)) {
-    return NextResponse.json({ error: "Invalid sign-out origin" }, { status: 403 })
+    return signInRedirect(fallbackOrigin, "signout-failed")
   }
 
   const supabase = await createClient()
   const { error } = await supabase.auth.signOut()
 
   if (error) {
-    return NextResponse.json({ error: "Sign-out failed" }, { status: 500 })
+    return signInRedirect(expectedOrigin, "signout-failed")
   }
 
-  return NextResponse.redirect(new URL("/sign-in", expectedOrigin))
+  return signInRedirect(expectedOrigin)
 }

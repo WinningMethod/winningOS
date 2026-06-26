@@ -117,7 +117,7 @@ export default async function SignInPage({
 
             <div aria-live="polite" className="mt-4 min-h-12">
               {params?.sent && (
-                <div className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+                <div role="status" className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
                   <p className="font-medium text-foreground">Check your email</p>
                   <p className="mt-1">Magic link sent. Use it to finish signing in.</p>
                 </div>

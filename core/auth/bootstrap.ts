@@ -27,6 +27,7 @@ export type CoreSession = {
 
 type BootstrapRow = {
   profile_id: string
+  display_name: string | null
   workspace_id: string
   workspace_name: string
   membership_id: string | null
@@ -52,7 +53,12 @@ export async function ensureCoreSession(): Promise<CoreSession> {
   const supabase = await createClient()
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
+
+  if (userError) {
+    throw new Error(`Failed to read Supabase user: ${userError.message}`)
+  }
 
   if (!user) {
     return {
@@ -85,7 +91,7 @@ export async function ensureCoreSession(): Promise<CoreSession> {
     },
     profile: {
       id: data.profile_id,
-      displayName,
+      displayName: data.display_name ?? displayName,
     },
     workspace: {
       id: data.workspace_id,

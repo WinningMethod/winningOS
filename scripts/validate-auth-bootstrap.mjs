@@ -48,6 +48,7 @@ assert(
   "bootstrap RPC grants execute only to authenticated role",
 )
 assert(authMigration.includes("workspace_name text"), "auth callback returns workspace name")
+assert(authMigration.includes("display_name text"), "bootstrap RPC returns stored display name")
 assert(authMigration.includes("m.workspace_id = target_workspace_id") && authMigration.includes("for update"), "bootstrap RPC scopes first-owner count and lock")
 assert(authMigration.includes("on conflict (workspace_id, profile_id) do nothing"), "bootstrap RPC does not promote inactive conflicting memberships")
 assert(authMigration.includes("Preserve an existing display name"), "bootstrap RPC documents immutable display names")
@@ -69,10 +70,12 @@ assert(signInPage.includes("NEXT_PUBLIC_APP_URL is required"), "sign-in page req
 assert(!signInPage.includes("x-forwarded-host"), "sign-in page does not trust forwarded host for auth redirect")
 assert(!signInPage.includes("encodeURIComponent(email)"), "sign-in page does not reflect email from URL query")
 assert(signInPage.includes('aria-live="polite"'), "sign-in page keeps a live status region")
+assert(signInPage.includes('role="status"'), "sign-in page exposes successful OTP state as status")
 assert(signInPage.includes('role="alert"'), "sign-in page alerts error state on initial render")
 
 const callbackRoute = read("app/auth/callback/route.ts")
 assert(callbackRoute.includes("exchangeCodeForSession"), "auth callback exchanges code for session")
+assert(callbackRoute.includes("NEXT_PUBLIC_APP_URL"), "auth callback uses configured app origin")
 assert(callbackRoute.includes("/home"), "auth callback redirects authenticated users home")
 
 const appLayout = read("app/(app)/layout.tsx")
@@ -82,12 +85,13 @@ assert(appLayout.includes("/pending-access"), "protected app layout handles auth
 
 const appShell = read("components/app/app-shell.tsx")
 assert(appShell.includes('role="menuitem"'), "app shell sign-out is exposed as a menu item")
+assert(appShell.includes('form="core-sign-out-form"') && appShell.includes('id="core-sign-out-form"'), "app shell keeps sign-out form outside the ARIA menu")
 
 const signOutRoute = read("app/auth/sign-out/route.ts")
 assert(signOutRoute.includes("isSameOrigin"), "sign-out route guards same-origin POSTs")
 assert(signOutRoute.includes("NEXT_PUBLIC_APP_URL"), "sign-out route uses configured app origin")
 assert(signOutRoute.includes("origin !== null"), "sign-out route requires Origin header")
-assert(signOutRoute.includes("Sign-out failed"), "sign-out route handles Supabase sign-out errors")
+assert(signOutRoute.includes("signout-failed"), "sign-out route redirects failures instead of returning JSON")
 
 const pendingAccess = read("app/pending-access/page.tsx")
 assert(pendingAccess.includes("hasActiveMembership"), "pending access page reads membership state")

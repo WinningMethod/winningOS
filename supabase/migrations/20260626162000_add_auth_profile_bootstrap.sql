@@ -13,6 +13,7 @@
 create or replace function public.core_bootstrap_current_user(profile_display_name text default null)
 returns table (
   profile_id uuid,
+  display_name text,
   workspace_id uuid,
   workspace_name text,
   membership_id uuid,
@@ -26,6 +27,7 @@ as $$
 declare
   current_user_id uuid := auth.uid();
   target_profile_id uuid;
+  target_display_name text;
   target_workspace_id uuid;
   target_workspace_name text;
   owner_role_id uuid;
@@ -45,7 +47,7 @@ begin
   set
     display_name = coalesce(public.core_profiles.display_name, excluded.display_name),
     updated_at = now()
-  returning id into target_profile_id;
+  returning id, display_name into target_profile_id, target_display_name;
 
   select w.id, w.name
   into target_workspace_id, target_workspace_name
@@ -69,6 +71,7 @@ begin
   if existing_membership_id is not null then
     return query select
       target_profile_id,
+      target_display_name,
       target_workspace_id,
       target_workspace_name,
       existing_membership_id,
@@ -100,6 +103,7 @@ begin
   if existing_membership_id is not null then
     return query select
       target_profile_id,
+      target_display_name,
       target_workspace_id,
       target_workspace_name,
       existing_membership_id,
@@ -137,6 +141,7 @@ begin
 
       return query select
         target_profile_id,
+        target_display_name,
         target_workspace_id,
         target_workspace_name,
         existing_membership_id,
@@ -148,6 +153,7 @@ begin
 
   return query select
     target_profile_id,
+    target_display_name,
     target_workspace_id,
     target_workspace_name,
     null::uuid,
