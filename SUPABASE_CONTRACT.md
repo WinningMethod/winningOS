@@ -22,6 +22,7 @@ The first schema/seed migrations now implement this contract. This document rema
 Public browser-safe variables for Next.js / `@supabase/ssr` helpers:
 
 ```text
+NEXT_PUBLIC_APP_URL
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
@@ -79,7 +80,8 @@ Rules:
 
 - The RPC requires `auth.uid()` and raises if called unauthenticated.
 - The RPC creates or reuses the caller's `core_profiles` row.
-- The RPC locks the seeded `winningos` workspace row while deciding whether the first owner should be created.
+- The RPC returns the workspace display name so the app shell does not hardcode it.
+- The RPC checks existing membership before acquiring the seeded workspace lock, then locks the `winningos` workspace row only while deciding whether the first owner should be created.
 - If no active memberships exist, the caller receives the seeded workspace owner role.
 - If active memberships already exist and the caller has no active membership, the caller receives a profile but no workspace access.
 - The RPC is `security definer` with a fixed search path and grants execute only to `authenticated`.

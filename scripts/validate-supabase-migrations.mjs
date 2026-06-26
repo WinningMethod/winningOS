@@ -325,6 +325,12 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
+  "workspace_name text",
+  "bootstrap RPC returns workspace display name",
+)
+
+assertIncludes(
+  migrationText,
   "raise exception 'core_bootstrap_current_user requires an authenticated user'",
   "bootstrap RPC rejects unauthenticated calls",
 )
@@ -333,6 +339,12 @@ assertIncludes(
   migrationText,
   "for update",
   "bootstrap RPC locks default workspace during first-owner decision",
+)
+
+assertIncludes(
+  migrationText,
+  "m.workspace_id = target_workspace_id",
+  "bootstrap RPC scopes first-owner membership count",
 )
 
 assertIncludes(

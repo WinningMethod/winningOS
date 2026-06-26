@@ -10,6 +10,29 @@ import { ThemeToggle } from "@/components/app/theme-toggle"
 import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { createClient } from "@/core/supabase/server"
 
+function appOriginFromHeaders(headerStore: Headers): string {
+  const explicitAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
+
+  if (explicitAppUrl) {
+    return explicitAppUrl.replace(/\/$/, "")
+  }
+
+  const origin = headerStore.get("origin")
+
+  if (origin) {
+    return origin
+  }
+
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host")
+
+  if (host) {
+    const proto = headerStore.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https")
+    return `${proto}://${host}`
+  }
+
+  return "http://localhost:3000"
+}
+
 export default async function SignInPage({
   searchParams,
 }: {
@@ -36,7 +59,7 @@ export default async function SignInPage({
     }
 
     const headerStore = await headers()
-    const origin = headerStore.get("origin") ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://localhost:3000"
+    const origin = appOriginFromHeaders(headerStore)
     const supabase = await createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -49,7 +72,7 @@ export default async function SignInPage({
       redirect("/sign-in?error=auth-failed")
     }
 
-    redirect(`/sign-in?sent=1&email=${encodeURIComponent(email)}`)
+    redirect("/sign-in?sent=1")
   }
 
   return (
@@ -96,13 +119,19 @@ export default async function SignInPage({
             </form>
 
             {params?.sent && (
-              <div className="mt-4 rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
-                Magic link sent{params.email ? ` to ${params.email}` : ""}. Check your email to continue.
+              <div
+                role="alert"
+                className="mt-4 rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground"
+              >
+                Magic link sent. Check your email to continue.
               </div>
             )}
 
             {params?.error && (
-              <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+              <div
+                role="alert"
+                className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+              >
                 We couldn&apos;t send the magic link. Check the email and try again.
               </div>
             )}

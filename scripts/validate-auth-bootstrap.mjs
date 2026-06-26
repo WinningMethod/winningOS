@@ -47,6 +47,8 @@ assert(
   authMigration.includes("grant execute on function public.core_bootstrap_current_user(text) to authenticated"),
   "bootstrap RPC grants execute only to authenticated role",
 )
+assert(authMigration.includes("workspace_name text"), "auth callback returns workspace name")
+assert(authMigration.includes("m.workspace_id = target_workspace_id") && authMigration.includes("for update"), "bootstrap RPC scopes first-owner count and lock")
 assert(
   authMigration.includes("revoke all on function public.core_bootstrap_current_user(text) from public"),
   "bootstrap RPC revokes default public execute",
@@ -60,6 +62,9 @@ assert(authCore.includes("hasActiveMembership"), "helper exposes active membersh
 const signInPage = read("app/(auth)/sign-in/page.tsx")
 assert(signInPage.includes("signInWithOtp"), "sign-in page submits Supabase email OTP")
 assert(signInPage.includes("emailRedirectTo"), "sign-in page supplies auth callback redirect")
+assert(signInPage.includes("NEXT_PUBLIC_APP_URL"), "sign-in page avoids Supabase URL as app callback fallback")
+assert(!signInPage.includes("encodeURIComponent(email)"), "sign-in page does not reflect email from URL query")
+assert(signInPage.includes('role="alert"'), "sign-in page announces status messages")
 
 const callbackRoute = read("app/auth/callback/route.ts")
 assert(callbackRoute.includes("exchangeCodeForSession"), "auth callback exchanges code for session")
@@ -69,6 +74,9 @@ const appLayout = read("app/(app)/layout.tsx")
 assert(appLayout.includes("ensureCoreSession"), "protected app layout requires Core session")
 assert(appLayout.includes("/sign-in"), "protected app layout redirects unauthenticated users")
 assert(appLayout.includes("/pending-access"), "protected app layout handles authenticated users without membership")
+
+const signOutRoute = read("app/auth/sign-out/route.ts")
+assert(signOutRoute.includes("isSameOrigin"), "sign-out route guards same-origin POSTs")
 
 const pendingAccess = read("app/pending-access/page.tsx")
 assert(pendingAccess.includes("hasActiveMembership"), "pending access page reads membership state")

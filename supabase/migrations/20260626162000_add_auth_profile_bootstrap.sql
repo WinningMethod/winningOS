@@ -14,6 +14,7 @@ create or replace function public.core_bootstrap_current_user(profile_display_na
 returns table (
   profile_id uuid,
   workspace_id uuid,
+  workspace_name text,
   membership_id uuid,
   role_key text,
   has_active_membership boolean
@@ -26,6 +27,7 @@ declare
   current_user_id uuid := auth.uid();
   target_profile_id uuid;
   target_workspace_id uuid;
+  target_workspace_name text;
   owner_role_id uuid;
   existing_membership_id uuid;
   existing_role_key text;
@@ -44,8 +46,38 @@ begin
     updated_at = now()
   returning id into target_profile_id;
 
-  select w.id
-  into target_workspace_id
+  select w.id, w.name
+  into target_workspace_id, target_workspace_name
+  from public.core_workspaces w
+  where w.slug = 'winningos'
+    and w.deleted_at is null;
+
+  if target_workspace_id is null then
+    raise exception 'core_bootstrap_current_user requires the winningos workspace seed';
+  end if;
+
+  select m.id, r.key
+  into existing_membership_id, existing_role_key
+  from public.core_memberships m
+  join public.core_roles r on r.id = m.role_id
+  where m.workspace_id = target_workspace_id
+    and m.profile_id = target_profile_id
+    and m.status = 'active'
+  limit 1;
+
+  if existing_membership_id is not null then
+    return query select
+      target_profile_id,
+      target_workspace_id,
+      target_workspace_name,
+      existing_membership_id,
+      existing_role_key,
+      true;
+    return;
+  end if;
+
+  select w.id, w.name
+  into target_workspace_id, target_workspace_name
   from public.core_workspaces w
   where w.slug = 'winningos'
     and w.deleted_at is null
@@ -68,6 +100,7 @@ begin
     return query select
       target_profile_id,
       target_workspace_id,
+      target_workspace_name,
       existing_membership_id,
       existing_role_key,
       true;
@@ -77,7 +110,8 @@ begin
   select count(*)
   into active_membership_count
   from public.core_memberships m
-  where m.status = 'active';
+  where m.workspace_id = target_workspace_id
+    and m.status = 'active';
 
   if active_membership_count = 0 then
     select r.id
@@ -106,6 +140,7 @@ begin
     return query select
       target_profile_id,
       target_workspace_id,
+      target_workspace_name,
       existing_membership_id,
       'owner'::text,
       true;
@@ -115,6 +150,7 @@ begin
   return query select
     target_profile_id,
     target_workspace_id,
+    target_workspace_name,
     null::uuid,
     null::text,
     false;

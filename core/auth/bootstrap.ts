@@ -28,6 +28,7 @@ export type CoreSession = {
 type BootstrapRow = {
   profile_id: string
   workspace_id: string
+  workspace_name: string
   membership_id: string | null
   role_key: string | null
   has_active_membership: boolean
@@ -88,7 +89,7 @@ export async function ensureCoreSession(): Promise<CoreSession> {
     },
     workspace: {
       id: data.workspace_id,
-      name: "WinningOS",
+      name: data.workspace_name,
     },
     membership: data.membership_id && data.role_key
       ? {

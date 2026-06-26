@@ -120,6 +120,7 @@ Browser-exposed variables must be clearly separated from server-only variables.
 Expected browser-exposed variables:
 
 ```text
+NEXT_PUBLIC_APP_URL
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```

@@ -51,6 +51,7 @@ Then fill in values from the Supabase project that will back the Core deployment
 Required browser-safe variables for Next.js / `@supabase/ssr` helpers:
 
 ```text
+NEXT_PUBLIC_APP_URL
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
