@@ -117,24 +117,31 @@ Rules:
 
 Browser-exposed variables must be clearly separated from server-only variables.
 
-Expected public variables:
+Expected browser-exposed variables:
 
 ```text
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
+```
+
+Expected server-side non-secret variables:
+
+```text
 SUPABASE_URL
 SUPABASE_PUBLISHABLE_KEY
 SUPABASE_JWKS_URL
 ```
 
-Expected server-only variables:
+These variables are not browser-accessible in Next.js because they do not use the `NEXT_PUBLIC_` prefix. They may be used by server-side request-handler code only. `SUPABASE_JWKS_URL` is optional in WinningOS helpers; when absent, it is derived from `SUPABASE_URL`, and when present its origin must match `SUPABASE_URL`.
+
+Expected server-only secret variables:
 
 ```text
 SUPABASE_SERVICE_ROLE_KEY
 SUPABASE_SECRET_KEY
 ```
 
-Server-only variables must never be referenced in client components.
+Server-only and server-side-only variables must never be referenced in client components.
 
 ## Plugin and integration secrets
 

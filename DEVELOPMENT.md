@@ -67,8 +67,15 @@ Required direct `@supabase/server` request-handler variables:
 SUPABASE_URL
 SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SECRET_KEY
+```
+
+Optional direct request-handler variable:
+
+```text
 SUPABASE_JWKS_URL
 ```
+
+WinningOS derives the JWKS URL from `SUPABASE_URL` when `SUPABASE_JWKS_URL` is blank. If `SUPABASE_JWKS_URL` is set, its origin must match `SUPABASE_URL`.
 
 Copy the real values from the Supabase dashboard Connect dialog. Never commit the secret key.
 
@@ -206,6 +213,24 @@ npm run db:validate
 ```
 
 This checks that the expected Core migrations, tables, seed records, RLS enables, and helper functions are present. It is not a replacement for applying migrations to a real Supabase project.
+
+## Apply migrations to the remote Supabase project
+
+After `.env.local` contains the real project values, apply pending migrations with the Supabase CLI using the percent-encoded database URL derived from the project ref and database password:
+
+```bash
+npx supabase db push --db-url "$SUPABASE_DB_URL" --yes
+```
+
+If `SUPABASE_DB_URL` is not set, build the connection string from `SUPABASE_PROJECT_REF` and `SUPABASE_DB_PASSWORD` without committing it.
+
+Verify the remote Core schema, RLS flags, seed rows, migration history, and required indexes:
+
+```bash
+npm run db:verify:remote
+```
+
+The remote verification script reads `.env.local`, does not print secret values, and fails if the JWKS URL origin does not match `SUPABASE_URL`.
 
 ## Next implementation steps
 
