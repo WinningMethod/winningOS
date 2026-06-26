@@ -210,6 +210,7 @@ Validate the migration contract without needing a running Supabase container:
 
 ```bash
 npm run db:validate
+npm run auth:validate
 ```
 
 This checks that the expected Core migrations, tables, seed records, RLS enables, and helper functions are present. It is not a replacement for applying migrations to a real Supabase project.
@@ -252,3 +253,16 @@ Local Supabase Auth redirects use `http://localhost:3000` as `site_url` and allo
 ## Auth/profile bootstrap note
 
 `core_profiles` includes a minimal authenticated INSERT policy (`user_id = auth.uid()`) so the next auth/profile slice can create user-owned profiles through the Supabase client or replace that path with a deliberate security-definer trigger. Non-active membership rows remain hidden from ordinary member reads until elevated member-management policies are added.
+
+
+## Auth bootstrap behavior
+
+The app now has a minimal Supabase Auth path:
+
+- `/sign-in` sends an email OTP magic link.
+- `/auth/callback` exchanges the code for a Supabase session.
+- protected app routes call `ensureCoreSession()`.
+- the first authenticated user becomes owner of the seeded workspace.
+- authenticated users without membership are routed to `/pending-access`.
+
+This slice intentionally does not add member invitations, role editing, plugin work, or persisted reads for every dashboard card.

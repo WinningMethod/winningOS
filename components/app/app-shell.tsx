@@ -9,21 +9,26 @@ import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/dropd
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { currentWorkspace, currentProfile } from "@/lib/mock-data"
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+type AppShellProps = {
+  children: React.ReactNode
+  workspaceName: string
+  profileName: string
+  profileEmail: string | null
+  roleKey: string
+}
+
+export function AppShell({ children, workspaceName, profileName, profileEmail, roleKey }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar lg:block">
         <div className="sticky top-0 h-screen">
           <SidebarContent />
         </div>
       </aside>
 
-      {/* Mobile drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
@@ -54,31 +59,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Menu className="h-4 w-4" />
           </Button>
 
-          {/* Single workspace display. Core v0.1 intentionally has no workspace switching. */}
           <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm">
             <span className="flex h-6 w-6 items-center justify-center rounded bg-primary text-[11px] font-semibold text-primary-foreground">
-              {currentWorkspace.name.slice(0, 1)}
+              {workspaceName.slice(0, 1)}
             </span>
-            <span className="hidden font-medium sm:inline">{currentWorkspace.name}</span>
+            <span className="hidden font-medium sm:inline">{workspaceName}</span>
           </div>
 
           <div className="ml-auto flex items-center gap-1">
             <ThemeToggle />
 
-            {/* Profile menu */}
             <Dropdown
               align="end"
               menuLabel="Account menu"
               trigger={({ open }) => (
                 <span className={cn("rounded-full p-0.5 transition-colors hover:bg-accent", open && "bg-accent")}>
-                  <Avatar name={currentProfile.name} size="sm" />
+                  <Avatar name={profileName} size="sm" />
                 </span>
               )}
             >
               <div className="px-2.5 py-2">
-                <p className="text-sm font-medium">{currentProfile.name}</p>
-                <p className="text-xs text-muted-foreground">{currentProfile.email}</p>
-                <p className="mt-1 text-[11px] font-medium text-primary">{currentProfile.role}</p>
+                <p className="text-sm font-medium">{profileName}</p>
+                <p className="text-xs text-muted-foreground">{profileEmail ?? "Authenticated user"}</p>
+                <p className="mt-1 text-[11px] font-medium uppercase text-primary">{roleKey}</p>
               </div>
               <DropdownSeparator />
               <DropdownItem disabled>
@@ -92,10 +95,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </DropdownItem>
               </Link>
               <DropdownSeparator />
-              <DropdownItem disabled className="text-muted-foreground">
-                <LogOut className="h-4 w-4" />
-                Sign out
-              </DropdownItem>
+              <form action="/auth/sign-out" method="post">
+                <button
+                  type="submit"
+                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </button>
+              </form>
             </Dropdown>
           </div>
         </header>

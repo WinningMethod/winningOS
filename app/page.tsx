@@ -35,13 +35,15 @@ export default function AuthEntryPage() {
           <Card className="p-6">
             <h2 className="text-sm font-semibold">Sign in to your workspace</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Authentication will be Supabase-backed in a later build.
+              Supabase Auth now creates the Core profile and first-owner bootstrap path.
             </p>
 
             <div className="mt-5 flex flex-col gap-2.5">
-              <Button size="lg" className="w-full" disabled>
-                Continue with email
-              </Button>
+              <Link href="/sign-in">
+                <Button size="lg" className="w-full">
+                  Continue with email
+                </Button>
+              </Link>
             </div>
 
             <div className="my-5 flex items-center gap-3">
@@ -62,8 +64,8 @@ export default function AuthEntryPage() {
           <div className="mt-4 flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2.5">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Sign-in is not wired in this wireframe. The buttons above are placeholders. Use{" "}
-              <span className="font-medium text-foreground">Enter demo workspace</span> to explore the Core UI.
+              <span className="font-medium text-foreground">Continue with email</span> to sign in. The workspace
+              pages are protected and will redirect unauthenticated users back here.
             </p>
           </div>
         </div>

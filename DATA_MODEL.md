@@ -349,3 +349,15 @@ For Core v0.1:
 - Defer full `core_permissions` / `core_role_permissions` database tables and role editor UI until the permission check surface is proven.
 - Keep permissions explicit and string-keyed.
 - Use Supabase RLS for workspace-scoped data once migrations begin.
+
+
+## Auth/profile bootstrap behavior
+
+The first auth/profile bootstrap slice keeps the table model unchanged and adds a focused RPC boundary:
+
+- authenticated users get a `core_profiles` row tied to `auth.users.id`
+- the first authenticated profile becomes owner of the seeded `winningos` workspace if no active memberships exist
+- later authenticated profiles can exist without workspace membership and are routed to pending access
+- member invitations and membership-management writes are intentionally deferred
+
+This preserves the Core v0.1 rule that one deployed Core instance equals one workspace while avoiding automatic membership grants after the first owner exists.

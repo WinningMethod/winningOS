@@ -97,6 +97,13 @@ select jsonb_build_object(
   'system_role_count', (select count(*) from public.core_roles where is_system),
   'brand_settings_count', (select count(*) from public.core_brand_settings),
   'migration_versions', (select jsonb_agg(version order by version) from supabase_migrations.schema_migrations),
+  'bootstrap_function_count', (
+    select count(*)
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname = 'core_bootstrap_current_user'
+  ),
   'indexes', (
     select jsonb_agg(indexname order by indexname)
     from pg_indexes
@@ -131,8 +138,9 @@ assert(
 )
 assert(Number(verification.system_role_count) === 4, "Expected four system roles")
 assert(Number(verification.brand_settings_count) === 1, "Expected one brand settings row")
+assert(Number(verification.bootstrap_function_count) === 1, "Expected Core bootstrap RPC to exist")
 assert(
-  ["20260625231000", "20260625232000"].every((version) =>
+  ["20260625231000", "20260625232000", "20260626162000"].every((version) =>
     verification.migration_versions.includes(version),
   ),
   "Missing expected Supabase migration history versions",
@@ -156,6 +164,7 @@ console.log(
       roleKeys: verification.role_keys,
       systemRoleCount: Number(verification.system_role_count),
       brandSettingsCount: Number(verification.brand_settings_count),
+      bootstrapFunctionCount: Number(verification.bootstrap_function_count),
       migrationVersions: verification.migration_versions,
       indexes: verification.indexes,
     },

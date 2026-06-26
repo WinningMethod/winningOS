@@ -14,6 +14,7 @@ const forbiddenPatterns = [
 const requiredMigrations = [
   "20260625231000_create_core_schema.sql",
   "20260625232000_seed_core_defaults.sql",
+  "20260626162000_add_auth_profile_bootstrap.sql",
 ]
 
 const requiredTables = [
@@ -315,5 +316,35 @@ if (migrationText.includes("deleted_at is null and private.core_is_active_member
 if (process.exitCode) {
   process.exit(process.exitCode)
 }
+
+assertIncludes(
+  migrationText,
+  "public.core_bootstrap_current_user(profile_display_name text default null)",
+  "defines authenticated profile bootstrap RPC",
+)
+
+assertIncludes(
+  migrationText,
+  "raise exception 'core_bootstrap_current_user requires an authenticated user'",
+  "bootstrap RPC rejects unauthenticated calls",
+)
+
+assertIncludes(
+  migrationText,
+  "for update",
+  "bootstrap RPC locks default workspace during first-owner decision",
+)
+
+assertIncludes(
+  migrationText,
+  "grant execute on function public.core_bootstrap_current_user(text) to authenticated;",
+  "bootstrap RPC is executable by authenticated users",
+)
+
+assertIncludes(
+  migrationText,
+  "revoke all on function public.core_bootstrap_current_user(text) from public;",
+  "bootstrap RPC revokes default public execute",
+)
 
 console.log("Supabase migration contract validation passed.")

@@ -313,3 +313,15 @@ Before merging implementation work, answer:
 3. Should the first auth slice use Supabase email/password, magic links, or both?
 4. Should audit events be deferred until after the first privileged write actions? Current direction: yes.
 5. Should `Example_Plugin` wait until after Core is operational and tested? Current decision: yes.
+
+
+## Auth/profile bootstrap status
+
+The current implementation slice moves Core from static auth placeholders to a real Supabase-backed session boundary. It adds email OTP sign-in, callback handling, profile bootstrap, first-owner membership bootstrap for the seeded workspace, protected app routes, and a pending-access state for signed-in users who are not members.
+
+Still deferred:
+
+- member invitations and membership management
+- permission-aware write helpers
+- persisted workspace/branding settings writes
+- plugin/agent/chat functionality

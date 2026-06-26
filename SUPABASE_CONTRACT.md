@@ -71,6 +71,27 @@ Rules:
 - for Supabase Edge Functions with `publishable`, `secret`, or `none` auth modes, set `verify_jwt = false` for that function in `supabase/config.toml`
 - do not commit `SUPABASE_SECRET_KEY`
 
+## Auth/profile bootstrap
+
+The auth bootstrap slice introduces `public.core_bootstrap_current_user(profile_display_name text default null)` as the narrow authenticated RPC for turning a Supabase Auth user into a WinningOS Core profile/session.
+
+Rules:
+
+- The RPC requires `auth.uid()` and raises if called unauthenticated.
+- The RPC creates or reuses the caller's `core_profiles` row.
+- The RPC locks the seeded `winningos` workspace row while deciding whether the first owner should be created.
+- If no active memberships exist, the caller receives the seeded workspace owner role.
+- If active memberships already exist and the caller has no active membership, the caller receives a profile but no workspace access.
+- The RPC is `security definer` with a fixed search path and grants execute only to `authenticated`.
+- Member invitations and member-management writes remain deferred to later slices.
+
+App route rules:
+
+- `/sign-in` starts Supabase email OTP.
+- `/auth/callback` exchanges the auth code for a session.
+- `/home`, `/members`, and `/settings` require an authenticated Core session with active membership.
+- `/pending-access` is the holding page for authenticated profiles without membership.
+
 ## Client boundaries
 
 Core should eventually provide separate helpers for:
