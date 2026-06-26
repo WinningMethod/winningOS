@@ -203,7 +203,7 @@ Purpose:
 
 ### 2. Environment example
 
-Needed file:
+Added file:
 
 ```text
 .env.example
@@ -215,11 +215,11 @@ Purpose:
 - document server-only variables
 - avoid leaking secrets
 
-This belongs in the first implementation groundwork PR, not necessarily this docs-only PR.
+This is now part of the Supabase environment-contract groundwork.
 
 ### 3. Local setup guide
 
-Potential file:
+Added file:
 
 ```text
 DEVELOPMENT.md
@@ -233,7 +233,7 @@ Purpose:
 - configure Supabase locally/remotely
 - explain expected validation commands
 
-This can be paired with `.env.example`.
+This is paired with `.env.example` and the Supabase helper skeletons.
 
 ### 4. Supabase migration folder
 
@@ -281,18 +281,18 @@ Before Agent/chat functionality returns, decide:
 
 ## Recommended next PR after this one
 
-After the compatibility contract is reviewed and merged, the next PR should be small implementation groundwork:
+After the Supabase environment-contract PR is reviewed and merged, the next PR should add initial schema groundwork:
 
 ```text
-chore: add Supabase environment contract
+feat: add initial Core Supabase schema
 ```
 
 Suggested scope:
 
-- `.env.example`
-- `DEVELOPMENT.md`
-- Supabase client helper skeletons
-- no migrations yet
+- `supabase/migrations/`
+- initial Core tables
+- one-workspace seed/bootstrap direction
+- system roles
 - no real auth flow yet
 - no plugin work
 - no agent/chat work

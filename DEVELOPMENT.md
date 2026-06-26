@@ -1,0 +1,154 @@
+# WinningOS Core Development Guide
+
+## Purpose
+
+This guide explains how to run WinningOS Core locally during the Supabase environment-contract phase.
+
+This is not the full backend implementation guide yet. This PR adds the environment contract and Supabase client helper skeletons only.
+
+Current scope:
+
+- document required environment variables
+- document public vs server-only Supabase boundaries
+- add reusable Supabase client helper skeletons
+- keep the current UI mock-data based
+
+Out of scope for this phase:
+
+- schema migrations
+- Supabase Auth UI replacement
+- profile bootstrap
+- RLS policies
+- real database reads/writes
+- plugin code
+- agent/chat functionality
+
+## Prerequisites
+
+Use the repo's existing Node/npm toolchain.
+
+```bash
+node --version
+npm --version
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+## Environment setup
+
+Create a local environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+Then fill in values from the Supabase project that will back the Core deployment.
+
+Required browser-safe variables:
+
+```text
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+```
+
+Required server-only variable:
+
+```text
+SUPABASE_SERVICE_ROLE_KEY
+```
+
+## Environment variable rules
+
+### Browser-safe variables
+
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are available to browser code.
+
+The anon key is not treated as a secret. Supabase Row Level Security must protect data access.
+
+### Server-only variables
+
+`SUPABASE_SERVICE_ROLE_KEY` is secret.
+
+Rules:
+
+- do not prefix it with `NEXT_PUBLIC_`
+- do not import it into client components
+- do not log it
+- do not commit it
+- do not use it for normal user-facing reads/writes
+- only use it in explicitly named server/admin paths after the service-role use case is documented
+
+## Supabase helper files
+
+The helper skeletons live in:
+
+```text
+core/supabase/env.public.ts
+core/supabase/env.server.ts
+core/supabase/browser.ts
+core/supabase/server.ts
+core/supabase/service-role.ts
+```
+
+Expected boundaries:
+
+- `env.public.ts` validates browser-safe public Supabase variables only.
+- `env.server.ts` is guarded with `server-only` and validates server-only variables.
+- `browser.ts` creates a memoized browser-safe client with public env vars only.
+- `server.ts` creates a cookie-aware server client for Server Components, Server Actions, and Route Handlers.
+- `service-role.ts` creates a server-only admin client and must remain exceptional.
+
+Do not import `service-role.ts` from client components.
+
+## Local commands
+
+Run the development server:
+
+```bash
+npm run dev
+```
+
+Build the app:
+
+```bash
+npm run build
+```
+
+Run TypeScript validation without emitting files:
+
+```bash
+npm run typecheck
+```
+
+## Current expected app behavior
+
+During this phase, the UI still uses mock data.
+
+The Supabase helpers exist so future PRs can wire real auth/data safely without inventing environment boundaries inside feature work.
+
+Expected routes remain:
+
+```text
+/
+/home
+/members
+/settings
+```
+
+## Next implementation steps
+
+After this environment-contract phase, the next implementation slices should be:
+
+1. initial Core schema migrations
+2. seed/bootstrap path for the single workspace and system roles
+3. auth/profile bootstrap
+4. membership and permission helpers
+5. RLS policies
+6. replacement of mock reads with Supabase reads
+7. persisted settings writes
+
+Do not start plugin work until Core is operational and tested.
