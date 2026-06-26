@@ -58,30 +58,31 @@ function signInErrorMessage(errorCode: SignInErrorCode | undefined): { title: st
     return null
   }
 
-  if (errorCode === "missing-email") {
-    return {
-      title: "Email required",
-      message: "Enter your email address before requesting a magic link.",
+  switch (errorCode) {
+    case "missing-email":
+      return {
+        title: "Email required",
+        message: "Enter your email address before requesting a magic link.",
+      }
+    case "rate-limited":
+      return {
+        title: "Too many magic-link requests",
+        message: "Wait a minute, then request a new link.",
+      }
+    case "email-provider":
+      return {
+        title: "Email provider unavailable",
+        message: "We couldn't send the link right now. Our email service may be briefly unavailable.",
+      }
+    case "auth-failed":
+      return {
+        title: "Sign-in failed",
+        message: "We couldn't send the magic link. Try again in a moment.",
+      }
+    default: {
+      const exhaustive: never = errorCode
+      return exhaustive
     }
-  }
-
-  if (errorCode === "rate-limited") {
-    return {
-      title: "Too many magic-link requests",
-      message: "Too many magic-link requests. Wait a minute, then request a new link.",
-    }
-  }
-
-  if (errorCode === "email-provider") {
-    return {
-      title: "Email provider unavailable",
-      message: "We couldn't send the link right now. Our email service may be briefly unavailable.",
-    }
-  }
-
-  return {
-    title: "Sign-in failed",
-    message: "We couldn't send the magic link. Try again in a moment.",
   }
 }
 
