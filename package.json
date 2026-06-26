@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "db:validate": "node scripts/validate-supabase-migrations.mjs"
+    "db:validate": "node scripts/validate-supabase-migrations.mjs",
+    "db:verify:remote": "node scripts/verify-supabase-remote.mjs"
   },
   "dependencies": {
     "@supabase/server": "^1.2.0",

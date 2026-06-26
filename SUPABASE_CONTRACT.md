@@ -38,8 +38,15 @@ Direct `@supabase/server` request-handler variables:
 SUPABASE_URL
 SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SECRET_KEY
+```
+
+Optional direct request-handler variable:
+
+```text
 SUPABASE_JWKS_URL
 ```
+
+WinningOS derives the JWKS URL from `SUPABASE_URL` when `SUPABASE_JWKS_URL` is blank. If set, `SUPABASE_JWKS_URL` must share the same origin as `SUPABASE_URL`.
 
 Rules:
 
@@ -56,8 +63,11 @@ Rules:
 Rules:
 
 - default to `auth: "user"` for user-facing handlers
+- import the request-handler boundary from server-only code only
+- use the named `withWinningOS*` helpers instead of raw `withSupabase` calls
 - use `ctx.supabase` for ordinary reads/writes so RLS remains the source of truth
 - treat `ctx.supabaseAdmin` as an explicit admin escape hatch, not a default data path
+- derive JWKS from `SUPABASE_URL` or assert that `SUPABASE_JWKS_URL` has the same origin
 - for Supabase Edge Functions with `publishable`, `secret`, or `none` auth modes, set `verify_jwt = false` for that function in `supabase/config.toml`
 - do not commit `SUPABASE_SECRET_KEY`
 
