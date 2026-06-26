@@ -14,6 +14,7 @@
 -- - real owner bootstrap for a specific auth user
 
 create schema if not exists extensions;
+create schema if not exists private;
 create extension if not exists pgcrypto with schema extensions;
 
 create table if not exists public.core_profiles (
@@ -110,27 +111,27 @@ begin
 end;
 $$;
 
-create trigger core_profiles_touch_updated_at
+create or replace trigger core_profiles_touch_updated_at
 before update on public.core_profiles
 for each row execute function public.core_touch_updated_at();
 
-create trigger core_workspaces_touch_updated_at
+create or replace trigger core_workspaces_touch_updated_at
 before update on public.core_workspaces
 for each row execute function public.core_touch_updated_at();
 
-create trigger core_roles_touch_updated_at
+create or replace trigger core_roles_touch_updated_at
 before update on public.core_roles
 for each row execute function public.core_touch_updated_at();
 
-create trigger core_memberships_touch_updated_at
+create or replace trigger core_memberships_touch_updated_at
 before update on public.core_memberships
 for each row execute function public.core_touch_updated_at();
 
-create trigger core_brand_settings_touch_updated_at
+create or replace trigger core_brand_settings_touch_updated_at
 before update on public.core_brand_settings
 for each row execute function public.core_touch_updated_at();
 
-create or replace function public.core_current_profile_id()
+create or replace function private.core_current_profile_id()
 returns uuid
 language sql
 stable
@@ -143,7 +144,7 @@ as $$
   limit 1
 $$;
 
-create or replace function public.core_is_active_member(target_workspace_id uuid)
+create or replace function private.core_is_active_member(target_workspace_id uuid)
 returns boolean
 language sql
 stable
@@ -160,7 +161,7 @@ as $$
   )
 $$;
 
-create or replace function public.core_profiles_share_active_workspace(target_profile_id uuid)
+create or replace function private.core_profiles_share_active_workspace(target_profile_id uuid)
 returns boolean
 language sql
 stable
@@ -187,17 +188,23 @@ alter table public.core_roles enable row level security;
 alter table public.core_memberships enable row level security;
 alter table public.core_brand_settings enable row level security;
 
+drop policy if exists "Users can read their own profile" on public.core_profiles;
+
 create policy "Users can read their own profile"
   on public.core_profiles
   for select
   to authenticated
   using (user_id = auth.uid());
 
+drop policy if exists "Members can read profiles in their active workspace" on public.core_profiles;
+
 create policy "Members can read profiles in their active workspace"
   on public.core_profiles
   for select
   to authenticated
-  using (public.core_profiles_share_active_workspace(id));
+  using (private.core_profiles_share_active_workspace(id));
+
+drop policy if exists "Users can update their own profile" on public.core_profiles;
 
 create policy "Users can update their own profile"
   on public.core_profiles
@@ -206,29 +213,37 @@ create policy "Users can update their own profile"
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+drop policy if exists "Active members can read their workspace" on public.core_workspaces;
+
 create policy "Active members can read their workspace"
   on public.core_workspaces
   for select
   to authenticated
-  using (deleted_at is null and public.core_is_active_member(id));
+  using (deleted_at is null and private.core_is_active_member(id));
+
+drop policy if exists "Active members can read workspace roles" on public.core_roles;
 
 create policy "Active members can read workspace roles"
   on public.core_roles
   for select
   to authenticated
   using (
-    workspace_id is not null
-    and public.core_is_active_member(workspace_id)
+    workspace_id is null
+    or private.core_is_active_member(workspace_id)
   );
+
+drop policy if exists "Active members can read workspace memberships" on public.core_memberships;
 
 create policy "Active members can read workspace memberships"
   on public.core_memberships
   for select
   to authenticated
-  using (public.core_is_active_member(workspace_id));
+  using (private.core_is_active_member(workspace_id));
+
+drop policy if exists "Active members can read workspace branding" on public.core_brand_settings;
 
 create policy "Active members can read workspace branding"
   on public.core_brand_settings
   for select
   to authenticated
-  using (public.core_is_active_member(workspace_id));
+  using (private.core_is_active_member(workspace_id));

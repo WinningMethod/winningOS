@@ -139,6 +139,13 @@ Expected routes remain:
 /settings
 ```
 
+
+## Supabase migration safety notes
+
+The initial RLS helper functions live in the non-exposed `private` schema. Keep security-definer helpers out of the public PostgREST RPC surface unless there is an explicit product reason to expose them.
+
+The seed migration must revive/update the deterministic default workspace row rather than silently no-op on a soft-deleted slug. Future seed changes should remain idempotent and should not assume a hidden workspace-switching feature.
+
 ## Migration validation
 
 Validate the migration contract without needing a running Supabase container:

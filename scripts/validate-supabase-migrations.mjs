@@ -22,13 +22,7 @@ const requiredTables = [
   "core_brand_settings",
 ]
 
-const requiredRlsTables = [
-  "public.core_profiles",
-  "public.core_workspaces",
-  "public.core_roles",
-  "public.core_memberships",
-  "public.core_brand_settings",
-]
+const requiredRlsTables = requiredTables.map((table) => `public.${table}`)
 
 const requiredSeedRoleKeys = ["owner", "admin", "member", "viewer"]
 
@@ -43,6 +37,15 @@ function pass(message) {
 
 function assertIncludes(haystack, needle, message) {
   if (!haystack.includes(needle)) {
+    fail(message)
+    return
+  }
+
+  pass(message)
+}
+
+function assertMatch(haystack, pattern, message) {
+  if (!pattern.test(haystack)) {
     fail(message)
     return
   }
@@ -70,6 +73,8 @@ const migrationText = migrationFiles
   .map((file) => readFileSync(join(migrationsDir, file), "utf8"))
   .join("\n")
 
+const seedText = readFileSync(join(migrationsDir, "20260625232000_seed_core_defaults.sql"), "utf8")
+
 for (const pattern of forbiddenPatterns) {
   if (pattern.test(migrationText)) {
     fail(`forbidden plugin/agent pattern appears in migrations: ${pattern}`)
@@ -93,8 +98,18 @@ for (const table of requiredRlsTables) {
 }
 
 for (const roleKey of requiredSeedRoleKeys) {
-  assertIncludes(migrationText, `'${roleKey}'`, `seeds ${roleKey} role`)
+  assertMatch(
+    seedText,
+    new RegExp(`\\n\\s*'${roleKey}',\\n\\s*'${roleKey[0].toUpperCase()}${roleKey.slice(1)}',`, "m"),
+    `seeds ${roleKey} role row`,
+  )
 }
+
+assertIncludes(
+  migrationText,
+  "create schema if not exists private;",
+  "keeps RLS helper functions outside the public RPC schema",
+)
 
 assertIncludes(
   migrationText,
@@ -116,14 +131,20 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
-  "public.core_is_active_member",
+  "private.core_is_active_member",
   "defines active membership RLS helper",
 )
 
 assertIncludes(
   migrationText,
-  "public.core_current_profile_id",
+  "private.core_current_profile_id",
   "defines current profile helper",
+)
+
+assertIncludes(
+  migrationText,
+  "private.core_profiles_share_active_workspace",
+  "defines shared-workspace profile visibility helper",
 )
 
 assertIncludes(
@@ -131,6 +152,24 @@ assertIncludes(
   "workspace_id is null",
   "keeps global role template uniqueness path explicit",
 )
+
+assertIncludes(
+  migrationText,
+  "create or replace trigger core_profiles_touch_updated_at",
+  "uses replaceable updated_at triggers for local replay",
+)
+
+assertIncludes(
+  seedText,
+  "on conflict (slug) do update",
+  "upserts the default workspace by slug",
+)
+
+if (/where\s+public\.core_workspaces\.deleted_at\s+is\s+null/i.test(seedText)) {
+  fail("default workspace seed must not silently no-op on a soft-deleted slug")
+} else {
+  pass("default workspace seed does not silently no-op on a soft-deleted slug")
+}
 
 if (process.exitCode) {
   process.exit(process.exitCode)

@@ -321,9 +321,12 @@ Row Level Security should enforce workspace membership for workspace-scoped data
 The initial schema migration enables RLS and co-documents the helper functions and policies that depend on them. The first helper SQL functions are:
 
 ```sql
-core_current_profile_id()
-core_is_active_member(workspace_id uuid)
+private.core_current_profile_id()
+private.core_is_active_member(workspace_id uuid)
+private.core_profiles_share_active_workspace(profile_id uuid)
 ```
+
+These helper functions live in the non-exposed `private` schema so they can support RLS without becoming public PostgREST RPC endpoints.
 
 Permission-aware helpers such as `core_has_permission(workspace_id uuid, permission_key text)` remain deferred until the permission-helper slice.
 

@@ -358,9 +358,12 @@ RLS is enabled in the initial schema migration for all core user/workspace table
 Implemented helper functions:
 
 ```sql
-core_current_profile_id()
-core_is_active_member(workspace_id uuid)
+private.core_current_profile_id()
+private.core_is_active_member(workspace_id uuid)
+private.core_profiles_share_active_workspace(profile_id uuid)
 ```
+
+These helpers live in the non-exposed `private` schema so they can support RLS policies without becoming public PostgREST RPC endpoints.
 
 Deferred helper functions:
 
@@ -373,7 +376,7 @@ Policy direction:
 - profiles: users can read/update their own profile; shared workspace profile visibility requires membership joins
 - workspaces: active members can read the single workspace
 - memberships: active members can read; management requires elevated permissions
-- roles: active members can read system roles
+- roles: active members can read workspace roles; authenticated users can read global role templates if those are introduced later
 - brand settings: active members can read; `branding.manage` required to update
 
 Do not rely on client-supplied workspace IDs without RLS/server verification. The initial policies allow active-member reads and own-profile updates; permission-aware write policies are deferred until permission helpers exist.
