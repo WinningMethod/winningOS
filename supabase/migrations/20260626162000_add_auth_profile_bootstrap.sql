@@ -21,7 +21,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public, private, auth, extensions
+set search_path = extensions, auth, private, public
 as $$
 declare
   current_user_id uuid := auth.uid();
@@ -126,25 +126,23 @@ begin
 
     insert into public.core_memberships (workspace_id, profile_id, role_id, status)
     values (target_workspace_id, target_profile_id, owner_role_id, 'active')
-    on conflict (workspace_id, profile_id) do update
-    set
-      role_id = excluded.role_id,
-      status = 'active',
-      updated_at = now()
+    on conflict (workspace_id, profile_id) do nothing
     returning id into existing_membership_id;
 
-    update public.core_workspaces
-    set created_by_profile_id = coalesce(created_by_profile_id, target_profile_id)
-    where id = target_workspace_id;
+    if existing_membership_id is not null then
+      update public.core_workspaces
+      set created_by_profile_id = coalesce(created_by_profile_id, target_profile_id)
+      where id = target_workspace_id;
 
-    return query select
-      target_profile_id,
-      target_workspace_id,
-      target_workspace_name,
-      existing_membership_id,
-      'owner'::text,
-      true;
-    return;
+      return query select
+        target_profile_id,
+        target_workspace_id,
+        target_workspace_name,
+        existing_membership_id,
+        'owner'::text,
+        true;
+      return;
+    end if;
   end if;
 
   return query select

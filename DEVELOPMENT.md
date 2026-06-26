@@ -267,3 +267,5 @@ The app now has a minimal Supabase Auth path:
 - authenticated users without membership are routed to `/pending-access`.
 
 This slice intentionally does not add member invitations, role editing, plugin work, or persisted reads for every dashboard card.
+
+For production auth redirects, set `NEXT_PUBLIC_APP_URL` to the deployed app origin. WinningOS intentionally does not trust forwarded host headers for magic-link callback URLs.

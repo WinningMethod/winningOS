@@ -82,8 +82,8 @@ Rules:
 - The RPC creates or reuses the caller's `core_profiles` row.
 - The RPC returns the workspace display name so the app shell does not hardcode it.
 - The RPC checks existing membership before acquiring the seeded workspace lock, then locks the `winningos` workspace row only while deciding whether the first owner should be created.
-- If no active memberships exist, the caller receives the seeded workspace owner role.
-- If active memberships already exist and the caller has no active membership, the caller receives a profile but no workspace access.
+- If no active memberships exist and the caller has no existing membership row, the caller receives the seeded workspace owner role.
+- If active memberships already exist, or if the caller has an existing non-active membership row, the caller receives a profile but no workspace access. The bootstrap RPC does not promote existing inactive membership rows.
 - The RPC is `security definer` with a fixed search path and grants execute only to `authenticated`.
 - Member invitations and member-management writes remain deferred to later slices.
 

@@ -32,7 +32,7 @@ assert(
   "defines core_bootstrap_current_user RPC",
 )
 assert(
-  authMigration.includes("security definer") && authMigration.includes("set search_path = public, private, auth, extensions"),
+  authMigration.includes("security definer") && authMigration.includes("set search_path = extensions, auth, private, public"),
   "bootstrap RPC is security definer with fixed search_path",
 )
 assert(
@@ -49,6 +49,7 @@ assert(
 )
 assert(authMigration.includes("workspace_name text"), "auth callback returns workspace name")
 assert(authMigration.includes("m.workspace_id = target_workspace_id") && authMigration.includes("for update"), "bootstrap RPC scopes first-owner count and lock")
+assert(authMigration.includes("on conflict (workspace_id, profile_id) do nothing"), "bootstrap RPC does not promote inactive conflicting memberships")
 assert(
   authMigration.includes("revoke all on function public.core_bootstrap_current_user(text) from public"),
   "bootstrap RPC revokes default public execute",
@@ -63,8 +64,10 @@ const signInPage = read("app/(auth)/sign-in/page.tsx")
 assert(signInPage.includes("signInWithOtp"), "sign-in page submits Supabase email OTP")
 assert(signInPage.includes("emailRedirectTo"), "sign-in page supplies auth callback redirect")
 assert(signInPage.includes("NEXT_PUBLIC_APP_URL"), "sign-in page avoids Supabase URL as app callback fallback")
+assert(signInPage.includes("NEXT_PUBLIC_APP_URL is required"), "sign-in page requires explicit production app URL")
+assert(!signInPage.includes("x-forwarded-host"), "sign-in page does not trust forwarded host for auth redirect")
 assert(!signInPage.includes("encodeURIComponent(email)"), "sign-in page does not reflect email from URL query")
-assert(signInPage.includes('role="alert"'), "sign-in page announces status messages")
+assert(signInPage.includes('aria-live="polite"'), "sign-in page keeps a live status region")
 
 const callbackRoute = read("app/auth/callback/route.ts")
 assert(callbackRoute.includes("exchangeCodeForSession"), "auth callback exchanges code for session")
@@ -77,6 +80,8 @@ assert(appLayout.includes("/pending-access"), "protected app layout handles auth
 
 const signOutRoute = read("app/auth/sign-out/route.ts")
 assert(signOutRoute.includes("isSameOrigin"), "sign-out route guards same-origin POSTs")
+assert(signOutRoute.includes("origin !== null"), "sign-out route requires Origin header")
+assert(signOutRoute.includes("Sign-out failed"), "sign-out route handles Supabase sign-out errors")
 
 const pendingAccess = read("app/pending-access/page.tsx")
 assert(pendingAccess.includes("hasActiveMembership"), "pending access page reads membership state")

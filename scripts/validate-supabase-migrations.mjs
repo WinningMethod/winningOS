@@ -325,6 +325,12 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
+  "set search_path = extensions, auth, private, public",
+  "bootstrap RPC hardens security definer search path",
+)
+
+assertIncludes(
+  migrationText,
   "workspace_name text",
   "bootstrap RPC returns workspace display name",
 )
@@ -345,6 +351,12 @@ assertIncludes(
   migrationText,
   "m.workspace_id = target_workspace_id",
   "bootstrap RPC scopes first-owner membership count",
+)
+
+assertIncludes(
+  migrationText,
+  "on conflict (workspace_id, profile_id) do nothing",
+  "bootstrap RPC avoids promoting inactive memberships",
 )
 
 assertIncludes(

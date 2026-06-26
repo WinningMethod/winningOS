@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { ArrowRight, Hexagon, Info } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ThemeToggle } from "@/components/app/theme-toggle"
 
@@ -39,10 +38,11 @@ export default function AuthEntryPage() {
             </p>
 
             <div className="mt-5 flex flex-col gap-2.5">
-              <Link href="/sign-in">
-                <Button size="lg" className="w-full">
-                  Continue with email
-                </Button>
+              <Link
+                href="/sign-in"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                Continue with email
               </Link>
             </div>
 
@@ -72,7 +72,7 @@ export default function AuthEntryPage() {
       </main>
 
       <footer className="px-5 py-6 text-center text-xs text-muted-foreground lg:px-8">
-        WinningOS Core — static wireframe. No backend, auth, or plugin integrations.
+        WinningOS Core — Supabase Auth foundation with plugin-ready boundaries.
       </footer>
     </div>
   )

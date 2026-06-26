@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { ArrowRight, Hexagon, Info, Mail } from "lucide-react"
+import { Hexagon, Info, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,24 +19,21 @@ function appOriginFromHeaders(headerStore: Headers): string {
 
   const origin = headerStore.get("origin")
 
-  if (origin) {
+  if (origin?.startsWith("http://localhost") || origin?.startsWith("http://127.0.0.1")) {
     return origin
   }
 
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host")
-
-  if (host) {
-    const proto = headerStore.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https")
-    return `${proto}://${host}`
+  if (process.env.NODE_ENV !== "production") {
+    return "http://localhost:3000"
   }
 
-  return "http://localhost:3000"
+  throw new Error("NEXT_PUBLIC_APP_URL is required for production auth redirects")
 }
 
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ sent?: string; error?: string; email?: string }>
+  searchParams?: Promise<{ sent?: string; error?: string }>
 }) {
   const params = await searchParams
   const session = await ensureCoreSession()
@@ -118,23 +115,21 @@ export default async function SignInPage({
               </Button>
             </form>
 
-            {params?.sent && (
-              <div
-                role="alert"
-                className="mt-4 rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground"
-              >
-                Magic link sent. Check your email to continue.
-              </div>
-            )}
+            <div aria-live="polite" className="mt-4 min-h-12">
+              {params?.sent && (
+                <div className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground">Check your email</p>
+                  <p className="mt-1">Magic link sent. Use it to finish signing in.</p>
+                </div>
+              )}
 
-            {params?.error && (
-              <div
-                role="alert"
-                className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
-              >
-                We couldn&apos;t send the magic link. Check the email and try again.
-              </div>
-            )}
+              {params?.error && (
+                <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+                  <p className="font-medium">Sign-in failed</p>
+                  <p className="mt-1">We couldn&apos;t send the magic link. Check the email and try again.</p>
+                </div>
+              )}
+            </div>
 
             <div className="my-5 flex items-center gap-3">
               <span className="h-px flex-1 bg-border" />
@@ -142,13 +137,9 @@ export default async function SignInPage({
               <span className="h-px flex-1 bg-border" />
             </div>
 
-            <Link
-              href="/home"
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-border bg-secondary px-6 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              Go to protected workspace
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            <p className="text-center text-xs leading-relaxed text-muted-foreground">
+              Workspace pages unlock after you complete email sign-in.
+            </p>
           </Card>
 
           <div className="mt-4 flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2.5">

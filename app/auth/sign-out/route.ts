@@ -5,7 +5,7 @@ function isSameOrigin(request: Request): boolean {
   const requestUrl = new URL(request.url)
   const origin = request.headers.get("origin")
 
-  return !origin || origin === requestUrl.origin
+  return origin !== null && origin === requestUrl.origin
 }
 
 export async function POST(request: Request) {
@@ -16,7 +16,11 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient()
-  await supabase.auth.signOut()
+  const { error } = await supabase.auth.signOut()
+
+  if (error) {
+    return NextResponse.json({ error: "Sign-out failed" }, { status: 500 })
+  }
 
   return NextResponse.redirect(new URL("/sign-in", requestUrl.origin))
 }
