@@ -56,7 +56,7 @@ export async function ensureCoreSession(): Promise<CoreSession> {
     error: userError,
   } = await supabase.auth.getUser()
 
-  if (userError) {
+  if (userError && userError.name !== "AuthSessionMissingError") {
     console.error("Failed to read Supabase user", userError)
     throw new Error("Session bootstrap failed")
   }

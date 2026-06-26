@@ -62,6 +62,8 @@ const authCore = read("core/auth/bootstrap.ts")
 assert(authCore.includes("ensureCoreSession"), "exports ensureCoreSession helper")
 assert(authCore.includes("core_bootstrap_current_user"), "helper calls bootstrap RPC")
 assert(authCore.includes("hasActiveMembership"), "helper exposes active membership state")
+assert(authCore.includes("AuthSessionMissingError"), "helper treats missing auth sessions as unauthenticated")
+assert(authCore.includes("Session bootstrap failed"), "helper uses generic Supabase failure messages")
 
 const originUtility = read("core/auth/origin.ts")
 assert(originUtility.includes("resolveAppOriginFromHeaders") && originUtility.includes("resolveAppOriginFromRequest"), "uses shared auth origin utility")
