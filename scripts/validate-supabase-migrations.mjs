@@ -367,8 +367,13 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
-  "and display_name is null",
-  "bootstrap RPC avoids no-op profile updates",
+  "and public.core_profiles.display_name is null",
+  "bootstrap RPC avoids no-op profile updates without ambiguous output names",
+)
+assertIncludes(
+  migrationText,
+  "select p.id, p.display_name",
+  "bootstrap RPC qualifies profile display name reads",
 )
 
 assertIncludes(
