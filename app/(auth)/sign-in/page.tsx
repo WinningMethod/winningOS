@@ -36,22 +36,22 @@ function classifyOtpError(error: SupabaseOtpError): SignInErrorCode {
   const code = error.code?.toLowerCase() ?? ""
 
   if (
+    error.status === 429
+    || code.includes("rate")
+    || message.includes("request this once every")
+    || message.includes("email delivery rate")
+  ) {
+    return "rate-limited"
+  }
+
+  if (
     code === "smtp_error"
     || code === "email_provider_error"
     || code.includes("smtp")
     || message.includes("email provider")
     || message.includes("smtp")
-    || message.includes("email delivery rate")
   ) {
     return "email-provider"
-  }
-
-  if (
-    error.status === 429
-    || code.includes("rate")
-    || message.includes("request this once every")
-  ) {
-    return "rate-limited"
   }
 
   return "auth-failed"
@@ -116,7 +116,8 @@ export default async function SignInPage({
 }) {
   const params = await searchParams
   const errorParam = params?.error
-  const errorMessage = signInErrorMessage(isSignInErrorCode(errorParam) ? errorParam : undefined)
+  const errorCode = isSignInErrorCode(errorParam) ? errorParam : errorParam ? "auth-failed" : undefined
+  const errorMessage = signInErrorMessage(errorCode)
   const sent = params?.sent === "1" && !errorParam
   const session = await ensureCoreSession()
 
