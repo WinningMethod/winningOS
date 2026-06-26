@@ -13,7 +13,8 @@ import { resolveAppOriginFromHeaders } from "@/core/auth/origin"
 import { createClient } from "@/core/supabase/server"
 
 // `missing-email` is produced before calling Supabase; the other variants come from Supabase OTP errors.
-type SignInErrorCode = "missing-email" | "rate-limited" | "email-provider" | "auth-failed"
+const SIGN_IN_ERROR_CODES = ["missing-email", "rate-limited", "email-provider", "auth-failed"] as const
+type SignInErrorCode = typeof SIGN_IN_ERROR_CODES[number]
 
 type SupabaseOtpError = {
   status?: number
@@ -26,7 +27,12 @@ function classifyOtpError(error: SupabaseOtpError): SignInErrorCode {
   const message = error.message?.toLowerCase() ?? ""
   const code = error.code?.toLowerCase() ?? ""
 
-  if (error.status === 429 || code.includes("rate") || message.includes("rate") || message.includes("security purposes")) {
+  if (
+    error.status === 429
+    || code.includes("rate")
+    || message.includes("rate")
+    || message.includes("request this once every")
+  ) {
     return "rate-limited"
   }
 
@@ -36,8 +42,6 @@ function classifyOtpError(error: SupabaseOtpError): SignInErrorCode {
     || code.includes("smtp")
     || message.includes("email provider")
     || message.includes("smtp")
-    || message.includes("send email")
-    || message.includes("sending email")
   ) {
     return "email-provider"
   }
@@ -46,7 +50,7 @@ function classifyOtpError(error: SupabaseOtpError): SignInErrorCode {
 }
 
 function isSignInErrorCode(value: string | undefined): value is SignInErrorCode {
-  return value === "missing-email" || value === "rate-limited" || value === "email-provider" || value === "auth-failed"
+  return SIGN_IN_ERROR_CODES.includes(value as SignInErrorCode)
 }
 
 function signInErrorMessage(errorCode: SignInErrorCode | undefined): { title: string; message: string } | null {
@@ -64,14 +68,14 @@ function signInErrorMessage(errorCode: SignInErrorCode | undefined): { title: st
   if (errorCode === "rate-limited") {
     return {
       title: "Too many magic-link requests",
-      message: "Supabase is temporarily rate-limiting sign-in emails. Wait a minute, then request a new link.",
+      message: "Too many magic-link requests. Wait a minute, then request a new link.",
     }
   }
 
   if (errorCode === "email-provider") {
     return {
       title: "Email provider unavailable",
-      message: "Supabase could not send the email right now. This can happen when the project email provider or quota blocks new magic links.",
+      message: "We couldn't send the link right now. Our email service may be briefly unavailable.",
     }
   }
 
@@ -87,7 +91,8 @@ export default async function SignInPage({
   searchParams?: Promise<{ sent?: string; error?: string }>
 }) {
   const params = await searchParams
-  const errorMessage = signInErrorMessage(isSignInErrorCode(params?.error) ? params.error : undefined)
+  const sent = params?.sent === "1"
+  const errorMessage = sent ? null : signInErrorMessage(isSignInErrorCode(params?.error) ? params.error : undefined)
   const session = await ensureCoreSession()
 
   if (session.hasActiveMembership) {
@@ -179,7 +184,7 @@ export default async function SignInPage({
             </form>
 
             <div className="mt-4 min-h-12">
-              {params?.sent && (
+              {sent && (
                 <div role="status" className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
                   <p className="font-medium text-foreground">Check your email</p>
                   <p className="mt-1">Magic link sent. Use it to finish signing in.</p>
