@@ -12,6 +12,7 @@ import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { resolveAppOriginFromHeaders } from "@/core/auth/origin"
 import { createClient } from "@/core/supabase/server"
 
+// `missing-email` is produced before calling Supabase; the other variants come from Supabase OTP errors.
 type SignInErrorCode = "missing-email" | "rate-limited" | "email-provider" | "auth-failed"
 
 type SupabaseOtpError = {
@@ -30,12 +31,13 @@ function classifyOtpError(error: SupabaseOtpError): SignInErrorCode {
   }
 
   if (
-    error.status === 500
-    || code.includes("email")
+    code === "smtp_error"
+    || code === "email_provider_error"
     || code.includes("smtp")
     || message.includes("email provider")
     || message.includes("smtp")
-    || message.includes("send")
+    || message.includes("send email")
+    || message.includes("sending email")
   ) {
     return "email-provider"
   }
@@ -43,7 +45,11 @@ function classifyOtpError(error: SupabaseOtpError): SignInErrorCode {
   return "auth-failed"
 }
 
-function signInErrorMessage(errorCode: string | undefined): { title: string; message: string } | null {
+function isSignInErrorCode(value: string | undefined): value is SignInErrorCode {
+  return value === "missing-email" || value === "rate-limited" || value === "email-provider" || value === "auth-failed"
+}
+
+function signInErrorMessage(errorCode: SignInErrorCode | undefined): { title: string; message: string } | null {
   if (!errorCode) {
     return null
   }
@@ -81,7 +87,7 @@ export default async function SignInPage({
   searchParams?: Promise<{ sent?: string; error?: string }>
 }) {
   const params = await searchParams
-  const errorMessage = signInErrorMessage(params?.error)
+  const errorMessage = signInErrorMessage(isSignInErrorCode(params?.error) ? params.error : undefined)
   const session = await ensureCoreSession()
 
   if (session.hasActiveMembership) {
@@ -121,7 +127,6 @@ export default async function SignInPage({
         status: error.status,
         code: error.code,
         name: error.name,
-        message: error.message,
         bucket: errorCode,
       })
       redirect(`/sign-in?error=${errorCode}`)

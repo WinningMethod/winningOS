@@ -99,6 +99,10 @@ assert(signInPage.includes('role="alert"'), "sign-in page alerts error state on 
 assert(signInPage.includes("classifyOtpError"), "sign-in page classifies Supabase OTP send errors")
 assert(signInPage.includes("rate-limited") && signInPage.includes("email-provider"), "sign-in page shows actionable OTP failure states")
 assert(signInPage.includes("Supabase OTP sign-in failed"), "sign-in page logs safe OTP failure diagnostics")
+assert(!signInPage.includes("message: error.message"), "sign-in page does not log submitted-email-bearing OTP messages")
+assert(!signInPage.includes("error.status === 500"), "sign-in page does not misclassify generic Supabase 500s as email provider errors")
+assert(!signInPage.includes('code.includes("email")'), "sign-in page does not treat every email auth code as an SMTP failure")
+assert(!signInPage.includes('message.includes("send")'), "sign-in page does not treat generic network send failures as SMTP failures")
 
 const callbackRoute = read("app/auth/callback/route.ts")
 assert(callbackRoute.includes("exchangeCodeForSession"), "auth callback exchanges code for session")
