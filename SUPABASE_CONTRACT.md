@@ -90,6 +90,8 @@ Rules:
 App route rules:
 
 - `/sign-in` starts Supabase email OTP.
+- Supabase Auth is configured with the production WinningOS Core site URL, local development redirect URLs, and Vercel preview redirect URLs so magic links do not fall back to localhost in hosted environments.
+- The magic-link email template is owned in-repo at `supabase/templates/magic_link.html`; it uses the WinningOS Core seed brand and `{{ .ConfirmationURL }}` rather than the default Supabase-branded body. Fully dynamic per-workspace email branding remains a later Core settings/email-delivery slice because Supabase hosted templates are static at send time.
 - `/auth/callback` exchanges the auth code for a session.
 - `/home`, `/members`, and `/settings` require an authenticated Core session with active membership.
 - `/pending-access` is the holding page for authenticated profiles without membership.
