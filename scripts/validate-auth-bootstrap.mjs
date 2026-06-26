@@ -96,6 +96,9 @@ assert(!signInPage.includes("x-forwarded-host"), "sign-in page does not trust fo
 assert(!signInPage.includes("encodeURIComponent(email)"), "sign-in page does not reflect email from URL query")
 assert(signInPage.includes('role="status"'), "sign-in page exposes successful OTP state as status")
 assert(signInPage.includes('role="alert"'), "sign-in page alerts error state on initial render")
+assert(signInPage.includes("classifyOtpError"), "sign-in page classifies Supabase OTP send errors")
+assert(signInPage.includes("rate-limited") && signInPage.includes("email-provider"), "sign-in page shows actionable OTP failure states")
+assert(signInPage.includes("Supabase OTP sign-in failed"), "sign-in page logs safe OTP failure diagnostics")
 
 const callbackRoute = read("app/auth/callback/route.ts")
 assert(callbackRoute.includes("exchangeCodeForSession"), "auth callback exchanges code for session")

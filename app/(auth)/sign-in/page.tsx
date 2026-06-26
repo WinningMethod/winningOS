@@ -12,12 +12,76 @@ import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { resolveAppOriginFromHeaders } from "@/core/auth/origin"
 import { createClient } from "@/core/supabase/server"
 
+type SignInErrorCode = "missing-email" | "rate-limited" | "email-provider" | "auth-failed"
+
+type SupabaseOtpError = {
+  status?: number
+  code?: string
+  name?: string
+  message?: string
+}
+
+function classifyOtpError(error: SupabaseOtpError): SignInErrorCode {
+  const message = error.message?.toLowerCase() ?? ""
+  const code = error.code?.toLowerCase() ?? ""
+
+  if (error.status === 429 || code.includes("rate") || message.includes("rate") || message.includes("security purposes")) {
+    return "rate-limited"
+  }
+
+  if (
+    error.status === 500
+    || code.includes("email")
+    || code.includes("smtp")
+    || message.includes("email provider")
+    || message.includes("smtp")
+    || message.includes("send")
+  ) {
+    return "email-provider"
+  }
+
+  return "auth-failed"
+}
+
+function signInErrorMessage(errorCode: string | undefined): { title: string; message: string } | null {
+  if (!errorCode) {
+    return null
+  }
+
+  if (errorCode === "missing-email") {
+    return {
+      title: "Email required",
+      message: "Enter your email address before requesting a magic link.",
+    }
+  }
+
+  if (errorCode === "rate-limited") {
+    return {
+      title: "Too many magic-link requests",
+      message: "Supabase is temporarily rate-limiting sign-in emails. Wait a minute, then request a new link.",
+    }
+  }
+
+  if (errorCode === "email-provider") {
+    return {
+      title: "Email provider unavailable",
+      message: "Supabase could not send the email right now. This can happen when the project email provider or quota blocks new magic links.",
+    }
+  }
+
+  return {
+    title: "Sign-in failed",
+    message: "We couldn't send the magic link. Try again in a moment.",
+  }
+}
+
 export default async function SignInPage({
   searchParams,
 }: {
   searchParams?: Promise<{ sent?: string; error?: string }>
 }) {
   const params = await searchParams
+  const errorMessage = signInErrorMessage(params?.error)
   const session = await ensureCoreSession()
 
   if (session.hasActiveMembership) {
@@ -52,7 +116,15 @@ export default async function SignInPage({
     })
 
     if (error) {
-      redirect("/sign-in?error=auth-failed")
+      const errorCode = classifyOtpError(error)
+      console.warn("Supabase OTP sign-in failed", {
+        status: error.status,
+        code: error.code,
+        name: error.name,
+        message: error.message,
+        bucket: errorCode,
+      })
+      redirect(`/sign-in?error=${errorCode}`)
     }
 
     redirect("/sign-in?sent=1")
@@ -109,10 +181,10 @@ export default async function SignInPage({
                 </div>
               )}
 
-              {params?.error && (
+              {errorMessage && (
                 <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
-                  <p className="font-medium">Sign-in failed</p>
-                  <p className="mt-1">We couldn&apos;t send the magic link. Check the email and try again.</p>
+                  <p className="font-medium">{errorMessage.title}</p>
+                  <p className="mt-1">{errorMessage.message}</p>
                 </div>
               )}
             </div>
