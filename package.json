@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "db:validate": "node scripts/validate-supabase-migrations.mjs",
     "db:verify:remote": "node scripts/verify-supabase-remote.mjs",
-    "auth:validate": "node scripts/validate-auth-bootstrap.mjs"
+    "auth:validate": "node scripts/validate-auth-bootstrap.mjs",
+    "members:validate": "node scripts/validate-member-management.mjs"
   },
   "dependencies": {
     "@supabase/server": "^1.2.0",
