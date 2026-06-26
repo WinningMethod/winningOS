@@ -12,12 +12,114 @@ import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { resolveAppOriginFromHeaders } from "@/core/auth/origin"
 import { createClient } from "@/core/supabase/server"
 
+// `missing-email` is produced before calling Supabase. Callback/sign-out routes also land here with their own safe codes.
+const SIGN_IN_ERROR_CODES = [
+  "missing-email",
+  "rate-limited",
+  "email-provider",
+  "auth-failed",
+  "missing-code",
+  "callback-failed",
+  "signout-failed",
+] as const
+type SignInErrorCode = typeof SIGN_IN_ERROR_CODES[number]
+
+type SupabaseOtpError = {
+  status?: number
+  code?: string
+  name?: string
+  message?: string
+}
+
+function classifyOtpError(error: SupabaseOtpError): SignInErrorCode {
+  const message = error.message?.toLowerCase() ?? ""
+  const code = error.code?.toLowerCase() ?? ""
+
+  if (
+    error.status === 429
+    || code.includes("rate")
+    // Message matching is advisory fallback for hosted GoTrue wording; status/code are preferred above.
+    || message.includes("request this once every")
+    || message.includes("email delivery rate")
+  ) {
+    return "rate-limited"
+  }
+
+  if (
+    code === "smtp_error"
+    || code === "email_provider_error"
+    || code.includes("smtp")
+    || message.includes("email provider")
+    || message.includes("smtp")
+  ) {
+    return "email-provider"
+  }
+
+  return "auth-failed"
+}
+
+function isSignInErrorCode(value: string | undefined): value is SignInErrorCode {
+  return SIGN_IN_ERROR_CODES.includes(value as SignInErrorCode)
+}
+
+function signInErrorMessage(errorCode: SignInErrorCode | undefined): { title: string; message: string } | null {
+  if (!errorCode) {
+    return null
+  }
+
+  switch (errorCode) {
+    case "missing-email":
+      return {
+        title: "Email required",
+        message: "Enter your email address before requesting a magic link.",
+      }
+    case "rate-limited":
+      return {
+        title: "Too many magic-link requests",
+        message: "Wait a minute, then request a new link.",
+      }
+    case "email-provider":
+      return {
+        title: "Email provider unavailable",
+        message: "We couldn't send the link right now. Our email service may be briefly unavailable.",
+      }
+    case "auth-failed":
+      return {
+        title: "Sign-in failed",
+        message: "We couldn't send the magic link. Try again in a moment.",
+      }
+    case "missing-code":
+      return {
+        title: "Sign-in link is incomplete",
+        message: "Request a fresh magic link and open it from the same browser.",
+      }
+    case "callback-failed":
+      return {
+        title: "Sign-in link could not be verified",
+        message: "Request a fresh magic link and try again.",
+      }
+    case "signout-failed":
+      return {
+        title: "Sign-out failed",
+        message: "Refresh the page and try signing out again.",
+      }
+    default: {
+      const exhaustive: never = errorCode
+      throw new Error(`Unhandled sign-in error code: ${exhaustive as string}`)
+    }
+  }
+}
+
 export default async function SignInPage({
   searchParams,
 }: {
   searchParams?: Promise<{ sent?: string; error?: string }>
 }) {
   const params = await searchParams
+  const errorParam = params?.error
+  const errorCode = isSignInErrorCode(errorParam) ? errorParam : errorParam ? "auth-failed" : undefined
+  const errorMessage = signInErrorMessage(errorCode)
+  const sent = params?.sent === "1" && !errorCode
   const session = await ensureCoreSession()
 
   if (session.hasActiveMembership) {
@@ -52,7 +154,14 @@ export default async function SignInPage({
     })
 
     if (error) {
-      redirect("/sign-in?error=auth-failed")
+      const otpErrorCode = classifyOtpError(error)
+      console.warn("Supabase OTP sign-in failed", {
+        status: error.status,
+        code: error.code,
+        name: error.name,
+        bucket: otpErrorCode,
+      })
+      redirect(`/sign-in?error=${otpErrorCode}`)
     }
 
     redirect("/sign-in?sent=1")
@@ -102,17 +211,17 @@ export default async function SignInPage({
             </form>
 
             <div className="mt-4 min-h-12">
-              {params?.sent && (
-                <div role="status" className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+              {sent && (
+                <div role="status" aria-live="polite" className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
                   <p className="font-medium text-foreground">Check your email</p>
                   <p className="mt-1">Magic link sent. Use it to finish signing in.</p>
                 </div>
               )}
 
-              {params?.error && (
-                <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
-                  <p className="font-medium">Sign-in failed</p>
-                  <p className="mt-1">We couldn&apos;t send the magic link. Check the email and try again.</p>
+              {errorMessage && (
+                <div role="alert" aria-live="assertive" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+                  <p className="font-medium">{errorMessage.title}</p>
+                  <p className="mt-1">{errorMessage.message}</p>
                 </div>
               )}
             </div>
