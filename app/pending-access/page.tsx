@@ -37,8 +37,8 @@ export default async function PendingAccessPage() {
           </div>
           <h1 className="mt-5 text-xl font-semibold tracking-tight">Waiting for workspace access</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Your Core profile exists, but this workspace already has an owner. Member management is coming in a
-            later Core slice, so new users wait here until they are added.
+            Your Core profile exists, but this workspace already has an owner. Ask an owner or admin to open
+            Members and activate your access.
           </p>
           <p className="mt-4 text-xs text-muted-foreground">
             Signed in as {session.user?.email ?? "an authenticated user"}.

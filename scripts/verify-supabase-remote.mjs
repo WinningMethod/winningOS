@@ -104,6 +104,13 @@ select jsonb_build_object(
     where n.nspname = 'public'
       and p.proname = 'core_bootstrap_current_user'
   ),
+  'member_function_names', (
+    select jsonb_agg(p.proname order by p.proname)
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname in ('core_list_workspace_members','core_set_member_role','core_disable_member')
+  ),
   'indexes', (
     select jsonb_agg(indexname order by indexname)
     from pg_indexes
@@ -140,7 +147,13 @@ assert(Number(verification.system_role_count) === 4, "Expected four system roles
 assert(Number(verification.brand_settings_count) === 1, "Expected one brand settings row")
 assert(Number(verification.bootstrap_function_count) === 1, "Expected Core bootstrap RPC to exist")
 assert(
-  ["20260625231000", "20260625232000", "20260626162000"].every((version) =>
+  ["core_disable_member", "core_list_workspace_members", "core_set_member_role"].every((functionName) =>
+    verification.member_function_names?.includes(functionName),
+  ),
+  "Missing expected Core member-management RPCs",
+)
+assert(
+  ["20260625231000", "20260625232000", "20260626162000", "20260626223000"].every((version) =>
     verification.migration_versions.includes(version),
   ),
   "Missing expected Supabase migration history versions",
@@ -165,6 +178,7 @@ console.log(
       systemRoleCount: Number(verification.system_role_count),
       brandSettingsCount: Number(verification.brand_settings_count),
       bootstrapFunctionCount: Number(verification.bootstrap_function_count),
+      memberFunctionNames: verification.member_function_names,
       migrationVersions: verification.migration_versions,
       indexes: verification.indexes,
     },
