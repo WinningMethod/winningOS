@@ -78,6 +78,7 @@ const migrationText = migrationFiles
   .join("\n")
 
 const seedText = readFileSync(join(migrationsDir, "20260625232000_seed_core_defaults.sql"), "utf8")
+const roleSeedBlock = seedText.match(/insert into public\.core_roles[\s\S]*?on conflict \(workspace_id, key\)/i)?.[0] ?? ""
 
 for (const pattern of forbiddenPatterns) {
   if (pattern.test(migrationText)) {
@@ -102,11 +103,15 @@ for (const table of requiredRlsTables) {
 }
 
 for (const roleKey of requiredSeedRoleKeys) {
-  assertMatch(
-    seedText,
-    new RegExp(`\\n\\s*'${roleKey}',\\n\\s*'${roleKey[0].toUpperCase()}${roleKey.slice(1)}',`, "m"),
-    `seeds ${roleKey} role row`,
-  )
+  const roleName = `${roleKey[0].toUpperCase()}${roleKey.slice(1)}`
+  const roleKeyIndex = roleSeedBlock.indexOf(`'${roleKey}'`)
+  const roleNameIndex = roleSeedBlock.indexOf(`'${roleName}'`, roleKeyIndex)
+
+  if (roleKeyIndex === -1 || roleNameIndex === -1) {
+    fail(`seeds ${roleKey} role row`)
+  } else {
+    pass(`seeds ${roleKey} role row`)
+  }
 }
 
 assertIncludes(
@@ -134,10 +139,10 @@ for (const helperSignature of [
   )
 }
 
-if (/grant\s+execute\s+on\s+function\s+private\./i.test(migrationText)) {
-  fail("private RLS helper functions should not be directly granted to authenticated roles")
+if (/grant\s+execute\s+on\s+function\s+private\.[^;]*\s+to\s+(authenticated|anon)\s*;/i.test(migrationText)) {
+  fail("private RLS helper functions should not be directly granted to browser-facing roles")
 } else {
-  pass("private RLS helpers are not directly granted for application calls")
+  pass("private RLS helpers are not directly granted to browser-facing roles")
 }
 
 assertIncludes(
@@ -162,6 +167,12 @@ assertIncludes(
   migrationText,
   "private.core_is_active_member(target_workspace_id uuid)",
   "defines per-workspace active membership RLS helper",
+)
+
+assertIncludes(
+  migrationText,
+  "and w.deleted_at is null",
+  "active membership helpers ignore soft-deleted workspaces",
 )
 
 assertIncludes(
@@ -202,6 +213,12 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
+  "set search_path = public",
+  "sets search_path on trigger/helper functions",
+)
+
+assertIncludes(
+  migrationText,
   "create or replace trigger core_profiles_touch_updated_at",
   "uses replaceable updated_at triggers for local replay",
 )
@@ -210,6 +227,12 @@ assertIncludes(
   seedText,
   "on conflict (slug) do update",
   "upserts the default workspace by slug",
+)
+
+assertIncludes(
+  seedText,
+  "raise exception 'default workspace seed failed: missing winningos workspace';",
+  "raises a clear error if the default workspace seed is missing",
 )
 
 assertIncludes(

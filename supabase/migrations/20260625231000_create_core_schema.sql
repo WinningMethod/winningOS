@@ -107,6 +107,7 @@ create table if not exists public.core_brand_settings (
 create or replace function public.core_touch_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at = now();
@@ -158,9 +159,11 @@ as $$
     select 1
     from public.core_memberships m
     join public.core_profiles p on p.id = m.profile_id
+    join public.core_workspaces w on w.id = m.workspace_id
     where p.user_id = auth.uid()
       and m.workspace_id = target_workspace_id
       and m.status = 'active'
+      and w.deleted_at is null
   )
 $$;
 
@@ -175,8 +178,10 @@ as $$
     select 1
     from public.core_memberships m
     join public.core_profiles p on p.id = m.profile_id
+    join public.core_workspaces w on w.id = m.workspace_id
     where p.user_id = auth.uid()
       and m.status = 'active'
+      and w.deleted_at is null
   )
 $$;
 
@@ -194,10 +199,13 @@ as $$
       on viewer_profile.id = viewer_membership.profile_id
     join public.core_memberships target_membership
       on target_membership.workspace_id = viewer_membership.workspace_id
+    join public.core_workspaces shared_workspace
+      on shared_workspace.id = viewer_membership.workspace_id
     where viewer_profile.user_id = auth.uid()
       and viewer_membership.status = 'active'
       and target_membership.status = 'active'
       and target_membership.profile_id = target_profile_id
+      and shared_workspace.deleted_at is null
   )
 $$;
 
