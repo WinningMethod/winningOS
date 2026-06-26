@@ -14,6 +14,7 @@ values (
 on conflict (slug) do update
 set
   name = excluded.name,
+  deleted_at = null,
   updated_at = now();
 
 insert into public.core_roles (id, workspace_id, key, name, description, is_system)

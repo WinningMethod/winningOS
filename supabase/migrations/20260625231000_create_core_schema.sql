@@ -15,6 +15,9 @@
 
 create schema if not exists extensions;
 create schema if not exists private;
+revoke all on schema private from public;
+revoke all on schema private from anon;
+revoke all on schema private from authenticated;
 create extension if not exists pgcrypto with schema extensions;
 
 create table if not exists public.core_profiles (
@@ -161,6 +164,22 @@ as $$
   )
 $$;
 
+create or replace function private.core_is_active_member_of_any_workspace()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select exists (
+    select 1
+    from public.core_memberships m
+    join public.core_profiles p on p.id = m.profile_id
+    where p.user_id = auth.uid()
+      and m.status = 'active'
+  )
+$$;
+
 create or replace function private.core_profiles_share_active_workspace(target_profile_id uuid)
 returns boolean
 language sql
@@ -181,6 +200,17 @@ as $$
       and target_membership.profile_id = target_profile_id
   )
 $$;
+
+
+revoke execute on function private.core_current_profile_id() from public;
+revoke execute on function private.core_is_active_member(uuid) from public;
+revoke execute on function private.core_is_active_member_of_any_workspace() from public;
+revoke execute on function private.core_profiles_share_active_workspace(uuid) from public;
+
+grant execute on function private.core_current_profile_id() to authenticated;
+grant execute on function private.core_is_active_member(uuid) to authenticated;
+grant execute on function private.core_is_active_member_of_any_workspace() to authenticated;
+grant execute on function private.core_profiles_share_active_workspace(uuid) to authenticated;
 
 alter table public.core_profiles enable row level security;
 alter table public.core_workspaces enable row level security;
@@ -228,7 +258,10 @@ create policy "Active members can read workspace roles"
   for select
   to authenticated
   using (
-    workspace_id is null
+    (
+      workspace_id is null
+      and private.core_is_active_member_of_any_workspace()
+    )
     or private.core_is_active_member(workspace_id)
   );
 

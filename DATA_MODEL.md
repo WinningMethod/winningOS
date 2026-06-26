@@ -323,10 +323,11 @@ The initial schema migration enables RLS and co-documents the helper functions a
 ```sql
 private.core_current_profile_id()
 private.core_is_active_member(workspace_id uuid)
+private.core_is_active_member_of_any_workspace()
 private.core_profiles_share_active_workspace(profile_id uuid)
 ```
 
-These helper functions live in the non-exposed `private` schema so they can support RLS without becoming public PostgREST RPC endpoints.
+These helper functions live in the non-exposed `private` schema so they can support RLS without becoming public PostgREST RPC endpoints. The migration also explicitly revokes private schema usage from public/anon/authenticated roles and revokes default public execute on the helper functions.
 
 Permission-aware helpers such as `core_has_permission(workspace_id uuid, permission_key text)` remain deferred until the permission-helper slice.
 

@@ -63,6 +63,10 @@ for (const requiredMigration of requiredMigrations) {
   }
 }
 
+if (process.exitCode) {
+  process.exit(process.exitCode)
+}
+
 for (const file of migrationFiles) {
   if (!/^\d{14}_[a-z0-9_]+\.sql$/.test(file)) {
     fail(`migration filename is not timestamped snake_case: ${file}`)
@@ -113,6 +117,18 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
+  "revoke all on schema private from authenticated;",
+  "does not grant direct private schema usage to authenticated users",
+)
+
+assertIncludes(
+  migrationText,
+  "revoke execute on function private.core_profiles_share_active_workspace(uuid) from public;",
+  "revokes default public execute from private RLS helpers",
+)
+
+assertIncludes(
+  migrationText,
   "'00000000-0000-4000-8000-000000000001'",
   "seeds deterministic default workspace id",
 )
@@ -137,6 +153,12 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
+  "private.core_is_active_member_of_any_workspace",
+  "defines any-workspace active membership helper for global role templates",
+)
+
+assertIncludes(
+  migrationText,
   "private.core_current_profile_id",
   "defines current profile helper",
 )
@@ -155,6 +177,12 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
+  "and private.core_is_active_member_of_any_workspace()",
+  "gates global role template reads behind active membership",
+)
+
+assertIncludes(
+  migrationText,
   "create or replace trigger core_profiles_touch_updated_at",
   "uses replaceable updated_at triggers for local replay",
 )
@@ -165,11 +193,11 @@ assertIncludes(
   "upserts the default workspace by slug",
 )
 
-if (/where\s+public\.core_workspaces\.deleted_at\s+is\s+null/i.test(seedText)) {
-  fail("default workspace seed must not silently no-op on a soft-deleted slug")
-} else {
-  pass("default workspace seed does not silently no-op on a soft-deleted slug")
-}
+assertMatch(
+  seedText,
+  /deleted_at\s*=\s*null/i,
+  "default workspace conflict resolution clears deleted_at",
+)
 
 if (process.exitCode) {
   process.exit(process.exitCode)
