@@ -1,17 +1,22 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/core/supabase/server"
 
-function isSameOrigin(request: Request): boolean {
-  const requestUrl = new URL(request.url)
+function appOrigin(): string | null {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
+
+  return appUrl ? new URL(appUrl).origin : null
+}
+
+function isSameOrigin(request: Request, expectedOrigin: string): boolean {
   const origin = request.headers.get("origin")
 
-  return origin !== null && origin === requestUrl.origin
+  return origin !== null && origin === expectedOrigin
 }
 
 export async function POST(request: Request) {
-  const requestUrl = new URL(request.url)
+  const expectedOrigin = appOrigin()
 
-  if (!isSameOrigin(request)) {
+  if (!expectedOrigin || !isSameOrigin(request, expectedOrigin)) {
     return NextResponse.json({ error: "Invalid sign-out origin" }, { status: 403 })
   }
 
@@ -22,5 +27,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Sign-out failed" }, { status: 500 })
   }
 
-  return NextResponse.redirect(new URL("/sign-in", requestUrl.origin))
+  return NextResponse.redirect(new URL("/sign-in", expectedOrigin))
 }

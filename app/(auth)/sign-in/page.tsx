@@ -124,7 +124,7 @@ export default async function SignInPage({
               )}
 
               {params?.error && (
-                <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+                <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
                   <p className="font-medium">Sign-in failed</p>
                   <p className="mt-1">We couldn&apos;t send the magic link. Check the email and try again.</p>
                 </div>

@@ -40,6 +40,7 @@ begin
 
   insert into public.core_profiles (user_id, display_name)
   values (current_user_id, nullif(trim(profile_display_name), ''))
+  -- Preserve an existing display name; later manual profile editing should own renames.
   on conflict (user_id) do update
   set
     display_name = coalesce(public.core_profiles.display_name, excluded.display_name),
