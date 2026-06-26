@@ -22,6 +22,7 @@ The first schema/seed migrations now implement this contract. This document rema
 Public browser-safe variables for Next.js / `@supabase/ssr` helpers:
 
 ```text
+NEXT_PUBLIC_APP_URL
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
@@ -38,8 +39,15 @@ Direct `@supabase/server` request-handler variables:
 SUPABASE_URL
 SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SECRET_KEY
+```
+
+Optional direct request-handler variable:
+
+```text
 SUPABASE_JWKS_URL
 ```
+
+WinningOS derives the JWKS URL from `SUPABASE_URL` when `SUPABASE_JWKS_URL` is blank. If set, `SUPABASE_JWKS_URL` must share the same origin as `SUPABASE_URL`.
 
 Rules:
 
@@ -56,10 +64,35 @@ Rules:
 Rules:
 
 - default to `auth: "user"` for user-facing handlers
+- import the request-handler boundary from server-only code only
+- use the named `withWinningOS*` helpers instead of raw `withSupabase` calls
 - use `ctx.supabase` for ordinary reads/writes so RLS remains the source of truth
 - treat `ctx.supabaseAdmin` as an explicit admin escape hatch, not a default data path
+- derive JWKS from `SUPABASE_URL` or assert that `SUPABASE_JWKS_URL` has the same origin
 - for Supabase Edge Functions with `publishable`, `secret`, or `none` auth modes, set `verify_jwt = false` for that function in `supabase/config.toml`
 - do not commit `SUPABASE_SECRET_KEY`
+
+## Auth/profile bootstrap
+
+The auth bootstrap slice introduces `public.core_bootstrap_current_user(profile_display_name text default null)` as the narrow authenticated RPC for turning a Supabase Auth user into a WinningOS Core profile/session.
+
+Rules:
+
+- The RPC requires `auth.uid()` and raises if called unauthenticated.
+- The RPC creates or reuses the caller's `core_profiles` row.
+- The RPC returns the workspace display name so the app shell does not hardcode it.
+- The RPC checks existing membership before acquiring the seeded workspace lock, then locks the `winningos` workspace row only while deciding whether the first owner should be created.
+- If no active memberships exist and the caller has no existing membership row, the caller receives the seeded workspace owner role.
+- If active memberships already exist, or if the caller has an existing non-active membership row, the caller receives a profile but no workspace access. The bootstrap RPC does not promote existing inactive membership rows.
+- The RPC is `security definer` with a fixed search path and grants execute only to `authenticated`.
+- Member invitations and member-management writes remain deferred to later slices.
+
+App route rules:
+
+- `/sign-in` starts Supabase email OTP.
+- `/auth/callback` exchanges the auth code for a session.
+- `/home`, `/members`, and `/settings` require an authenticated Core session with active membership.
+- `/pending-access` is the holding page for authenticated profiles without membership.
 
 ## Client boundaries
 

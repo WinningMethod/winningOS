@@ -51,6 +51,7 @@ Then fill in values from the Supabase project that will back the Core deployment
 Required browser-safe variables for Next.js / `@supabase/ssr` helpers:
 
 ```text
+NEXT_PUBLIC_APP_URL
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
@@ -67,8 +68,15 @@ Required direct `@supabase/server` request-handler variables:
 SUPABASE_URL
 SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SECRET_KEY
+```
+
+Optional direct request-handler variable:
+
+```text
 SUPABASE_JWKS_URL
 ```
+
+WinningOS derives the JWKS URL from `SUPABASE_URL` when `SUPABASE_JWKS_URL` is blank. If `SUPABASE_JWKS_URL` is set, its origin must match `SUPABASE_URL`.
 
 Copy the real values from the Supabase dashboard Connect dialog. Never commit the secret key.
 
@@ -203,9 +211,28 @@ Validate the migration contract without needing a running Supabase container:
 
 ```bash
 npm run db:validate
+npm run auth:validate
 ```
 
 This checks that the expected Core migrations, tables, seed records, RLS enables, and helper functions are present. It is not a replacement for applying migrations to a real Supabase project.
+
+## Apply migrations to the remote Supabase project
+
+After `.env.local` contains the real project values, apply pending migrations with the Supabase CLI using the percent-encoded database URL derived from the project ref and database password:
+
+```bash
+npx supabase db push --db-url "$SUPABASE_DB_URL" --yes
+```
+
+If `SUPABASE_DB_URL` is not set, build the connection string from `SUPABASE_PROJECT_REF` and `SUPABASE_DB_PASSWORD` without committing it.
+
+Verify the remote Core schema, RLS flags, seed rows, migration history, and required indexes:
+
+```bash
+npm run db:verify:remote
+```
+
+The remote verification script reads `.env.local`, does not print secret values, and fails if the JWKS URL origin does not match `SUPABASE_URL`.
 
 ## Next implementation steps
 
@@ -227,3 +254,18 @@ Local Supabase Auth redirects use `http://localhost:3000` as `site_url` and allo
 ## Auth/profile bootstrap note
 
 `core_profiles` includes a minimal authenticated INSERT policy (`user_id = auth.uid()`) so the next auth/profile slice can create user-owned profiles through the Supabase client or replace that path with a deliberate security-definer trigger. Non-active membership rows remain hidden from ordinary member reads until elevated member-management policies are added.
+
+
+## Auth bootstrap behavior
+
+The app now has a minimal Supabase Auth path:
+
+- `/sign-in` sends an email OTP magic link.
+- `/auth/callback` exchanges the code for a Supabase session.
+- protected app routes call `ensureCoreSession()`.
+- the first authenticated user becomes owner of the seeded workspace.
+- authenticated users without membership are routed to `/pending-access`.
+
+This slice intentionally does not add member invitations, role editing, plugin work, or persisted reads for every dashboard card.
+
+For production auth redirects, set `NEXT_PUBLIC_APP_URL` to the deployed app origin. WinningOS intentionally does not trust forwarded host headers for magic-link callback URLs.
