@@ -146,8 +146,8 @@ begin
 
     insert into public.core_memberships (workspace_id, profile_id, role_id, status)
     values (target_workspace_id, target_profile_id, owner_role_id, 'active')
-    on conflict (workspace_id, profile_id) do nothing
-    returning id into existing_membership_id;
+    on conflict on constraint core_memberships_workspace_profile_key do nothing
+    returning public.core_memberships.id into existing_membership_id;
 
     if existing_membership_id is not null then
       update public.core_workspaces
