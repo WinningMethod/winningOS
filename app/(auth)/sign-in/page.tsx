@@ -12,8 +12,16 @@ import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { resolveAppOriginFromHeaders } from "@/core/auth/origin"
 import { createClient } from "@/core/supabase/server"
 
-// `missing-email` is produced before calling Supabase; the other variants come from Supabase OTP errors.
-const SIGN_IN_ERROR_CODES = ["missing-email", "rate-limited", "email-provider", "auth-failed"] as const
+// `missing-email` is produced before calling Supabase. Callback/sign-out routes also land here with their own safe codes.
+const SIGN_IN_ERROR_CODES = [
+  "missing-email",
+  "rate-limited",
+  "email-provider",
+  "auth-failed",
+  "missing-code",
+  "callback-failed",
+  "signout-failed",
+] as const
 type SignInErrorCode = typeof SIGN_IN_ERROR_CODES[number]
 
 type SupabaseOtpError = {
@@ -79,6 +87,21 @@ function signInErrorMessage(errorCode: SignInErrorCode | undefined): { title: st
         title: "Sign-in failed",
         message: "We couldn't send the magic link. Try again in a moment.",
       }
+    case "missing-code":
+      return {
+        title: "Sign-in link is incomplete",
+        message: "Request a fresh magic link and open it from the same browser.",
+      }
+    case "callback-failed":
+      return {
+        title: "Sign-in link could not be verified",
+        message: "Request a fresh magic link and try again.",
+      }
+    case "signout-failed":
+      return {
+        title: "Sign-out failed",
+        message: "Refresh the page and try signing out again.",
+      }
     default: {
       const exhaustive: never = errorCode
       return exhaustive
@@ -93,7 +116,8 @@ export default async function SignInPage({
 }) {
   const params = await searchParams
   const sent = params?.sent === "1"
-  const errorMessage = sent ? null : signInErrorMessage(isSignInErrorCode(params?.error) ? params.error : undefined)
+  const errorParam = params?.error
+  const errorMessage = sent ? null : signInErrorMessage(isSignInErrorCode(errorParam) ? errorParam : undefined)
   const session = await ensureCoreSession()
 
   if (session.hasActiveMembership) {
