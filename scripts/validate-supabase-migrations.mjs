@@ -361,8 +361,8 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
-  "on conflict (workspace_id, profile_id) do nothing",
-  "bootstrap RPC avoids promoting inactive memberships",
+  "on conflict on constraint core_memberships_workspace_profile_key do nothing",
+  "bootstrap RPC uses named membership constraint without ambiguous output names",
 )
 
 assertIncludes(
