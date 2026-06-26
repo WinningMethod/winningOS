@@ -122,12 +122,16 @@ Expected public variables:
 ```text
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_URL
+SUPABASE_PUBLISHABLE_KEY
+SUPABASE_JWKS_URL
 ```
 
 Expected server-only variables:
 
 ```text
 SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_SECRET_KEY
 ```
 
 Server-only variables must never be referenced in client components.
@@ -216,3 +220,10 @@ Do not implement these before core schema and app scaffold exist:
 - UI hiding is not security.
 - Service-role keys never reach the browser.
 - Plugins must eventually obey the same boundaries as core.
+
+
+## Direct Supabase server handlers
+
+`@supabase/server` handlers must validate inbound credentials before handler logic runs. User-facing handlers should use `auth: "user"` and `ctx.supabase` so Row Level Security scopes database access to the caller. `ctx.supabaseAdmin` bypasses RLS and must remain an explicit server-only/admin path.
+
+For Supabase Edge Functions using non-user auth modes (`publishable`, `secret`, or `none`), disable the platform JWT check for that specific function with `verify_jwt = false`; do not disable JWT verification globally.
