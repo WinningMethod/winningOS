@@ -38,6 +38,7 @@ function classifyOtpError(error: SupabaseOtpError): SignInErrorCode {
   if (
     error.status === 429
     || code.includes("rate")
+    // Message matching is advisory fallback for hosted GoTrue wording; status/code are preferred above.
     || message.includes("request this once every")
     || message.includes("email delivery rate")
   ) {
@@ -104,7 +105,7 @@ function signInErrorMessage(errorCode: SignInErrorCode | undefined): { title: st
       }
     default: {
       const exhaustive: never = errorCode
-      return exhaustive
+      throw new Error(`Unhandled sign-in error code: ${exhaustive as string}`)
     }
   }
 }
@@ -118,7 +119,7 @@ export default async function SignInPage({
   const errorParam = params?.error
   const errorCode = isSignInErrorCode(errorParam) ? errorParam : errorParam ? "auth-failed" : undefined
   const errorMessage = signInErrorMessage(errorCode)
-  const sent = params?.sent === "1" && !errorParam
+  const sent = params?.sent === "1" && !errorCode
   const session = await ensureCoreSession()
 
   if (session.hasActiveMembership) {
@@ -153,14 +154,14 @@ export default async function SignInPage({
     })
 
     if (error) {
-      const errorCode = classifyOtpError(error)
+      const otpErrorCode = classifyOtpError(error)
       console.warn("Supabase OTP sign-in failed", {
         status: error.status,
         code: error.code,
         name: error.name,
-        bucket: errorCode,
+        bucket: otpErrorCode,
       })
-      redirect(`/sign-in?error=${errorCode}`)
+      redirect(`/sign-in?error=${otpErrorCode}`)
     }
 
     redirect("/sign-in?sent=1")
@@ -211,14 +212,14 @@ export default async function SignInPage({
 
             <div className="mt-4 min-h-12">
               {sent && (
-                <div role="status" className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+                <div role="status" aria-live="polite" className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
                   <p className="font-medium text-foreground">Check your email</p>
                   <p className="mt-1">Magic link sent. Use it to finish signing in.</p>
                 </div>
               )}
 
               {errorMessage && (
-                <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+                <div role="alert" aria-live="assertive" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
                   <p className="font-medium">{errorMessage.title}</p>
                   <p className="mt-1">{errorMessage.message}</p>
                 </div>
