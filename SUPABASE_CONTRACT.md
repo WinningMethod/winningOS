@@ -19,26 +19,47 @@ The first schema/seed migrations now implement this contract. This document rema
 
 ## Environment variables
 
-Public browser-safe variables:
+Public browser-safe variables for Next.js / `@supabase/ssr` helpers:
 
 ```text
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
 
-Server-only variables:
+Server-only variables for admin helper paths:
 
 ```text
 SUPABASE_SERVICE_ROLE_KEY
+```
+
+Direct `@supabase/server` request-handler variables:
+
+```text
+SUPABASE_URL
+SUPABASE_PUBLISHABLE_KEY
+SUPABASE_SECRET_KEY
+SUPABASE_JWKS_URL
 ```
 
 Rules:
 
 - Public variables may be read by client components.
 - Server-only variables must only be read in server-only modules.
-- Service-role usage must be rare, named, and documented.
+- Service-role/secret-key usage must be rare, named, and documented.
 - `.env.local` must not be committed.
 - `.env.example` should include placeholder values only.
+
+## Direct request-handler boundary
+
+`@supabase/server` is the Core boundary for standard Web `Request`/`Response` handlers such as Supabase Edge Functions. WinningOS exposes `core/supabase/request-handler.ts` as the local wrapper around `withSupabase`.
+
+Rules:
+
+- default to `auth: "user"` for user-facing handlers
+- use `ctx.supabase` for ordinary reads/writes so RLS remains the source of truth
+- treat `ctx.supabaseAdmin` as an explicit admin escape hatch, not a default data path
+- for Supabase Edge Functions with `publishable`, `secret`, or `none` auth modes, set `verify_jwt = false` for that function in `supabase/config.toml`
+- do not commit `SUPABASE_SECRET_KEY`
 
 ## Client boundaries
 

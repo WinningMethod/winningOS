@@ -48,18 +48,29 @@ cp .env.example .env.local
 
 Then fill in values from the Supabase project that will back the Core deployment.
 
-Required browser-safe variables:
+Required browser-safe variables for Next.js / `@supabase/ssr` helpers:
 
 ```text
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
 
-Required server-only variable:
+Required server-only variable for admin helper paths:
 
 ```text
 SUPABASE_SERVICE_ROLE_KEY
 ```
+
+Required direct `@supabase/server` request-handler variables:
+
+```text
+SUPABASE_URL
+SUPABASE_PUBLISHABLE_KEY
+SUPABASE_SECRET_KEY
+SUPABASE_JWKS_URL
+```
+
+Copy the real values from the Supabase dashboard Connect dialog. Never commit the secret key.
 
 ## Environment variable rules
 
@@ -71,15 +82,15 @@ The anon key is not treated as a secret. Supabase Row Level Security must protec
 
 ### Server-only variables
 
-`SUPABASE_SERVICE_ROLE_KEY` is secret.
+`SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_SECRET_KEY` are secret.
 
 Rules:
 
-- do not prefix it with `NEXT_PUBLIC_`
-- do not import it into client components
-- do not log it
-- do not commit it
-- do not use it for normal user-facing reads/writes
+- do not prefix secrets with `NEXT_PUBLIC_`
+- do not import secrets into client components
+- do not log secrets
+- do not commit secrets
+- do not use admin/secret clients for normal user-facing reads/writes
 - only use it in explicitly named server/admin paths after the service-role use case is documented
 
 ## Supabase helper files
@@ -103,6 +114,46 @@ Expected boundaries:
 - `service-role.ts` creates a server-only admin client and must remain exceptional.
 
 Do not import `service-role.ts` from client components.
+
+
+## Direct Supabase request handlers
+
+WinningOS can use `@supabase/server` for Supabase Edge Functions, Workers, or other standard Web `Request`/`Response` handlers.
+
+The Core wrapper lives in:
+
+```text
+core/supabase/request-handler.ts
+```
+
+Use `withWinningOSUser` for authenticated user endpoints. It validates a user JWT and provides:
+
+- `ctx.supabase` — RLS-scoped client for the authenticated user
+- `ctx.supabaseAdmin` — admin client that bypasses RLS; use only for explicit server-side admin cases
+
+Example shape:
+
+```ts
+import { withWinningOSUser } from "@/core/supabase/request-handler"
+
+export default {
+  fetch: withWinningOSUser(async (_request, ctx) => {
+    const { data } = await ctx.supabase.from("core_workspaces").select()
+    return Response.json(data)
+  }),
+}
+```
+
+Auth modes exposed by the wrapper:
+
+```text
+withWinningOSUser        -> auth: "user"
+withWinningOSPublishable -> auth: "publishable"
+withWinningOSSecret      -> auth: "secret"
+withWinningOSOpen        -> auth: "none"
+```
+
+For Supabase Edge Functions that use `publishable`, `secret`, or `none` auth modes, add a function-specific config block with `verify_jwt = false` in `supabase/config.toml`.
 
 ## Local commands
 
