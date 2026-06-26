@@ -43,7 +43,7 @@ begin
   insert into public.core_profiles (user_id, display_name)
   values (current_user_id, nullif(trim(profile_display_name), ''))
   on conflict (user_id) do nothing
-  returning id, display_name into target_profile_id, target_display_name;
+  returning public.core_profiles.id, public.core_profiles.display_name into target_profile_id, target_display_name;
 
   if target_profile_id is null then
     -- Preserve an existing display name; later manual profile editing should own renames.
@@ -52,16 +52,16 @@ begin
       display_name = nullif(trim(profile_display_name), ''),
       updated_at = now()
     where user_id = current_user_id
-      and display_name is null
+      and public.core_profiles.display_name is null
       and nullif(trim(profile_display_name), '') is not null
-    returning id, display_name into target_profile_id, target_display_name;
+    returning public.core_profiles.id, public.core_profiles.display_name into target_profile_id, target_display_name;
   end if;
 
   if target_profile_id is null then
-    select id, display_name
+    select p.id, p.display_name
     into target_profile_id, target_display_name
-    from public.core_profiles
-    where user_id = current_user_id;
+    from public.core_profiles p
+    where p.user_id = current_user_id;
   end if;
 
   select w.id, w.name
