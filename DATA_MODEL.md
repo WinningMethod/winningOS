@@ -156,7 +156,7 @@ Notes:
 - A profile belongs to the single instance workspace in Core v0.1.
 - A workspace can have many profiles.
 - Role assignment should happen through membership.
-- Initial member-facing reads expose active membership rows in non-deleted workspaces only; invited/disabled/removed rows require later elevated management policies.
+- Initial member-facing reads expose active membership rows in non-deleted workspaces only; invited/disabled/removed rows require later elevated management policies. Role and workspace foreign-key columns used for lifecycle checks are indexed in the initial schema.
 
 ## `core_roles`
 

@@ -102,15 +102,18 @@ for (const table of requiredRlsTables) {
   )
 }
 
+const roleSeedTuples = roleSeedBlock.split(/\n\s*\),/)
+
 for (const roleKey of requiredSeedRoleKeys) {
   const roleName = `${roleKey[0].toUpperCase()}${roleKey.slice(1)}`
-  const roleKeyIndex = roleSeedBlock.indexOf(`'${roleKey}'`)
-  const roleNameIndex = roleSeedBlock.indexOf(`'${roleName}'`, roleKeyIndex)
+  const matchingTuple = roleSeedTuples.some((tuple) =>
+    tuple.includes(`'${roleKey}'`) && tuple.includes(`'${roleName}'`),
+  )
 
-  if (roleKeyIndex === -1 || roleNameIndex === -1) {
-    fail(`seeds ${roleKey} role row`)
-  } else {
+  if (matchingTuple) {
     pass(`seeds ${roleKey} role row`)
+  } else {
+    fail(`seeds ${roleKey} role row`)
   }
 }
 
@@ -124,6 +127,12 @@ assertIncludes(
   migrationText,
   "revoke all on schema private from authenticated;",
   "does not grant direct private schema usage to authenticated users",
+)
+
+assertIncludes(
+  migrationText,
+  "revoke execute on function public.core_touch_updated_at() from public;",
+  "revokes default public execute from trigger helper",
 )
 
 for (const helperSignature of [
@@ -161,6 +170,18 @@ assertIncludes(
   migrationText,
   "constraint core_memberships_workspace_profile_key unique (workspace_id, profile_id)",
   "enforces one membership per profile per workspace",
+)
+
+assertIncludes(
+  migrationText,
+  "create index if not exists core_memberships_role_id_idx",
+  "indexes membership role foreign key",
+)
+
+assertIncludes(
+  migrationText,
+  "create index if not exists core_workspaces_created_by_profile_id_idx",
+  "indexes workspace creator foreign key",
 )
 
 assertIncludes(
@@ -207,6 +228,12 @@ assertIncludes(
 
 assertIncludes(
   migrationText,
+  "workspace_id is not null",
+  "guards workspace-scoped role checks from implicit null membership calls",
+)
+
+assertIncludes(
+  migrationText,
   "and status = 'active'",
   "membership read policy exposes only active target membership rows",
 )
@@ -231,8 +258,8 @@ assertIncludes(
 
 assertIncludes(
   seedText,
-  "raise exception 'default workspace seed failed: missing winningos workspace';",
-  "raises a clear error if the default workspace seed is missing",
+  "conflict updates preserve the surviving primary keys",
+  "documents deterministic seed id behavior on non-fresh databases",
 )
 
 assertIncludes(
@@ -252,6 +279,12 @@ assertIncludes(
   "logo_url = coalesce(public.core_brand_settings.logo_url, excluded.logo_url)",
   "brand settings seed preserves existing logo_url on reset",
 )
+
+if (migrationText.includes("deleted_at is null and private.core_is_active_member(id)")) {
+  fail("workspace RLS should rely on core_is_active_member for soft-delete checks")
+} else {
+  pass("workspace RLS avoids duplicate deleted_at helper logic")
+}
 
 if (process.exitCode) {
   process.exit(process.exitCode)

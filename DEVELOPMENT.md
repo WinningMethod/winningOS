@@ -144,7 +144,7 @@ Expected routes remain:
 
 The initial RLS helper functions live in the non-exposed `private` schema. Keep security-definer helpers out of the public PostgREST RPC surface unless there is an explicit product reason to expose them. Do not grant direct private schema usage to browser-facing roles, and do not add direct `GRANT EXECUTE` paths for private RLS helpers to `authenticated` or `anon`. Future server-only grants must be explicit and validator-safe.
 
-The seed migration must revive/update the deterministic default workspace row by clearing `deleted_at` rather than silently no-oping or leaving a soft-deleted slug invisible to RLS. Role and branding seeds should resolve the active default workspace by slug, raise a clear error if the default workspace seed is missing, and preserve any existing `logo_url` during branding reset behavior. Future seed changes should remain idempotent and should not assume a hidden workspace-switching feature.
+The seed migration must revive/update the deterministic default workspace row by clearing `deleted_at` rather than silently no-oping or leaving a soft-deleted slug invisible to RLS. Role and branding seeds should resolve the active default workspace by slug and preserve any existing `logo_url` during branding reset behavior. Seed comments should document that deterministic IDs are guaranteed on clean databases while non-fresh development/restored databases preserve surviving primary keys. Future seed changes should remain idempotent and should not assume a hidden workspace-switching feature.
 
 ## Migration validation
 
@@ -171,4 +171,4 @@ Do not start plugin work until Core is operational and tested.
 
 ## Supabase Auth local URLs
 
-Local Supabase Auth redirects use `http://localhost:3000` as `site_url` and also allow `http://127.0.0.1:3000` as an additional redirect URL so local links work with the default Next.js dev server origin.
+Local Supabase Auth redirects use `http://localhost:3000` as `site_url` and allow `http://127.0.0.1:3000` as the additional redirect URL. Do not duplicate `site_url` inside `additional_redirect_urls`.

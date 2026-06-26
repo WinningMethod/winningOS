@@ -5,6 +5,12 @@
 -- profile/membership because Supabase Auth users are deployment-specific.
 -- Owner bootstrap belongs in the next auth/profile slice.
 
+-- The default workspace id and role ids are deterministic on clean databases.
+-- On non-fresh development/restored databases with an existing `winningos` slug
+-- or existing role rows, conflict updates preserve the surviving primary keys;
+-- dependent seed rows resolve the workspace by slug instead of assuming the
+-- deterministic workspace UUID was applied.
+
 insert into public.core_workspaces (id, name, slug)
 values (
   '00000000-0000-4000-8000-000000000001',
@@ -17,12 +23,6 @@ set
   deleted_at = null,
   updated_at = now();
 
-do $$
-begin
-  if not exists (select 1 from public.core_workspaces where slug = 'winningos') then
-    raise exception 'default workspace seed failed: missing winningos workspace';
-  end if;
-end $$;
 
 insert into public.core_roles (id, workspace_id, key, name, description, is_system)
 values

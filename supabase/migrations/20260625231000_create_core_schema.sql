@@ -49,6 +49,10 @@ create table if not exists public.core_workspaces (
   constraint core_workspaces_slug_format check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$')
 );
 
+create index if not exists core_workspaces_created_by_profile_id_idx
+  on public.core_workspaces (created_by_profile_id)
+  where created_by_profile_id is not null;
+
 create table if not exists public.core_roles (
   id uuid primary key default extensions.gen_random_uuid(),
   workspace_id uuid references public.core_workspaces(id) on delete cascade,
@@ -88,6 +92,9 @@ create index if not exists core_memberships_profile_id_idx
 create index if not exists core_memberships_workspace_status_idx
   on public.core_memberships (workspace_id, status);
 
+create index if not exists core_memberships_role_id_idx
+  on public.core_memberships (role_id);
+
 create table if not exists public.core_brand_settings (
   id uuid primary key default extensions.gen_random_uuid(),
   workspace_id uuid not null references public.core_workspaces(id) on delete cascade,
@@ -114,6 +121,8 @@ begin
   return new;
 end;
 $$;
+
+revoke execute on function public.core_touch_updated_at() from public;
 
 create or replace trigger core_profiles_touch_updated_at
 before update on public.core_profiles
@@ -253,7 +262,7 @@ create policy "Active members can read their workspace"
   on public.core_workspaces
   for select
   to authenticated
-  using (deleted_at is null and private.core_is_active_member(id));
+  using (private.core_is_active_member(id));
 
 drop policy if exists "Active members can read workspace roles" on public.core_roles;
 
@@ -266,7 +275,10 @@ create policy "Active members can read workspace roles"
       workspace_id is null
       and private.core_is_active_member_of_any_workspace()
     )
-    or private.core_is_active_member(workspace_id)
+    or (
+      workspace_id is not null
+      and private.core_is_active_member(workspace_id)
+    )
   );
 
 drop policy if exists "Active members can read workspace memberships" on public.core_memberships;
