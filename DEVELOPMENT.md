@@ -128,7 +128,7 @@ npm run typecheck
 
 During this phase, the UI still uses mock data.
 
-The Supabase helpers exist so future PRs can wire real auth/data safely without inventing environment boundaries inside feature work.
+The Supabase helpers and initial migrations exist so future PRs can wire real auth/data safely without inventing environment boundaries or schema shape inside feature work.
 
 Expected routes remain:
 
@@ -139,16 +139,40 @@ Expected routes remain:
 /settings
 ```
 
+
+## Supabase migration safety notes
+
+The initial RLS helper functions live in the non-exposed `private` schema. Keep security-definer helpers out of the public PostgREST RPC surface unless there is an explicit product reason to expose them. Do not grant direct private schema usage to browser-facing roles, and do not add direct `GRANT EXECUTE` paths for private RLS helpers to `authenticated` or `anon`. Future server-only grants must be explicit and validator-safe.
+
+The seed migration must revive/update the deterministic default workspace row by clearing `deleted_at` rather than silently no-oping or leaving a soft-deleted slug invisible to RLS. Role and branding seeds should resolve the active default workspace by slug and preserve any existing `logo_url` during branding reset behavior. Seed comments should document that deterministic IDs are guaranteed on clean databases while non-fresh development/restored databases preserve surviving primary keys. Future seed changes should remain idempotent and should not assume a hidden workspace-switching feature.
+
+## Migration validation
+
+Validate the migration contract without needing a running Supabase container:
+
+```bash
+npm run db:validate
+```
+
+This checks that the expected Core migrations, tables, seed records, RLS enables, and helper functions are present. It is not a replacement for applying migrations to a real Supabase project.
+
 ## Next implementation steps
 
-After this environment-contract phase, the next implementation slices should be:
+After this initial schema phase, the next implementation slices should be:
 
-1. initial Core schema migrations
-2. seed/bootstrap path for the single workspace and system roles
-3. auth/profile bootstrap
-4. membership and permission helpers
-5. RLS policies
-6. replacement of mock reads with Supabase reads
-7. persisted settings writes
+1. auth/profile bootstrap
+2. first-owner bootstrap path for the seeded workspace
+3. membership and permission helpers
+4. replacement of mock reads with Supabase reads
+5. persisted settings writes
+6. RLS policy expansion for permission-aware writes
 
 Do not start plugin work until Core is operational and tested.
+
+## Supabase Auth local URLs
+
+Local Supabase Auth redirects use `http://localhost:3000` as `site_url` and allow `http://127.0.0.1:3000` as the additional redirect URL. Do not duplicate `site_url` inside `additional_redirect_urls`.
+
+## Auth/profile bootstrap note
+
+`core_profiles` includes a minimal authenticated INSERT policy (`user_id = auth.uid()`) so the next auth/profile slice can create user-owned profiles through the Supabase client or replace that path with a deliberate security-definer trigger. Non-active membership rows remain hidden from ordinary member reads until elevated member-management policies are added.

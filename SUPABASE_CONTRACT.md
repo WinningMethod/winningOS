@@ -4,7 +4,7 @@
 
 This document turns the conceptual Core data model into an implementation-facing Supabase contract.
 
-It does not contain SQL migrations yet. It defines what the first migrations should implement and what they should avoid.
+The first schema/seed migrations now implement this contract. This document remains the implementation-facing reference for what the migrations include and what later slices must still add.
 
 ## Core assumptions
 
@@ -58,9 +58,9 @@ The helpers should make unsafe usage hard:
 
 ## Initial schema
 
-The first schema should stay small.
+The first schema stays small.
 
-Recommended initial tables:
+Implemented initial tables:
 
 ```text
 core_workspaces
@@ -110,7 +110,14 @@ deleted_at timestamptz nullable
 Required constraints:
 
 - `slug` should be unique.
-- Core v0.1 should seed exactly one workspace.
+- Core v0.1 should seed exactly one active workspace.
+
+Seed idempotency rules:
+
+- The default workspace seed clears `deleted_at` if the deterministic slug already exists as a soft-deleted row.
+- Role and branding seeds resolve the workspace by slug so a non-fresh development database does not fail role foreign keys because of an old manually-created workspace id.
+- Deterministic seed ids are guaranteed on clean databases; non-fresh development/restored databases preserve surviving primary keys and dependent seeds resolve the workspace by slug.
+- The branding seed preserves an existing `logo_url` on conflict so local resets do not wipe an uploaded logo placeholder.
 - The app should not expose workspace creation or switching.
 
 Open implementation decision:
@@ -353,13 +360,22 @@ created_at timestamptz not null default now()
 
 ## RLS expectations
 
-RLS should be enabled on all core user/workspace tables once migrations begin.
+RLS is enabled in the initial schema migration for all core user/workspace tables.
 
-Expected helper functions:
+Implemented helper functions:
 
 ```sql
-core_current_profile_id()
-core_is_active_member(workspace_id uuid)
+private.core_current_profile_id()
+private.core_is_active_member(target_workspace_id uuid)
+private.core_is_active_member_of_any_workspace()
+private.core_profiles_share_active_workspace(target_profile_id uuid)
+```
+
+These helpers live in the non-exposed `private` schema so they can support RLS policies without becoming public PostgREST RPC endpoints. The migration explicitly revokes private schema usage from public/anon/authenticated roles and revokes default public execute on the helper functions. The helpers are intended for RLS policy use, not direct application RPC calls. Direct grants to browser-facing roles are not allowed.
+
+Deferred helper functions:
+
+```sql
 core_has_permission(workspace_id uuid, permission_key text)
 ```
 
@@ -367,11 +383,11 @@ Policy direction:
 
 - profiles: users can read/update their own profile; shared workspace profile visibility requires membership joins
 - workspaces: active members can read the single workspace
-- memberships: active members can read; management requires elevated permissions
-- roles: active members can read system roles
+- memberships: active members can read active membership rows in non-deleted workspaces; invited/disabled/removed rows require later elevated management policies before any member-management UI is wired
+- roles: active members can read workspace roles; authenticated users with at least one active membership can read global role templates if those are introduced later; workspace-scoped checks guard against null workspace ids explicitly
 - brand settings: active members can read; `branding.manage` required to update
 
-Do not rely on client-supplied workspace IDs without RLS/server verification.
+Do not rely on client-supplied workspace IDs without RLS/server verification. The initial policies allow active-member reads and own-profile updates; permission-aware write policies are deferred until permission helpers exist.
 
 ## Bootstrap behavior
 
@@ -389,7 +405,7 @@ default brand settings row
 Open implementation decision:
 
 - whether the first authenticated user becomes owner automatically
-- whether owner bootstrap requires an explicit admin seed command
+- whether owner bootstrap requires an explicit admin seed command or protected setup route
 
 Recommendation:
 
@@ -397,11 +413,11 @@ Do not silently make any arbitrary first login an owner in production unless dep
 
 ## Migration conventions
 
-Initial migration naming should be boring:
+Initial migration naming is boring and timestamped:
 
 ```text
-YYYYMMDDHHMMSS_create_core_schema.sql
-YYYYMMDDHHMMSS_seed_core_defaults.sql
+20260625231000_create_core_schema.sql
+20260625232000_seed_core_defaults.sql
 ```
 
 Each migration that adds RLS should document:
@@ -411,9 +427,9 @@ Each migration that adds RLS should document:
 - policies added
 - expected access matrix
 
-## Non-goals for first Supabase PR
+## Non-goals for first Supabase schema PR
 
-Do not include these in the first Supabase implementation PR:
+Do not include these in the first Supabase schema PR:
 
 - plugin tables
 - meeting notes tables

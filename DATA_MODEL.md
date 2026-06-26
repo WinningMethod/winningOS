@@ -120,8 +120,9 @@ deleted_at timestamptz nullable
 
 Notes:
 
-- A deployment may begin with one default workspace.
-- Multiple workspaces should remain possible.
+- Core v0.1 seeds one default workspace per deployment.
+- Workspace switching/creation is intentionally out of scope for Core v0.1.
+- Future cross-workspace behavior should be handled by explicit plugins or receiving Core designs, not by adding workspace switching to Core.
 - Workspace data is the primary scoping boundary for memberships, roles, branding, and future plugin data.
 - `deleted_at` is a candidate soft-delete field for records that should remain auditable instead of being hard-deleted. Whether it belongs on every table should be decided with the first migration, not assumed everywhere prematurely.
 
@@ -155,6 +156,7 @@ Notes:
 - A profile belongs to the single instance workspace in Core v0.1.
 - A workspace can have many profiles.
 - Role assignment should happen through membership.
+- Initial member-facing reads expose active membership rows in non-deleted workspaces only; invited/disabled/removed rows require later elevated management policies before any member-management UI is wired. Role and workspace foreign-key columns used for lifecycle checks are indexed in the initial schema.
 
 ## `core_roles`
 
@@ -317,20 +319,24 @@ Membership, branding, roles, permissions, and future plugin records are workspac
 
 Row Level Security should enforce workspace membership for workspace-scoped data.
 
-The first migration that introduces RLS should co-document the helper functions and the policies that depend on them. The core model should eventually provide helper SQL functions such as:
+The initial schema migration enables RLS and co-documents the helper functions and policies that depend on them. The first helper SQL functions are:
 
 ```sql
-core_is_workspace_member(workspace_id uuid)
-core_has_permission(workspace_id uuid, permission_key text)
+private.core_current_profile_id()
+private.core_is_active_member(target_workspace_id uuid)
+private.core_is_active_member_of_any_workspace()
+private.core_profiles_share_active_workspace(target_profile_id uuid)
 ```
 
-Do not implement these before the initial schema is finalized.
+These helper functions live in the non-exposed `private` schema so they can support RLS without becoming public PostgREST RPC endpoints. The migration explicitly revokes private schema usage from public/anon/authenticated roles and revokes default public execute on the helper functions. They are intended for RLS policy use, not direct application RPC calls. Browser-facing roles must not receive direct execute grants for these private helpers.
+
+Permission-aware helpers such as `core_has_permission(workspace_id uuid, permission_key text)` remain deferred until the permission-helper slice.
 
 ## Open questions
 
-1. Should each deployment enforce exactly one default workspace initially?
-2. How much role customization is needed in Core v0.1?
-3. Which tables should use `deleted_at` soft-delete fields in the first migration?
+1. How does the first owner get created after Supabase Auth is wired?
+2. How much role customization is needed after system roles are proven?
+3. When should permission tables replace typed permission constants?
 
 ## Current recommendation
 
