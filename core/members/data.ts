@@ -53,11 +53,11 @@ function normalizeMember(row: CoreMemberRow): CoreMember {
   }
 }
 
-export async function getCoreMembers(): Promise<{ members: CoreMember[]; canManageMembers: boolean }> {
+export async function getCoreMembers(): Promise<{ members: CoreMember[]; canManageMembers: boolean; canInviteRemoveMembers: boolean }> {
   const session = await ensureCoreSession()
 
   if (!session.hasActiveMembership) {
-    return { members: [], canManageMembers: false }
+    return { members: [], canManageMembers: false, canInviteRemoveMembers: false }
   }
 
   const supabase = await createClient()
@@ -77,5 +77,6 @@ export async function getCoreMembers(): Promise<{ members: CoreMember[]; canMana
   return {
     members,
     canManageMembers: members.some((member) => member.canManage),
+    canInviteRemoveMembers: session.membership?.roleKey === "owner",
   }
 }
