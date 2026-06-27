@@ -120,9 +120,13 @@ export default async function MembersPage({
     ? "Member access updated."
     : params?.status === "invited"
       ? "Member invite sent. They will appear as active after signing in."
-      : params?.status === "failed"
-        ? "Member access update failed. Check permissions and try again."
-        : null
+      : params?.status === "invite-rate-limited"
+        ? "Invite email rate limit reached. Member access was staged; wait a minute, then ask them to request a magic link from the sign-in page."
+        : params?.status === "invite-failed"
+          ? "Member invite failed. The email provider could not create or send the invite; try again in a moment."
+          : params?.status === "failed"
+            ? "Member access update failed. Check permissions and try again."
+            : null
 
   return (
     <PageContainer>
