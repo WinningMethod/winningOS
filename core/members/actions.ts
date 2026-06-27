@@ -19,6 +19,15 @@ type AuthUserSummary = {
   email?: string | null
 }
 
+type InviteDelivery = "sent" | "existing" | "rate-limited"
+
+type InviteAuthResult = {
+  user: AuthUserSummary
+  delivery: InviteDelivery
+}
+
+type InviteFailureBucket = "rate-limited" | "provider" | "unknown"
+
 function readRequiredString(formData: FormData, key: string): string {
   const value = formData.get(key)
 
@@ -90,13 +99,32 @@ async function findAuthUserByEmail(email: string): Promise<AuthUserSummary | nul
   return null
 }
 
-async function inviteAuthUser(email: string, displayName: string | null): Promise<AuthUserSummary> {
+function classifyInviteFailure(error: unknown): InviteFailureBucket {
+  const status = typeof error === "object" && error !== null && "status" in error
+    ? Number((error as { status?: number }).status)
+    : undefined
+  const code = typeof error === "object" && error !== null && "code" in error
+    ? String((error as { code?: string }).code ?? "").toLowerCase()
+    : ""
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error ?? "").toLowerCase()
+
+  if (status === 429 || code.includes("rate") || message.includes("email rate") || message.includes("rate limit")) {
+    return "rate-limited"
+  }
+
+  if (code.includes("smtp") || code.includes("provider") || message.includes("email")) {
+    return "provider"
+  }
+
+  return "unknown"
+}
+
+async function createAuthUserForStagedInvite(email: string, displayName: string | null): Promise<AuthUserSummary> {
   const admin = createServiceRoleClient()
-  const headerStore = await headers()
-  const origin = resolveAppOriginFromHeaders(headerStore)
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${origin}/auth/callback`,
-    data: displayName ? { display_name: displayName } : undefined,
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    user_metadata: displayName ? { display_name: displayName } : undefined,
   })
 
   if (!error && data.user?.id) {
@@ -107,6 +135,35 @@ async function inviteAuthUser(email: string, displayName: string | null): Promis
 
   if (existingUser) {
     return existingUser
+  }
+
+  throw error ?? new Error("Supabase staged invite user was not created")
+}
+
+async function inviteAuthUser(email: string, displayName: string | null): Promise<InviteAuthResult> {
+  const existingUser = await findAuthUserByEmail(email)
+
+  if (existingUser) {
+    return { user: existingUser, delivery: "existing" }
+  }
+
+  const admin = createServiceRoleClient()
+  const headerStore = await headers()
+  const origin = resolveAppOriginFromHeaders(headerStore)
+  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${origin}/auth/callback`,
+    data: displayName ? { display_name: displayName } : undefined,
+  })
+
+  if (!error && data.user?.id) {
+    return { user: { id: data.user.id, email: data.user.email }, delivery: "sent" }
+  }
+
+  if (classifyInviteFailure(error) === "rate-limited") {
+    return {
+      user: await createAuthUserForStagedInvite(email, displayName),
+      delivery: "rate-limited",
+    }
   }
 
   throw error ?? new Error("Supabase invite did not return a user")
@@ -228,18 +285,23 @@ export async function inviteMember(formData: FormData): Promise<never> {
     redirect("/members?status=failed")
   }
 
+  let delivery: InviteDelivery = "sent"
+
   try {
-    const user = await inviteAuthUser(email, displayName)
-    await upsertInvitedMembership({ userId: user.id, email, displayName, roleKey })
+    const result = await inviteAuthUser(email, displayName)
+    delivery = result.delivery
+    await upsertInvitedMembership({ userId: result.user.id, email, displayName, roleKey })
   } catch (error) {
+    const bucket = classifyInviteFailure(error)
     console.error("Failed to invite Core member", {
+      bucket,
       message: error instanceof Error ? error.message : "Unknown invite failure",
     })
-    redirect("/members?status=failed")
+    redirect(`/members?status=${bucket === "rate-limited" ? "invite-rate-limited" : "invite-failed"}`)
   }
 
   revalidatePath("/members")
-  redirect("/members?status=invited")
+  redirect(`/members?status=${delivery === "rate-limited" ? "invite-rate-limited" : "invited"}`)
 }
 
 export async function activateMember(formData: FormData): Promise<never> {
