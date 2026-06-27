@@ -19,7 +19,7 @@ type AuthUserSummary = {
   email?: string | null
 }
 
-type InviteDelivery = "sent" | "existing" | "rate-limited"
+type InviteDelivery = "sent" | "existing"
 
 type InviteAuthResult = {
   user: AuthUserSummary
@@ -119,27 +119,6 @@ function classifyInviteFailure(error: unknown): InviteFailureBucket {
   return "unknown"
 }
 
-async function createAuthUserForStagedInvite(email: string, displayName: string | null): Promise<AuthUserSummary> {
-  const admin = createServiceRoleClient()
-  const { data, error } = await admin.auth.admin.createUser({
-    email,
-    email_confirm: true,
-    user_metadata: displayName ? { display_name: displayName } : undefined,
-  })
-
-  if (!error && data.user?.id) {
-    return { id: data.user.id, email: data.user.email }
-  }
-
-  const existingUser = await findAuthUserByEmail(email)
-
-  if (existingUser) {
-    return existingUser
-  }
-
-  throw error ?? new Error("Supabase staged invite user was not created")
-}
-
 async function inviteAuthUser(email: string, displayName: string | null): Promise<InviteAuthResult> {
   const existingUser = await findAuthUserByEmail(email)
 
@@ -157,13 +136,6 @@ async function inviteAuthUser(email: string, displayName: string | null): Promis
 
   if (!error && data.user?.id) {
     return { user: { id: data.user.id, email: data.user.email }, delivery: "sent" }
-  }
-
-  if (classifyInviteFailure(error) === "rate-limited") {
-    return {
-      user: await createAuthUserForStagedInvite(email, displayName),
-      delivery: "rate-limited",
-    }
   }
 
   throw error ?? new Error("Supabase invite did not return a user")
@@ -301,7 +273,7 @@ export async function inviteMember(formData: FormData): Promise<never> {
   }
 
   revalidatePath("/members")
-  redirect(`/members?status=${delivery === "rate-limited" ? "invite-rate-limited" : "invited"}`)
+  redirect(`/members?status=${delivery === "existing" ? "member-added" : "invited"}`)
 }
 
 export async function activateMember(formData: FormData): Promise<never> {
@@ -346,4 +318,25 @@ export async function disableMember(formData: FormData): Promise<never> {
 
   revalidatePath("/members")
   redirect("/members?status=updated")
+}
+
+export async function removeMember(formData: FormData): Promise<never> {
+  const membershipId = readRequiredString(formData, "membershipId")
+
+  const supabase = await createClient()
+  const { error } = await supabase.rpc("core_remove_member", {
+    target_membership_id: membershipId,
+  })
+
+  if (error) {
+    console.error("Failed to remove Core member", {
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    })
+    redirect("/members?status=failed")
+  }
+
+  revalidatePath("/members")
+  redirect("/members?status=removed")
 }

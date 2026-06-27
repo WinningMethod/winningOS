@@ -109,7 +109,7 @@ select jsonb_build_object(
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
-      and p.proname in ('core_list_workspace_members','core_set_member_role','core_disable_member')
+      and p.proname in ('core_list_workspace_members','core_set_member_role','core_disable_member','core_remove_member')
   ),
   'indexes', (
     select jsonb_agg(indexname order by indexname)
@@ -147,13 +147,13 @@ assert(Number(verification.system_role_count) === 4, "Expected four system roles
 assert(Number(verification.brand_settings_count) === 1, "Expected one brand settings row")
 assert(Number(verification.bootstrap_function_count) === 1, "Expected Core bootstrap RPC to exist")
 assert(
-  ["core_disable_member", "core_list_workspace_members", "core_set_member_role"].every((functionName) =>
+  ["core_disable_member", "core_list_workspace_members", "core_remove_member", "core_set_member_role"].every((functionName) =>
     verification.member_function_names?.includes(functionName),
   ),
   "Missing expected Core member-management RPCs",
 )
 assert(
-  ["20260625231000", "20260625232000", "20260626162000", "20260626223000", "20260627001000", "20260627013000"].every((version) =>
+  ["20260625231000", "20260625232000", "20260626162000", "20260626223000", "20260627001000", "20260627013000", "20260627014500"].every((version) =>
     verification.migration_versions.includes(version),
   ),
   "Missing expected Supabase migration history versions",

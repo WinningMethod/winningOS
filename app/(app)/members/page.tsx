@@ -1,4 +1,4 @@
-import { Search, UserCheck, UserMinus, UserPlus, Users } from "lucide-react"
+import { Search, UserCheck, UserMinus, UserPlus, UserX, Users } from "lucide-react"
 import { PageContainer, PageHeader } from "@/components/app/page-header"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { EmptyState } from "@/components/app/states"
 import { cn } from "@/lib/utils"
-import { inviteMember, activateMember, disableMember } from "@/core/members/actions"
+import { inviteMember, activateMember, disableMember, removeMember } from "@/core/members/actions"
 import { getCoreMembers, type CoreMember, type CoreMemberRoleKey, type CoreMemberStatus } from "@/core/members/data"
 
 const filters: { key: CoreMemberStatus | "all"; label: string }[] = [
@@ -103,6 +103,22 @@ function DisableMemberForm({ member, canManageMembers }: { member: CoreMember; c
   )
 }
 
+function RemoveMemberForm({ member, canManageMembers }: { member: CoreMember; canManageMembers: boolean }) {
+  if (!canManageMembers || !member.membershipId || member.roleKey === "owner" || member.status === "pending_access") {
+    return null
+  }
+
+  return (
+    <form action={removeMember}>
+      <input type="hidden" name="membershipId" value={member.membershipId} />
+      <Button size="sm" type="submit" variant="destructive">
+        <UserX className="h-3.5 w-3.5" />
+        {member.status === "invited" ? "Remove invite" : "Remove"}
+      </Button>
+    </form>
+  )
+}
+
 export default async function MembersPage({
   searchParams,
 }: {
@@ -118,15 +134,20 @@ export default async function MembersPage({
   const visible = filterMembers(members, filter, query)
   const statusMessage = params?.status === "updated"
     ? "Member access updated."
-    : params?.status === "invited"
-      ? "Member invite sent. They will appear as active after signing in."
-      : params?.status === "invite-rate-limited"
-        ? "Invite email rate limit reached. Member access was staged; wait a minute, then ask them to request a magic link from the sign-in page."
-        : params?.status === "invite-failed"
-          ? "Member invite failed. The email provider could not create or send the invite; try again in a moment."
-          : params?.status === "failed"
-            ? "Member access update failed. Check permissions and try again."
-            : null
+    : params?.status === "removed"
+      ? "Member access removed."
+      : params?.status === "member-added"
+        ? "Existing auth user added to this workspace. Ask them to sign in with a magic link."
+        : params?.status === "invited"
+          ? "Member invite sent. They will appear as active after signing in."
+          : params?.status === "invite-rate-limited"
+            ? "Invite email rate limit reached. Invite email was not sent and the user was not added. Wait a minute, then try again."
+            : params?.status === "invite-failed"
+              ? "Member invite failed. The email provider could not create or send the invite; try again in a moment."
+              : params?.status === "failed"
+                ? "Member access update failed. Check permissions and try again."
+                : null
+  const isFailureStatus = params?.status === "invite-rate-limited" || params?.status === "invite-failed" || params?.status === "failed"
 
   return (
     <PageContainer>
@@ -143,10 +164,10 @@ export default async function MembersPage({
 
       {statusMessage ? (
         <div
-          role={params?.status === "failed" ? "alert" : "status"}
+          role={isFailureStatus ? "alert" : "status"}
           className={cn(
             "mt-5 rounded-md border px-3 py-2.5 text-sm",
-            params?.status === "failed"
+            isFailureStatus
               ? "border-destructive/40 bg-destructive/10 text-destructive"
               : "border-border bg-muted/40 text-muted-foreground",
           )}
@@ -199,7 +220,7 @@ export default async function MembersPage({
           </Button>
         </form>
         <p className="mt-3 text-xs text-muted-foreground">
-          Invite member sends a Supabase invite email and stages the selected Core role. The membership activates after the invitee signs in.
+          Invite member sends a Supabase invite email, then stages the selected Core role only after the email is accepted by Supabase.
         </p>
       </Card>
 
@@ -288,6 +309,7 @@ export default async function MembersPage({
                           <div className="flex flex-wrap gap-2">
                             <UpdateRoleForm member={member} canManageMembers={canManageMembers} />
                             <DisableMemberForm member={member} canManageMembers={canManageMembers} />
+                            <RemoveMemberForm member={member} canManageMembers={canManageMembers} />
                             {member.roleKey === "owner" ? <span className="text-xs text-muted-foreground">Owner protected</span> : null}
                           </div>
                         ) : (
