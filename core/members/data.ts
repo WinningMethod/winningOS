@@ -54,11 +54,11 @@ function normalizeMember(row: CoreMemberRow): CoreMember {
   }
 }
 
-export async function getCoreMembers(): Promise<{ members: CoreMember[]; canManageMembers: boolean; canInviteRemoveMembers: boolean }> {
+export async function getCoreMembers(): Promise<{ members: CoreMember[]; canManageMembers: boolean; canInviteMembers: boolean; canRemoveMembers: boolean }> {
   const session = await ensureCoreSession()
 
   if (!session.hasActiveMembership) {
-    return { members: [], canManageMembers: false, canInviteRemoveMembers: false }
+    return { members: [], canManageMembers: false, canInviteMembers: false, canRemoveMembers: false }
   }
 
   const supabase = await createClient()
@@ -81,6 +81,7 @@ export async function getCoreMembers(): Promise<{ members: CoreMember[]; canMana
     // Permission-driven gating (catalog is the single source of truth).
     // disable + role assignment are owner/admin; invite + remove are owner-only.
     canManageMembers: roleHasPermission(roleKey, "members.disable"),
-    canInviteRemoveMembers: roleHasPermission(roleKey, "members.invite"),
+    canInviteMembers: roleHasPermission(roleKey, "members.invite"),
+    canRemoveMembers: roleHasPermission(roleKey, "members.remove"),
   }
 }

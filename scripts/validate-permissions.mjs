@@ -100,12 +100,14 @@ assert(fixMigration.includes("and public.core_memberships.status in ('invited', 
 const actions = read("core/members/actions.ts")
 assert(actions.includes('from "@/core/permissions/catalog"'), "member actions import the permission catalog")
 assert(actions.includes('currentMemberHasPermission("members.invite")'), "invite action gates on members.invite")
+assert(actions.includes('currentMemberHasPermission("members.disable")'), "disable action gates on members.disable")
 assert(actions.includes('currentMemberHasPermission("members.remove")'), "remove action gates on members.remove")
 assert(!actions.includes("ensureCanManageMembers"), "dead ensureCanManageMembers helper is removed")
 
 const membersData = read("core/members/data.ts")
 assert(membersData.includes('roleHasPermission(roleKey, "members.disable")'), "member list derives canManageMembers from the catalog")
-assert(membersData.includes('roleHasPermission(roleKey, "members.invite")'), "member list derives canInviteRemoveMembers from the catalog")
+assert(membersData.includes('roleHasPermission(roleKey, "members.invite")'), "member list derives canInviteMembers from the catalog")
+assert(membersData.includes('roleHasPermission(roleKey, "members.remove")'), "member list derives canRemoveMembers from the catalog")
 
 // ---------------------------------------------------------------------------
 // Settings → Roles is wired to real data

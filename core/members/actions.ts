@@ -303,6 +303,10 @@ export async function activateMember(formData: FormData): Promise<never> {
 export async function disableMember(formData: FormData): Promise<never> {
   const membershipId = readRequiredString(formData, "membershipId")
 
+  if (!await currentMemberHasPermission("members.disable")) {
+    redirect("/members?status=failed")
+  }
+
   const supabase = await createClient()
   const { error } = await supabase.rpc("core_disable_member", {
     target_membership_id: membershipId,

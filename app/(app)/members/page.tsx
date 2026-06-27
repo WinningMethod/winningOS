@@ -183,7 +183,7 @@ export default async function MembersPage({
   const filter = filters.some((item) => item.key === requestedFilter)
     ? requestedFilter as CoreMemberStatus | "all"
     : "all"
-  const { members, canManageMembers, canInviteRemoveMembers } = await getCoreMembers()
+  const { members, canManageMembers, canInviteMembers, canRemoveMembers } = await getCoreMembers()
   const visible = filterMembers(members, filter, query)
   const statusNotice = STATUS_NOTICE_META[params?.status ?? ""] ?? null
   const statusMessage = statusNotice?.message ?? null
@@ -195,7 +195,7 @@ export default async function MembersPage({
         title="Members"
         description="Profiles that belong to this workspace. Owners and admins can activate pending profiles and manage basic roles."
         actions={
-          <Button form="core-invite-member-form" type="submit" disabled={!canInviteRemoveMembers} title={canInviteRemoveMembers ? undefined : "Owner only"}>
+          <Button form="core-invite-member-form" type="submit" disabled={!canInviteMembers} title={canInviteMembers ? undefined : "Owner only"}>
             <UserPlus className="h-4 w-4" />
             Invite member
           </Button>
@@ -226,7 +226,7 @@ export default async function MembersPage({
               type="email"
               placeholder="teammate@example.com"
               required
-              disabled={!canInviteRemoveMembers}
+              disabled={!canInviteMembers}
               className="mt-1"
             />
           </div>
@@ -236,7 +236,7 @@ export default async function MembersPage({
               id="invite-display-name"
               name="displayName"
               placeholder="Optional"
-              disabled={!canInviteRemoveMembers}
+              disabled={!canInviteMembers}
               className="mt-1"
             />
           </div>
@@ -246,7 +246,7 @@ export default async function MembersPage({
               id="invite-role"
               name="roleKey"
               defaultValue="member"
-              disabled={!canInviteRemoveMembers}
+              disabled={!canInviteMembers}
               className="mt-1 h-9 w-full rounded-md border border-border bg-background px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
               {assignableRoles.map((role) => (
@@ -254,7 +254,7 @@ export default async function MembersPage({
               ))}
             </select>
           </div>
-          <Button type="submit" disabled={!canInviteRemoveMembers} className="w-full lg:w-auto">
+          <Button type="submit" disabled={!canInviteMembers} className="w-full lg:w-auto">
             <UserPlus className="h-4 w-4" />
             Invite
           </Button>
@@ -349,7 +349,7 @@ export default async function MembersPage({
                           <div className="flex flex-wrap gap-2">
                             <UpdateRoleForm member={member} canManageMembers={canManageMembers} />
                             <DisableMemberForm member={member} canManageMembers={canManageMembers} />
-                            <RemoveMemberForm member={member} canRemoveMembers={canInviteRemoveMembers} />
+                            <RemoveMemberForm member={member} canRemoveMembers={canRemoveMembers} />
                             {member.roleKey === "owner" ? <span className="text-xs text-muted-foreground">Owner protected</span> : null}
                           </div>
                         ) : (

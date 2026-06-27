@@ -100,7 +100,6 @@ function NamespaceRows({ group }: { group: CoreRolesOverview["namespaces"][numbe
     <>
       <tr className="border-b border-border bg-muted/30">
         <th
-          scope="colgroup"
           colSpan={1 + CORE_ROLE_KEYS.length}
           className="py-2 pr-4 text-left text-xs font-semibold text-foreground"
         >
