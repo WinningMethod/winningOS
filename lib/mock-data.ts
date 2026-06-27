@@ -61,81 +61,9 @@ export const statusMeta: Record<MemberStatus, { label: string; tone: "success" |
   removed: { label: "Removed", tone: "danger" },
 }
 
-export const roles: { name: RoleName; description: string; system: boolean; memberCount: number }[] = [
-  { name: "Owner", description: "Full control of the workspace, including billing and deletion.", system: true, memberCount: 1 },
-  { name: "Admin", description: "Manage members, roles, branding, and workspace settings.", system: true, memberCount: 1 },
-  { name: "Member", description: "Operate inside the workspace with standard access.", system: true, memberCount: 3 },
-  { name: "Viewer", description: "Read-only access to permitted areas.", system: true, memberCount: 2 },
-]
-
-export type PermissionGroup = {
-  group: string
-  description: string
-  permissions: {
-    key: string
-    label: string
-    grants: Record<RoleName, boolean>
-  }[]
-}
-
-const all: Record<RoleName, boolean> = { Owner: true, Admin: true, Member: true, Viewer: true }
-const adminUp: Record<RoleName, boolean> = { Owner: true, Admin: true, Member: false, Viewer: false }
-const ownerOnly: Record<RoleName, boolean> = { Owner: true, Admin: false, Member: false, Viewer: false }
-const memberUp: Record<RoleName, boolean> = { Owner: true, Admin: true, Member: true, Viewer: false }
-
-export const permissionGroups: PermissionGroup[] = [
-  {
-    group: "Workspace",
-    description: "Visibility and high-level workspace control.",
-    permissions: [
-      { key: "workspace.view", label: "View workspace", grants: all },
-      { key: "workspace.manage", label: "Manage workspace metadata", grants: adminUp },
-      { key: "workspace.delete", label: "Delete workspace", grants: ownerOnly },
-    ],
-  },
-  {
-    group: "Members",
-    description: "Membership lifecycle inside the workspace.",
-    permissions: [
-      { key: "members.view", label: "View members", grants: memberUp },
-      { key: "members.invite", label: "Invite members", grants: adminUp },
-      { key: "members.remove", label: "Remove members", grants: adminUp },
-    ],
-  },
-  {
-    group: "Roles",
-    description: "Role assignment and permission bundles.",
-    permissions: [
-      { key: "roles.view", label: "View roles", grants: memberUp },
-      { key: "roles.assign", label: "Assign roles", grants: adminUp },
-      { key: "roles.manage", label: "Manage custom roles", grants: ownerOnly },
-    ],
-  },
-  {
-    group: "Branding",
-    description: "Theme tokens and workspace identity.",
-    permissions: [
-      { key: "branding.view", label: "View branding", grants: all },
-      { key: "branding.manage", label: "Manage branding tokens", grants: adminUp },
-    ],
-  },
-  {
-    group: "Settings",
-    description: "Workspace configuration and security.",
-    permissions: [
-      { key: "settings.view", label: "View settings", grants: memberUp },
-      { key: "settings.manage", label: "Manage settings", grants: adminUp },
-    ],
-  },
-  {
-    group: "Plugins",
-    description: "Future build-time plugins. Not available in Core v0.1.",
-    permissions: [
-      { key: "plugins.view", label: "View plugins", grants: memberUp },
-      { key: "plugins.manage", label: "Manage plugins", grants: adminUp },
-    ],
-  },
-]
+// Roles and permissions are no longer mocked here. The real, server-backed
+// permission catalog lives in core/permissions/catalog.ts and is surfaced in
+// Settings → Roles via core/permissions/data.ts.
 
 export const activity: ActivityEntry[] = [
   { id: "a_1", actor: "Dana Whitfield", action: "updated", target: "branding tokens", at: "2h ago" },

@@ -7,13 +7,10 @@ import { resolveAppOriginFromHeaders } from "@/core/auth/origin"
 import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { createClient } from "@/core/supabase/server"
 import { createServiceRoleClient } from "@/core/supabase/service-role"
+import { roleHasPermission, type PermissionKey } from "@/core/permissions/catalog"
 
 const ASSIGNABLE_ROLE_KEYS = ["admin", "member", "viewer"] as const
 type AssignableRoleKey = typeof ASSIGNABLE_ROLE_KEYS[number]
-
-type MemberListRow = {
-  can_manage?: boolean
-}
 
 type AuthUserSummary = {
   id: string
@@ -62,25 +59,13 @@ function isAssignableRoleKey(value: string): value is AssignableRoleKey {
   return ASSIGNABLE_ROLE_KEYS.includes(value as AssignableRoleKey)
 }
 
-async function ensureCanManageMembers(): Promise<boolean> {
-  const supabase = await createClient()
-  const { data, error } = await supabase.rpc("core_list_workspace_members")
-
-  if (error) {
-    console.error("Failed to verify Core member-management permission", {
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-    })
-    return false
-  }
-
-  return ((data ?? []) as MemberListRow[]).some((member) => member.can_manage === true)
-}
-
-async function ensureCanInviteRemoveMembers(): Promise<boolean> {
+// Single source of truth for member-action authorization: the current member's
+// role, checked against the permission catalog. The Supabase RPCs re-enforce
+// these boundaries server-side (defense in depth); this gate fails fast and
+// keeps the app layer consistent with Settings → Roles.
+async function currentMemberHasPermission(permission: PermissionKey): Promise<boolean> {
   const session = await ensureCoreSession()
-  return session.membership?.roleKey === "owner"
+  return roleHasPermission(session.membership?.roleKey, permission)
 }
 
 async function findAuthUserByEmail(email: string): Promise<AuthUserSummary | null> {
@@ -264,7 +249,7 @@ export async function inviteMember(formData: FormData): Promise<never> {
     redirect("/members?status=failed")
   }
 
-  if (!await ensureCanInviteRemoveMembers()) {
+  if (!await currentMemberHasPermission("members.invite")) {
     redirect("/members?status=failed")
   }
 
@@ -339,7 +324,7 @@ export async function disableMember(formData: FormData): Promise<never> {
 export async function removeMember(formData: FormData): Promise<never> {
   const membershipId = readRequiredString(formData, "membershipId")
 
-  if (!await ensureCanInviteRemoveMembers()) {
+  if (!await currentMemberHasPermission("members.remove")) {
     redirect("/members?status=failed")
   }
 
