@@ -1,6 +1,7 @@
 name: Claude PR Review
 
-# Automatically review every pull request with Claude Code.
+# Automatically review every pull request with Claude Code and APPLY the fixes
+# it finds as a commit on the PR branch — the maintainer then reviews and merges.
 # Runs when a PR is opened and on each new push to the PR branch.
 on:
   pull_request:
@@ -15,16 +16,38 @@ concurrency:
 jobs:
   review:
     runs-on: ubuntu-latest
+    # Only same-repo PRs can receive review commits: forked PRs get a read-only
+    # token and cannot be pushed to. (They still skip silently rather than fail.)
+    if: github.event.pull_request.head.repo.full_name == github.repository
     permissions:
-      contents: read
+      # contents:write lets the reviewer push the fix commit back to the PR branch.
+      contents: write
       pull-requests: write
       issues: write
       id-token: write
     steps:
-      - name: Checkout PR
+      - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          # Check out the PR's source branch (not the detached merge ref) so the
+          # review commit can be pushed straight back to it. fetch-depth: 0 keeps
+          # history available for diffing against the base.
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
@@ -32,29 +55,42 @@ jobs:
           # OAuth token from a Claude subscription (run `claude setup-token`),
           # stored as a repo secret. No Anthropic API key / per-use billing.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # Use the workflow's built-in token for GitHub API calls (posting the
-          # review comment). This avoids requiring the Claude GitHub App to be
-          # installed on the repo; the `permissions:` block below scopes it.
-          # Comments will appear from github-actions[bot].
+          # Use the workflow's built-in token for GitHub API calls and the push.
+          # Commits will appear from github-actions[bot]. Pushes made with
+          # GITHUB_TOKEN do NOT trigger another workflow run, so the review commit
+          # will not re-trigger this review — no infinite loop.
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
-            Review the pull request #${{ github.event.pull_request.number }} in
-            ${{ github.repository }}.
+            Review pull request #${{ github.event.pull_request.number }} in
+            ${{ github.repository }} and APPLY the fixes you find as a commit on
+            the PR branch. You are committing to the contributor's branch; a human
+            maintainer reviews and merges afterwards.
 
-            This is "WinningOS Core" — a static Next.js (App Router) wireframe with
-            no backend, auth, or network calls (mock data only). Keep the canonical
-            vocabulary in mind: workspace / profile / member / role / permission / plugin.
+            This is "WinningOS Core" — a Next.js (App Router) project backed by
+            Supabase. Keep the canonical vocabulary in mind: workspace / profile /
+            member / role / permission / plugin.
 
-            Focus your review on:
-            - Correctness bugs and broken behavior
-            - Accessibility (semantic HTML, ARIA, keyboard nav)
-            - Security hardening regressions (response headers, no leaked secrets)
-            - React / Next.js App Router best practices
-            - Dead code and needless complexity
-
-            Be concise and specific. Use `gh pr diff` to read the change and leave your
-            review with `gh pr comment`. Prefix the comment with a short verdict
-            (e.g. "✅ Looks good" or "⚠️ Changes suggested"). If the diff is trivial,
-            say so briefly rather than inventing nits.
+            Workflow:
+            1. Read the change with `gh pr diff` and the surrounding files.
+            2. Review for: correctness bugs and broken behavior, accessibility
+               (semantic HTML, ARIA, keyboard nav), security hardening regressions
+               (response headers, no leaked secrets), React / Next.js App Router
+               best practices, and dead code / needless complexity.
+            3. Apply the fixes directly with Edit/Write. Make focused, minimal
+               changes that match the surrounding code and the project's vocabulary.
+               Do NOT rewrite unrelated code, restyle, or expand scope.
+            4. Verify before committing: run `npm run typecheck` plus whichever
+               validation scripts are relevant to the change (`npm run
+               members:validate`, `npm run db:validate`, `npm run auth:validate`).
+               When you change behavior that one of these scripts covers, extend the
+               script to lock the new behavior in — that is the repo's contract style.
+               Only keep edits that leave these commands green.
+            5. If you changed anything, commit it to the PR branch with a clear,
+               specific message and `git push`, then post one concise `gh pr comment`
+               summarizing what you changed and why (prefix "⚠️ Changes applied").
+            6. If the PR is already correct, make NO commit and post a brief
+               "✅ Looks good" comment. Do NOT invent nits or make cosmetic-only
+               edits just to have something to commit. A trivial diff deserves a
+               one-line acknowledgement, not a manufactured change.
           claude_args: |
-            --allowed-tools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh pr list:*),Bash(gh issue view:*),Read,Grep,Glob"
+            --allowed-tools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh pr list:*),Bash(gh issue view:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(npm run typecheck),Bash(npm run members:validate),Bash(npm run db:validate),Bash(npm run auth:validate),Edit,Write,Read,Grep,Glob"
