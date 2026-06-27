@@ -117,6 +117,9 @@ assert(callbackRoute.includes("token_hash"), "auth callback accepts Supabase inv
 assert(callbackRoute.includes("invite") && callbackRoute.includes("magiclink"), "auth callback accepts invite and magic-link token types")
 assert(callbackRoute.includes("invalid-callback-link"), "auth callback rejects unsupported token callback types with a safe code")
 assert(callbackRoute.includes("resolveAppOriginFromRequest"), "auth callback uses configured app origin")
+assert(callbackRoute.includes("isSameOrigin"), "auth callback POST guards same-origin requests")
+assert(callbackRoute.includes("origin !== null"), "auth callback POST requires Origin header on token POST")
+assert(callbackRoute.includes("noscript") && callbackRoute.includes("missing-code"), "auth callback hash-token bridge has noscript fallback for JS-disabled browsers")
 assert(callbackRoute.includes("/home"), "auth callback redirects authenticated users home")
 
 const appLayout = read("app/(app)/layout.tsx")

@@ -17,6 +17,11 @@ function signInRedirect(origin: string, errorCode: "missing-code" | "invalid-cal
   return NextResponse.redirect(new URL(`/sign-in?error=${errorCode}`, origin))
 }
 
+function isSameOrigin(request: Request, expectedOrigin: string): boolean {
+  const origin = request.headers.get("origin")
+  return origin !== null && origin === expectedOrigin
+}
+
 function completeHashTokenSession(origin: string) {
   const homeUrl = JSON.stringify(new URL("/home", origin).toString())
   const missingCodeUrl = JSON.stringify(new URL("/sign-in?error=missing-code", origin).toString())
@@ -29,6 +34,7 @@ function completeHashTokenSession(origin: string) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Completing sign-in…</title>
+    <noscript><meta http-equiv="refresh" content="0;url=/sign-in?error=missing-code" /></noscript>
   </head>
   <body>
     <p>Completing sign-in…</p>
@@ -123,6 +129,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const expectedOrigin = resolveAppOriginFromRequest(request)
+
+  if (!isSameOrigin(request, expectedOrigin)) {
+    return NextResponse.json({ error: "callback-failed" }, { status: 400 })
+  }
+
   const body = await request.json().catch(() => null) as HashTokenSessionPayload | null
   const accessToken = typeof body?.access_token === "string" ? body.access_token : ""
   const refreshToken = typeof body?.refresh_token === "string" ? body.refresh_token : ""
