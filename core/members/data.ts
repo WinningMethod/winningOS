@@ -3,7 +3,7 @@ import "server-only"
 import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { createClient } from "@/core/supabase/server"
 
-export type CoreMemberStatus = "active" | "disabled" | "pending_access"
+export type CoreMemberStatus = "active" | "invited" | "disabled" | "pending_access"
 export type CoreMemberRoleKey = "owner" | "admin" | "member" | "viewer"
 
 export type CoreMember = {
