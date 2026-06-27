@@ -96,8 +96,8 @@ assert(!signInPage.includes("x-forwarded-host"), "sign-in page does not trust fo
 assert(!signInPage.includes("encodeURIComponent(email)"), "sign-in page does not reflect email from URL query")
 assert(signInPage.includes('role="status"') && signInPage.includes('aria-live="polite"'), "sign-in page exposes successful OTP state as status")
 assert(signInPage.includes('role="alert"') && signInPage.includes('aria-live="assertive"'), "sign-in page alerts error state on initial render")
-assert(["missing-email", "rate-limited", "email-provider", "auth-failed", "missing-code", "callback-failed", "signout-failed"].every((code) => signInPage.includes(`case "${code}":`)), "sign-in page handles each auth error code")
-assert(signInPage.includes("Email required") && signInPage.includes("Too many magic-link requests") && signInPage.includes("Email provider unavailable") && signInPage.includes("Sign-in failed") && signInPage.includes("Sign-in link is incomplete") && signInPage.includes("Sign-in link could not be verified") && signInPage.includes("Sign-out failed"), "sign-in page has distinct user-facing auth error messages")
+assert(["missing-email", "rate-limited", "email-provider", "auth-failed", "missing-code", "invalid-callback-link", "callback-failed", "signout-failed"].every((code) => signInPage.includes(`case "${code}":`)), "sign-in page handles each auth error code")
+assert(signInPage.includes("Email required") && signInPage.includes("Too many magic-link requests") && signInPage.includes("Email provider unavailable") && signInPage.includes("Sign-in failed") && signInPage.includes("Sign-in link is incomplete") && signInPage.includes("Sign-in link is invalid") && signInPage.includes("Sign-in link could not be verified") && signInPage.includes("Sign-out failed"), "sign-in page has distinct user-facing auth error messages")
 assert(!signInPage.includes("Supabase is temporarily") && !signInPage.includes("Supabase could not"), "sign-in page does not expose auth vendor in user-facing OTP errors")
 assert(signInPage.indexOf("error.status === 429") !== -1 && signInPage.indexOf("code === \"smtp_error\"") !== -1 && signInPage.indexOf("error.status === 429") < signInPage.indexOf("code === \"smtp_error\""), "sign-in page prefers HTTP 429 rate limits before SMTP provider classification")
 assert(signInPage.includes("email delivery rate") && signInPage.indexOf("email delivery rate") < signInPage.indexOf("return \"rate-limited\""), "sign-in page treats email delivery rate caps as rate limits")
@@ -109,6 +109,10 @@ assert(!signInPage.includes('message.includes("send")') && !signInPage.includes(
 
 const callbackRoute = read("app/auth/callback/route.ts")
 assert(callbackRoute.includes("exchangeCodeForSession"), "auth callback exchanges code for session")
+assert(callbackRoute.includes("verifyOtp"), "auth callback verifies token-hash email links")
+assert(callbackRoute.includes("token_hash"), "auth callback accepts Supabase invite token hash links")
+assert(callbackRoute.includes("invite") && callbackRoute.includes("magiclink"), "auth callback accepts invite and magic-link token types")
+assert(callbackRoute.includes("invalid-callback-link"), "auth callback rejects unsupported token callback types with a safe code")
 assert(callbackRoute.includes("resolveAppOriginFromRequest"), "auth callback uses configured app origin")
 assert(callbackRoute.includes("/home"), "auth callback redirects authenticated users home")
 

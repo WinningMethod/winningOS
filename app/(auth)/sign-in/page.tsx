@@ -19,6 +19,7 @@ const SIGN_IN_ERROR_CODES = [
   "email-provider",
   "auth-failed",
   "missing-code",
+  "invalid-callback-link",
   "callback-failed",
   "signout-failed",
 ] as const
@@ -91,7 +92,12 @@ function signInErrorMessage(errorCode: SignInErrorCode | undefined): { title: st
     case "missing-code":
       return {
         title: "Sign-in link is incomplete",
-        message: "Request a fresh magic link and open it from the same browser.",
+        message: "Request a fresh invite or magic link, then open the newest email link.",
+      }
+    case "invalid-callback-link":
+      return {
+        title: "Sign-in link is invalid",
+        message: "This email link type is not supported. Request a fresh invite or magic link.",
       }
     case "callback-failed":
       return {
