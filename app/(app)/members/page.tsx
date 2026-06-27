@@ -47,6 +47,10 @@ const STATUS_NOTICE_META: Record<string, { message: string; isFailure: boolean }
     message: "Member invite failed. The email provider could not create or send the invite; try again in a moment.",
     isFailure: true,
   },
+  "invite-removed": {
+    message: "This person was removed from this workspace and can't be re-invited from the Members page.",
+    isFailure: true,
+  },
   failed: { message: "Member access update failed. Check permissions and try again.", isFailure: true },
 }
 

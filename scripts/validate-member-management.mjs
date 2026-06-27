@@ -84,6 +84,8 @@ assert(memberActions.includes("core_set_member_role"), "activate action calls me
 assert(memberActions.includes("core_disable_member"), "disable action calls disable RPC")
 assert(memberActions.includes("core_remove_member"), "remove action calls remove/revoke RPC")
 assert(memberActions.includes("redirect(\"/members?status=removed\")"), "remove action redirects after successful removal")
+assert(memberActions.includes("MemberInviteBlockedError"), "invite action distinguishes policy blocks from delivery failures")
+assert(memberActions.includes("redirect(\"/members?status=invite-removed\")"), "invite action surfaces re-invite of a removed member as its own status")
 assert(memberActions.includes("revalidatePath(\"/members\")"), "member actions revalidate members route")
 assert(memberActions.includes("redirect(\"/members?status=updated\")"), "member actions redirect after success")
 
@@ -101,6 +103,7 @@ assert(!membersPage.includes("Invitations are Coming later"), "members page no l
 assert(membersPage.includes("Invited"), "members page shows invited status")
 assert(membersPage.includes("Invite email rate limit reached"), "members page shows specific invite rate-limit status")
 assert(membersPage.includes("Member invite failed"), "members page shows specific invite failure status")
+assert(membersPage.includes("invite-removed") && membersPage.includes("can't be re-invited"), "members page explains why a removed member can't be re-invited")
 assert(membersPage.includes("Invite email was not sent"), "members page says rate-limited invites are not added")
 assert(membersPage.includes("STATUS_NOTICE_META") && membersPage.includes("statusNotice?.isFailure"), "members page maps statuses through one notice metadata record")
 assert(membersPage.includes("MemberActionForm"), "members page shares destructive member action form shell")
