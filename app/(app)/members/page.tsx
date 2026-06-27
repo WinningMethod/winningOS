@@ -31,6 +31,25 @@ const statusMeta: Record<CoreMemberStatus, { label: string; tone: "success" | "w
   disabled: { label: "Disabled", tone: "muted" },
 }
 
+const STATUS_NOTICE_META: Record<string, { message: string; isFailure: boolean }> = {
+  updated: { message: "Member access updated.", isFailure: false },
+  removed: { message: "Member access removed.", isFailure: false },
+  "member-added": {
+    message: "Existing auth user added to this workspace. Ask them to sign in with a magic link.",
+    isFailure: false,
+  },
+  invited: { message: "Member invite sent. They will appear as active after signing in.", isFailure: false },
+  "invite-rate-limited": {
+    message: "Invite email rate limit reached. Invite email was not sent and the user was not added. Wait a minute, then try again.",
+    isFailure: true,
+  },
+  "invite-failed": {
+    message: "Member invite failed. The email provider could not create or send the invite; try again in a moment.",
+    isFailure: true,
+  },
+  failed: { message: "Member access update failed. Check permissions and try again.", isFailure: true },
+}
+
 function roleLabel(roleKey: CoreMemberRoleKey | null, roleName: string | null): string {
   return roleName ?? (roleKey ? `${roleKey[0].toUpperCase()}${roleKey.slice(1)}` : "No role")
 }
@@ -87,35 +106,65 @@ function UpdateRoleForm({ member, canManageMembers }: { member: CoreMember; canM
   )
 }
 
-function DisableMemberForm({ member, canManageMembers }: { member: CoreMember; canManageMembers: boolean }) {
-  if (!canManageMembers || !member.membershipId || member.roleKey === "owner" || member.status !== "active") {
+function MemberActionForm({
+  member,
+  action,
+  icon: Icon,
+  label,
+  ariaLabel,
+}: {
+  member: CoreMember
+  action: (formData: FormData) => Promise<never>
+  icon: typeof UserMinus
+  label: string
+  ariaLabel: string
+}) {
+  if (!member.membershipId) {
     return null
   }
 
   return (
-    <form action={disableMember}>
+    <form action={action}>
       <input type="hidden" name="membershipId" value={member.membershipId} />
-      <Button size="sm" type="submit" variant="destructive">
-        <UserMinus className="h-3.5 w-3.5" />
-        Disable
+      <Button size="sm" type="submit" variant="destructive" aria-label={ariaLabel}>
+        <Icon className="h-3.5 w-3.5" />
+        {label}
       </Button>
     </form>
   )
 }
 
-function RemoveMemberForm({ member, canManageMembers }: { member: CoreMember; canManageMembers: boolean }) {
-  if (!canManageMembers || !member.membershipId || member.roleKey === "owner" || member.status === "pending_access") {
+function DisableMemberForm({ member, canManageMembers }: { member: CoreMember; canManageMembers: boolean }) {
+  if (!canManageMembers || member.roleKey === "owner" || member.status !== "active") {
     return null
   }
 
   return (
-    <form action={removeMember}>
-      <input type="hidden" name="membershipId" value={member.membershipId} />
-      <Button size="sm" type="submit" variant="destructive">
-        <UserX className="h-3.5 w-3.5" />
-        {member.status === "invited" ? "Remove invite" : "Remove"}
-      </Button>
-    </form>
+    <MemberActionForm
+      member={member}
+      action={disableMember}
+      icon={UserMinus}
+      label="Disable"
+      ariaLabel={`Disable ${member.displayName}`}
+    />
+  )
+}
+
+function RemoveMemberForm({ member, canManageMembers }: { member: CoreMember; canManageMembers: boolean }) {
+  if (!canManageMembers || member.roleKey === "owner" || (member.status !== "invited" && member.status !== "disabled")) {
+    return null
+  }
+
+  const label = member.status === "invited" ? "Remove invite" : "Remove"
+
+  return (
+    <MemberActionForm
+      member={member}
+      action={removeMember}
+      icon={UserX}
+      label={label}
+      ariaLabel={`${label} for ${member.displayName}`}
+    />
   )
 }
 
@@ -132,22 +181,9 @@ export default async function MembersPage({
     : "all"
   const { members, canManageMembers } = await getCoreMembers()
   const visible = filterMembers(members, filter, query)
-  const statusMessage = params?.status === "updated"
-    ? "Member access updated."
-    : params?.status === "removed"
-      ? "Member access removed."
-      : params?.status === "member-added"
-        ? "Existing auth user added to this workspace. Ask them to sign in with a magic link."
-        : params?.status === "invited"
-          ? "Member invite sent. They will appear as active after signing in."
-          : params?.status === "invite-rate-limited"
-            ? "Invite email rate limit reached. Invite email was not sent and the user was not added. Wait a minute, then try again."
-            : params?.status === "invite-failed"
-              ? "Member invite failed. The email provider could not create or send the invite; try again in a moment."
-              : params?.status === "failed"
-                ? "Member access update failed. Check permissions and try again."
-                : null
-  const isFailureStatus = params?.status === "invite-rate-limited" || params?.status === "invite-failed" || params?.status === "failed"
+  const statusNotice = STATUS_NOTICE_META[params?.status ?? ""] ?? null
+  const statusMessage = statusNotice?.message ?? null
+  const isFailureStatus = statusNotice?.isFailure ?? false
 
   return (
     <PageContainer>

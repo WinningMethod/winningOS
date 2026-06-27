@@ -30,7 +30,7 @@ begin
   from public.core_memberships m
   join public.core_roles r on r.id = m.role_id
   where m.id = target_membership_id
-    and m.status <> 'removed'
+    and m.status in ('active', 'invited', 'disabled')
   limit 1;
 
   if target_workspace_id is null then
