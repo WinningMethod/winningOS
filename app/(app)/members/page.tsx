@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { EmptyState } from "@/components/app/states"
 import { cn } from "@/lib/utils"
-import { activateMember, disableMember } from "@/core/members/actions"
+import { inviteMember, activateMember, disableMember } from "@/core/members/actions"
 import { getCoreMembers, type CoreMember, type CoreMemberRoleKey, type CoreMemberStatus } from "@/core/members/data"
 
 const filters: { key: CoreMemberStatus | "all"; label: string }[] = [
   { key: "all", label: "All" },
   { key: "pending_access", label: "Pending access" },
+  { key: "invited", label: "Invited" },
   { key: "active", label: "Active" },
   { key: "disabled", label: "Disabled" },
 ]
@@ -25,6 +26,7 @@ const assignableRoles: { key: Exclude<CoreMemberRoleKey, "owner">; label: string
 
 const statusMeta: Record<CoreMemberStatus, { label: string; tone: "success" | "warning" | "muted" }> = {
   active: { label: "Active", tone: "success" },
+  invited: { label: "Invited", tone: "warning" },
   pending_access: { label: "Pending access", tone: "warning" },
   disabled: { label: "Disabled", tone: "muted" },
 }
@@ -116,9 +118,11 @@ export default async function MembersPage({
   const visible = filterMembers(members, filter, query)
   const statusMessage = params?.status === "updated"
     ? "Member access updated."
-    : params?.status === "failed"
-      ? "Member access update failed. Check permissions and try again."
-      : null
+    : params?.status === "invited"
+      ? "Member invite sent. They will appear as active after signing in."
+      : params?.status === "failed"
+        ? "Member access update failed. Check permissions and try again."
+        : null
 
   return (
     <PageContainer>
@@ -126,10 +130,9 @@ export default async function MembersPage({
         title="Members"
         description="Profiles that belong to this workspace. Owners and admins can activate pending profiles and manage basic roles."
         actions={
-          <Button disabled title="Coming later">
+          <Button form="core-invite-member-form" type="submit" disabled={!canManageMembers} title={canManageMembers ? undefined : "Owner/admin only"}>
             <UserPlus className="h-4 w-4" />
             Invite member
-            <span className="sr-only">Coming later</span>
           </Button>
         }
       />
@@ -149,6 +152,54 @@ export default async function MembersPage({
       ) : null}
 
       <Card className="mt-5 p-4">
+        <form id="core-invite-member-form" action={inviteMember} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_auto] lg:items-end">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground" htmlFor="invite-email">Email</label>
+            <Input
+              id="invite-email"
+              name="email"
+              type="email"
+              placeholder="teammate@example.com"
+              required
+              disabled={!canManageMembers}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground" htmlFor="invite-display-name">Display name</label>
+            <Input
+              id="invite-display-name"
+              name="displayName"
+              placeholder="Optional"
+              disabled={!canManageMembers}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground" htmlFor="invite-role">Role</label>
+            <select
+              id="invite-role"
+              name="roleKey"
+              defaultValue="member"
+              disabled={!canManageMembers}
+              className="mt-1 h-9 w-full rounded-md border border-border bg-background px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+            >
+              {assignableRoles.map((role) => (
+                <option key={role.key} value={role.key}>{role.label}</option>
+              ))}
+            </select>
+          </div>
+          <Button type="submit" disabled={!canManageMembers} className="w-full lg:w-auto">
+            <UserPlus className="h-4 w-4" />
+            Invite
+          </Button>
+        </form>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Invite member sends a Supabase invite email and stages the selected Core role. The membership activates after the invitee signs in.
+        </p>
+      </Card>
+
+      <Card className="mt-4 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <form className="flex w-full flex-col gap-2 sm:max-w-lg sm:flex-row" action="/members">
             <input type="hidden" name="filter" value={filter} />
@@ -249,7 +300,7 @@ export default async function MembersPage({
       </Card>
 
       <p className="mt-3 text-xs text-muted-foreground">
-        Showing {visible.length} of {members.length} profiles. Invitations are Coming later; pending access starts when a user signs in.
+        Showing {visible.length} of {members.length} profiles. Invite member sends email access; pending access still appears when someone signs in before being invited.
       </p>
     </PageContainer>
   )

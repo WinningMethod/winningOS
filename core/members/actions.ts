@@ -1,8 +1,23 @@
 "use server"
 
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
+import { resolveAppOriginFromHeaders } from "@/core/auth/origin"
 import { createClient } from "@/core/supabase/server"
+import { createServiceRoleClient } from "@/core/supabase/service-role"
+
+const ASSIGNABLE_ROLE_KEYS = ["admin", "member", "viewer"] as const
+type AssignableRoleKey = typeof ASSIGNABLE_ROLE_KEYS[number]
+
+type MemberListRow = {
+  can_manage?: boolean
+}
+
+type AuthUserSummary = {
+  id: string
+  email?: string | null
+}
 
 function readRequiredString(formData: FormData, key: string): string {
   const value = formData.get(key)
@@ -12,6 +27,219 @@ function readRequiredString(formData: FormData, key: string): string {
   }
 
   return value.trim()
+}
+
+function readOptionalString(formData: FormData, key: string): string | null {
+  const value = formData.get(key)
+
+  if (typeof value !== "string" || !value.trim()) {
+    return null
+  }
+
+  return value.trim()
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase()
+}
+
+function isAssignableRoleKey(value: string): value is AssignableRoleKey {
+  return ASSIGNABLE_ROLE_KEYS.includes(value as AssignableRoleKey)
+}
+
+async function ensureCanManageMembers(): Promise<boolean> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc("core_list_workspace_members")
+
+  if (error) {
+    console.error("Failed to verify Core member-management permission", {
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    })
+    return false
+  }
+
+  return ((data ?? []) as MemberListRow[]).some((member) => member.can_manage === true)
+}
+
+async function findAuthUserByEmail(email: string): Promise<AuthUserSummary | null> {
+  const admin = createServiceRoleClient()
+  let page = 1
+
+  while (page <= 10) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 100 })
+
+    if (error) {
+      throw error
+    }
+
+    const user = data.users.find((candidate) => candidate.email?.toLowerCase() === email)
+
+    if (user) {
+      return { id: user.id, email: user.email }
+    }
+
+    if (data.users.length < 100) {
+      return null
+    }
+
+    page += 1
+  }
+
+  return null
+}
+
+async function inviteAuthUser(email: string, displayName: string | null): Promise<AuthUserSummary> {
+  const admin = createServiceRoleClient()
+  const headerStore = await headers()
+  const origin = resolveAppOriginFromHeaders(headerStore)
+  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${origin}/auth/callback`,
+    data: displayName ? { display_name: displayName } : undefined,
+  })
+
+  if (!error && data.user?.id) {
+    return { id: data.user.id, email: data.user.email }
+  }
+
+  const existingUser = await findAuthUserByEmail(email)
+
+  if (existingUser) {
+    return existingUser
+  }
+
+  throw error ?? new Error("Supabase invite did not return a user")
+}
+
+async function upsertInvitedMembership({
+  userId,
+  email,
+  displayName,
+  roleKey,
+}: {
+  userId: string
+  email: string
+  displayName: string | null
+  roleKey: AssignableRoleKey
+}): Promise<void> {
+  const admin = createServiceRoleClient()
+
+  const { data: workspace, error: workspaceError } = await admin
+    .from("core_workspaces")
+    .select("id")
+    .eq("slug", "winningos")
+    .is("deleted_at", null)
+    .single()
+
+  if (workspaceError || !workspace?.id) {
+    throw workspaceError ?? new Error("WinningOS workspace not found")
+  }
+
+  const { data: role, error: roleError } = await admin
+    .from("core_roles")
+    .select("id")
+    .eq("workspace_id", workspace.id)
+    .eq("key", roleKey)
+    .single()
+
+  if (roleError || !role?.id) {
+    throw roleError ?? new Error("Core role not found")
+  }
+
+  const { data: existingProfile, error: profileReadError } = await admin
+    .from("core_profiles")
+    .select("id, display_name")
+    .eq("user_id", userId)
+    .maybeSingle()
+
+  if (profileReadError) {
+    throw profileReadError
+  }
+
+  let profileId = existingProfile?.id as string | undefined
+
+  if (!profileId) {
+    const { data: createdProfile, error: createProfileError } = await admin
+      .from("core_profiles")
+      .insert({ user_id: userId, display_name: displayName ?? email.split("@")[0] })
+      .select("id")
+      .single()
+
+    if (createProfileError || !createdProfile?.id) {
+      throw createProfileError ?? new Error("Core profile was not created")
+    }
+
+    profileId = createdProfile.id as string
+  } else if (existingProfile && !existingProfile.display_name && displayName) {
+    const { error: updateProfileError } = await admin
+      .from("core_profiles")
+      .update({ display_name: displayName })
+      .eq("id", profileId)
+
+    if (updateProfileError) {
+      throw updateProfileError
+    }
+  }
+
+  const { data: existingMembership, error: membershipReadError } = await admin
+    .from("core_memberships")
+    .select("id, status")
+    .eq("workspace_id", workspace.id)
+    .eq("profile_id", profileId)
+    .maybeSingle()
+
+  if (membershipReadError) {
+    throw membershipReadError
+  }
+
+  if (existingMembership?.status === "removed") {
+    throw new Error("Removed members cannot be invited from this flow")
+  }
+
+  const nextStatus = existingMembership?.status === "active" ? "active" : "invited"
+  const { error: membershipError } = await admin
+    .from("core_memberships")
+    .upsert(
+      {
+        workspace_id: workspace.id,
+        profile_id: profileId,
+        role_id: role.id,
+        status: nextStatus,
+      },
+      { onConflict: "workspace_id,profile_id" },
+    )
+
+  if (membershipError) {
+    throw membershipError
+  }
+}
+
+export async function inviteMember(formData: FormData): Promise<never> {
+  const email = normalizeEmail(readRequiredString(formData, "email"))
+  const displayName = readOptionalString(formData, "displayName")
+  const roleKey = readRequiredString(formData, "roleKey")
+
+  if (!isAssignableRoleKey(roleKey)) {
+    redirect("/members?status=failed")
+  }
+
+  if (!await ensureCanManageMembers()) {
+    redirect("/members?status=failed")
+  }
+
+  try {
+    const user = await inviteAuthUser(email, displayName)
+    await upsertInvitedMembership({ userId: user.id, email, displayName, roleKey })
+  } catch (error) {
+    console.error("Failed to invite Core member", {
+      message: error instanceof Error ? error.message : "Unknown invite failure",
+    })
+    redirect("/members?status=failed")
+  }
+
+  revalidatePath("/members")
+  redirect("/members?status=invited")
 }
 
 export async function activateMember(formData: FormData): Promise<never> {
