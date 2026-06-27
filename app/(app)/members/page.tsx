@@ -154,8 +154,8 @@ function DisableMemberForm({ member, canManageMembers }: { member: CoreMember; c
   )
 }
 
-function RemoveMemberForm({ member, canManageMembers }: { member: CoreMember; canManageMembers: boolean }) {
-  if (!canManageMembers || member.roleKey === "owner" || (member.status !== "invited" && member.status !== "disabled")) {
+function RemoveMemberForm({ member, canRemoveMembers }: { member: CoreMember; canRemoveMembers: boolean }) {
+  if (!canRemoveMembers || member.roleKey === "owner" || (member.status !== "invited" && member.status !== "disabled")) {
     return null
   }
 
@@ -183,7 +183,7 @@ export default async function MembersPage({
   const filter = filters.some((item) => item.key === requestedFilter)
     ? requestedFilter as CoreMemberStatus | "all"
     : "all"
-  const { members, canManageMembers } = await getCoreMembers()
+  const { members, canManageMembers, canInviteRemoveMembers } = await getCoreMembers()
   const visible = filterMembers(members, filter, query)
   const statusNotice = STATUS_NOTICE_META[params?.status ?? ""] ?? null
   const statusMessage = statusNotice?.message ?? null
@@ -195,7 +195,7 @@ export default async function MembersPage({
         title="Members"
         description="Profiles that belong to this workspace. Owners and admins can activate pending profiles and manage basic roles."
         actions={
-          <Button form="core-invite-member-form" type="submit" disabled={!canManageMembers} title={canManageMembers ? undefined : "Owner/admin only"}>
+          <Button form="core-invite-member-form" type="submit" disabled={!canInviteRemoveMembers} title={canInviteRemoveMembers ? undefined : "Owner only"}>
             <UserPlus className="h-4 w-4" />
             Invite member
           </Button>
@@ -226,7 +226,7 @@ export default async function MembersPage({
               type="email"
               placeholder="teammate@example.com"
               required
-              disabled={!canManageMembers}
+              disabled={!canInviteRemoveMembers}
               className="mt-1"
             />
           </div>
@@ -236,7 +236,7 @@ export default async function MembersPage({
               id="invite-display-name"
               name="displayName"
               placeholder="Optional"
-              disabled={!canManageMembers}
+              disabled={!canInviteRemoveMembers}
               className="mt-1"
             />
           </div>
@@ -246,7 +246,7 @@ export default async function MembersPage({
               id="invite-role"
               name="roleKey"
               defaultValue="member"
-              disabled={!canManageMembers}
+              disabled={!canInviteRemoveMembers}
               className="mt-1 h-9 w-full rounded-md border border-border bg-background px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
               {assignableRoles.map((role) => (
@@ -254,7 +254,7 @@ export default async function MembersPage({
               ))}
             </select>
           </div>
-          <Button type="submit" disabled={!canManageMembers} className="w-full lg:w-auto">
+          <Button type="submit" disabled={!canInviteRemoveMembers} className="w-full lg:w-auto">
             <UserPlus className="h-4 w-4" />
             Invite
           </Button>
@@ -349,7 +349,7 @@ export default async function MembersPage({
                           <div className="flex flex-wrap gap-2">
                             <UpdateRoleForm member={member} canManageMembers={canManageMembers} />
                             <DisableMemberForm member={member} canManageMembers={canManageMembers} />
-                            <RemoveMemberForm member={member} canManageMembers={canManageMembers} />
+                            <RemoveMemberForm member={member} canRemoveMembers={canInviteRemoveMembers} />
                             {member.roleKey === "owner" ? <span className="text-xs text-muted-foreground">Owner protected</span> : null}
                           </div>
                         ) : (

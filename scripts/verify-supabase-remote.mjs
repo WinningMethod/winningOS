@@ -153,7 +153,7 @@ assert(
   "Missing expected Core member-management RPCs",
 )
 assert(
-  ["20260625231000", "20260625232000", "20260626162000", "20260626223000", "20260627001000", "20260627013000", "20260627014500"].every((version) =>
+  ["20260625231000", "20260625232000", "20260626162000", "20260626223000", "20260627001000", "20260627013000", "20260627014500", "20260627183000"].every((version) =>
     verification.migration_versions.includes(version),
   ),
   "Missing expected Supabase migration history versions",

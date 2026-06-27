@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { resolveAppOriginFromHeaders } from "@/core/auth/origin"
+import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { createClient } from "@/core/supabase/server"
 import { createServiceRoleClient } from "@/core/supabase/service-role"
 
@@ -75,6 +76,11 @@ async function ensureCanManageMembers(): Promise<boolean> {
   }
 
   return ((data ?? []) as MemberListRow[]).some((member) => member.can_manage === true)
+}
+
+async function ensureCanInviteRemoveMembers(): Promise<boolean> {
+  const session = await ensureCoreSession()
+  return session.membership?.roleKey === "owner"
 }
 
 async function findAuthUserByEmail(email: string): Promise<AuthUserSummary | null> {
@@ -258,7 +264,7 @@ export async function inviteMember(formData: FormData): Promise<never> {
     redirect("/members?status=failed")
   }
 
-  if (!await ensureCanManageMembers()) {
+  if (!await ensureCanInviteRemoveMembers()) {
     redirect("/members?status=failed")
   }
 
@@ -332,6 +338,10 @@ export async function disableMember(formData: FormData): Promise<never> {
 
 export async function removeMember(formData: FormData): Promise<never> {
   const membershipId = readRequiredString(formData, "membershipId")
+
+  if (!await ensureCanInviteRemoveMembers()) {
+    redirect("/members?status=failed")
+  }
 
   const supabase = await createClient()
   const { error } = await supabase.rpc("core_remove_member", {
