@@ -27,11 +27,6 @@ type InviteAuthResult = {
 
 type InviteFailureBucket = "rate-limited" | "provider" | "unknown"
 
-// Raised when a re-invite is refused for a non-delivery reason (e.g. the member
-// was previously removed). Kept distinct from provider/rate-limit failures so the
-// UI does not blame the email provider for a deliberate policy block.
-class MemberInviteBlockedError extends Error {}
-
 function readRequiredString(formData: FormData, key: string): string {
   const value = formData.get(key)
 
@@ -228,10 +223,6 @@ async function upsertInvitedMembership({
     throw membershipReadError
   }
 
-  if (existingMembership?.status === "removed") {
-    throw new MemberInviteBlockedError("Removed members cannot be invited from this flow")
-  }
-
   const nextStatus = existingMembership?.status === "active" ? "active" : "invited"
   const { error: membershipError } = await admin
     .from("core_memberships")
@@ -270,11 +261,6 @@ export async function inviteMember(formData: FormData): Promise<never> {
     delivery = result.delivery
     await upsertInvitedMembership({ userId: result.user.id, email, displayName, roleKey })
   } catch (error) {
-    if (error instanceof MemberInviteBlockedError) {
-      console.error("Refused to re-invite removed Core member", { message: error.message })
-      redirect("/members?status=invite-removed")
-    }
-
     const bucket = classifyInviteFailure(error)
     console.error("Failed to invite Core member", {
       bucket,
