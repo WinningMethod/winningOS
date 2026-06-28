@@ -100,6 +100,7 @@ assert(fixMigration.includes("and public.core_memberships.status in ('invited', 
 const actions = read("core/members/actions.ts")
 assert(actions.includes('from "@/core/permissions/catalog"'), "member actions import the permission catalog")
 assert(actions.includes('currentMemberHasPermission("members.invite")'), "invite action gates on members.invite")
+assert(actions.includes('currentMemberHasPermission("roles.assign")'), "role activation/update action gates on roles.assign")
 assert(actions.includes('currentMemberHasPermission("members.disable")'), "disable action gates on members.disable")
 assert(actions.includes('currentMemberHasPermission("members.remove")'), "remove action gates on members.remove")
 assert(!actions.includes("ensureCanManageMembers"), "dead ensureCanManageMembers helper is removed")

@@ -90,6 +90,7 @@ assert(memberActions.includes("core_memberships") && memberActions.includes('con
 assert(memberActions.includes("resolveAppOriginFromHeaders"), "invite action sends invite callback to app origin")
 assert(memberActions.includes("currentMemberHasPermission"), "member actions authorize through the permission catalog")
 assert(memberActions.includes('currentMemberHasPermission("members.invite")'), "invite action verifies members.invite (owner-only)")
+assert(memberActions.includes('currentMemberHasPermission("roles.assign")'), "activate action verifies roles.assign (owner/admin)")
 assert(memberActions.includes('currentMemberHasPermission("members.disable")'), "disable action verifies members.disable (owner/admin)")
 assert(memberActions.includes('currentMemberHasPermission("members.remove")'), "remove action verifies members.remove (owner-only)")
 assert(memberActions.includes("core_set_member_role"), "activate action calls member role RPC")

@@ -281,6 +281,10 @@ export async function activateMember(formData: FormData): Promise<never> {
   const profileId = readRequiredString(formData, "profileId")
   const roleKey = readRequiredString(formData, "roleKey")
 
+  if (!await currentMemberHasPermission("roles.assign")) {
+    redirect("/members?status=failed")
+  }
+
   const supabase = await createClient()
   const { error } = await supabase.rpc("core_set_member_role", {
     target_profile_id: profileId,
