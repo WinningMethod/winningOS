@@ -7,7 +7,8 @@ import { resolveAppOriginFromHeaders } from "@/core/auth/origin"
 import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { createClient } from "@/core/supabase/server"
 import { createServiceRoleClient } from "@/core/supabase/service-role"
-import { roleHasPermission, type PermissionKey } from "@/core/permissions/catalog"
+import { type PermissionKey } from "@/core/permissions/catalog"
+import { roleHasLivePermission } from "@/core/permissions/grants"
 
 const ASSIGNABLE_ROLE_KEYS = ["admin", "member", "viewer"] as const
 type AssignableRoleKey = typeof ASSIGNABLE_ROLE_KEYS[number]
@@ -60,16 +61,17 @@ function isAssignableRoleKey(value: string): value is AssignableRoleKey {
 }
 
 // Single source of truth for member-action authorization: the current member's
-// role, checked against the permission catalog. The Supabase RPCs re-enforce
-// these boundaries server-side (defense in depth); this gate fails fast and
-// keeps the app layer consistent with Settings → Roles.
+// role, checked against the live grant map (core_role_permissions) so it honors
+// owner edits made in Settings → Roles. The Supabase RPCs re-enforce these
+// boundaries server-side (defense in depth); this gate fails fast and keeps the
+// app layer consistent with Settings → Roles.
 //
 // Returns false (deny) rather than throwing when session bootstrap fails — a
 // transient Supabase error should produce a ?status=failed redirect, not a 500.
 async function currentMemberHasPermission(permission: PermissionKey): Promise<boolean> {
   try {
     const session = await ensureCoreSession()
-    return roleHasPermission(session.membership?.roleKey, permission)
+    return await roleHasLivePermission(session.membership?.roleKey, permission)
   } catch (error) {
     console.error("currentMemberHasPermission: session bootstrap failed", error instanceof Error ? error.message : "unknown")
     return false

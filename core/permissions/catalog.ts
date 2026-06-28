@@ -129,6 +129,31 @@ export const permissionCatalog: PermissionNamespace[] = [
   },
 ]
 
+// Structural owner-only permissions. These stay locked to owner and are never
+// editable from the Roles UI — they back the member-removal, invite, and
+// workspace-deletion boundaries (kept in lockstep with the OWNER_ONLY set in
+// scripts/validate-permissions.mjs and the core_set_role_permission guard).
+export const LOCKED_PERMISSION_KEYS: readonly PermissionKey[] = [
+  "workspace.delete",
+  "members.invite",
+  "members.remove",
+  "roles.manage",
+] as const
+
+/**
+ * Whether a (role, permission) grant may be toggled from the Roles editor.
+ * Owner is immutable (always holds everything); the structural owner-only
+ * permissions are locked for every role. The server re-enforces both rules in
+ * core_set_role_permission — this helper only drives which cells the UI offers.
+ */
+export function isEditableGrant(roleKey: CoreRoleKey, permissionKey: PermissionKey): boolean {
+  if (roleKey === "owner") {
+    return false
+  }
+
+  return !LOCKED_PERMISSION_KEYS.includes(permissionKey)
+}
+
 export const allPermissions: PermissionDef[] = permissionCatalog.flatMap((group) => group.permissions)
 
 export const permissionsByKey: Record<PermissionKey, PermissionDef> = Object.fromEntries(

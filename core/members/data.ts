@@ -2,7 +2,8 @@ import "server-only"
 
 import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { createClient } from "@/core/supabase/server"
-import { roleHasPermission } from "@/core/permissions/catalog"
+import { CORE_ROLE_KEYS, type CoreRoleKey } from "@/core/permissions/catalog"
+import { getRoleGrantMap } from "@/core/permissions/grants"
 
 export type CoreMemberStatus = "active" | "invited" | "disabled" | "pending_access"
 export type CoreMemberRoleKey = "owner" | "admin" | "member" | "viewer"
@@ -75,13 +76,21 @@ export async function getCoreMembers(): Promise<{ members: CoreMember[]; canMana
 
   const rows = (data ?? []) as CoreMemberRow[]
   const members = rows.map(normalizeMember)
-  const roleKey = session.membership?.roleKey
+
+  // Permission-driven gating from the live grant map (core_role_permissions),
+  // so the buttons we render match what the RPCs will actually allow after an
+  // owner edits a role. disable is admin-tier and editable; invite + remove are
+  // owner-only and locked. The RPCs re-enforce all three server-side.
+  const { grants } = await getRoleGrantMap()
+  const roleKey = session.membership?.roleKey ?? null
+  const roleGrants = CORE_ROLE_KEYS.includes(roleKey as CoreRoleKey)
+    ? grants[roleKey as CoreRoleKey]
+    : new Set<string>()
+
   return {
     members,
-    // Permission-driven gating (catalog is the single source of truth).
-    // disable + role assignment are owner/admin; invite + remove are owner-only.
-    canManageMembers: roleHasPermission(roleKey, "members.disable"),
-    canInviteMembers: roleHasPermission(roleKey, "members.invite"),
-    canRemoveMembers: roleHasPermission(roleKey, "members.remove"),
+    canManageMembers: roleGrants.has("members.disable"),
+    canInviteMembers: roleGrants.has("members.invite"),
+    canRemoveMembers: roleGrants.has("members.remove"),
   }
 }

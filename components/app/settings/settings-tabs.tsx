@@ -16,8 +16,18 @@ const tabs = [
 
 type TabKey = (typeof tabs)[number]["key"]
 
-export function SettingsTabs({ rolesOverview }: { rolesOverview: CoreRolesOverview }) {
-  const [active, setActive] = useState<TabKey>("workspace")
+function isTabKey(value: string | undefined): value is TabKey {
+  return tabs.some((tab) => tab.key === value)
+}
+
+export function SettingsTabs({
+  rolesOverview,
+  initialTab,
+}: {
+  rolesOverview: CoreRolesOverview
+  initialTab?: string
+}) {
+  const [active, setActive] = useState<TabKey>(isTabKey(initialTab) ? initialTab : "workspace")
 
   return (
     <>

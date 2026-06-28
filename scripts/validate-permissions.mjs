@@ -104,10 +104,11 @@ assert(fixMigration.includes("and public.core_memberships.status = 'active'"), "
 assert(fixMigration.includes("and public.core_memberships.status in ('invited', 'disabled')"), "remove RPC qualifies the status column in its update guard")
 
 // ---------------------------------------------------------------------------
-// App-layer gating is catalog-driven
+// App-layer gating reads the live grant map (issue #42 made grants editable)
 // ---------------------------------------------------------------------------
 const actions = read("core/members/actions.ts")
-assert(actions.includes('from "@/core/permissions/catalog"'), "member actions import the permission catalog")
+assert(actions.includes('from "@/core/permissions/catalog"'), "member actions import the permission catalog types")
+assert(actions.includes("roleHasLivePermission"), "member actions gate on the live grant map")
 assert(actions.includes('currentMemberHasPermission("members.invite")'), "invite action gates on members.invite")
 assert(actions.includes('currentMemberHasPermission("roles.assign")'), "role activation/update action gates on roles.assign")
 assert(actions.includes('currentMemberHasPermission("members.disable")'), "disable action gates on members.disable")
@@ -115,9 +116,47 @@ assert(actions.includes('currentMemberHasPermission("members.remove")'), "remove
 assert(!actions.includes("ensureCanManageMembers"), "dead ensureCanManageMembers helper is removed")
 
 const membersData = read("core/members/data.ts")
-assert(membersData.includes('roleHasPermission(roleKey, "members.disable")'), "member list derives canManageMembers from the catalog")
-assert(membersData.includes('roleHasPermission(roleKey, "members.invite")'), "member list derives canInviteMembers from the catalog")
-assert(membersData.includes('roleHasPermission(roleKey, "members.remove")'), "member list derives canRemoveMembers from the catalog")
+assert(membersData.includes("getRoleGrantMap"), "member list derives permissions from the live grant map")
+assert(membersData.includes('roleGrants.has("members.disable")'), "member list derives canManageMembers from live grants")
+assert(membersData.includes('roleGrants.has("members.invite")'), "member list derives canInviteMembers from live grants")
+assert(membersData.includes('roleGrants.has("members.remove")'), "member list derives canRemoveMembers from live grants")
+
+// ---------------------------------------------------------------------------
+// Editable role permissions (issue #42)
+// ---------------------------------------------------------------------------
+assert(catalog.includes("export const LOCKED_PERMISSION_KEYS"), "catalog exposes the locked permission set")
+assert(catalog.includes("export function isEditableGrant"), "catalog exposes the isEditableGrant helper")
+for (const key of OWNER_ONLY_KEYS) {
+  assert(catalog.includes(`"${key}"`) && new RegExp(`LOCKED_PERMISSION_KEYS[\\s\\S]*"${key.replace(".", "\\.")}"`).test(catalog), `locked set includes owner-only ${key}`)
+}
+
+const grants = read("core/permissions/grants.ts")
+assert(grants.includes("export async function getRoleGrantMap"), "grants module exposes getRoleGrantMap")
+assert(grants.includes("export async function roleHasLivePermission"), "grants module exposes roleHasLivePermission")
+assert(grants.includes("core_role_permissions"), "grants module reads the live core_role_permissions table")
+assert(grants.includes('map.owner = new Set(allPermissions.map'), "grants module keeps owner holding every permission")
+
+const permissionsActions = read("core/permissions/actions.ts")
+assert(permissionsActions.includes("export async function setRolePermission"), "permissions actions expose setRolePermission")
+assert(permissionsActions.includes("core_set_role_permission"), "setRolePermission calls the owner-only grant RPC")
+assert(permissionsActions.includes('roleHasLivePermission(session.membership?.roleKey, "roles.manage")'), "setRolePermission gates on roles.manage (owner-only)")
+
+const editMigrationFile = migrationFiles.find((file) => file.endsWith("_editable_role_permissions.sql"))
+assert(Boolean(editMigrationFile), "adds editable-role-permissions migration")
+const editMigration = read(join(migrationsDir, editMigrationFile))
+assert(editMigration.includes("function private.core_role_has_permission"), "migration adds the live permission resolver")
+assert(editMigration.includes("p_role_key = 'owner'"), "permission resolver treats owner as holding everything")
+assert(editMigration.includes("function public.core_set_role_permission"), "migration adds the owner-only grant editor RPC")
+assert(editMigration.includes("requires the roles.manage permission"), "grant editor requires roles.manage (owner-only)")
+assert(editMigration.includes("can only edit admin, member, or viewer roles"), "grant editor keeps owner immutable")
+assert(editMigration.includes("('workspace.delete', 'members.invite', 'members.remove', 'roles.manage')"), "grant editor locks the structural owner-only permissions")
+assert(editMigration.includes("core_current_member_has_permission(target_workspace_id, 'roles.assign')"), "set_member_role now gates on the live roles.assign grant")
+assert(editMigration.includes("core_current_member_has_permission(target_workspace_id, 'members.disable')"), "disable_member now gates on the live members.disable grant")
+assert(editMigration.includes("grant execute on function public.core_set_role_permission(text, text, boolean) to authenticated"), "grants the grant editor RPC to authenticated")
+
+const rolesActionsBoundary = read("components/app/settings/roles-section.tsx")
+assert(rolesActionsBoundary.includes("setRolePermission"), "roles section wires the grant toggle action")
+assert(rolesActionsBoundary.includes("canManageRoles"), "roles section gates editing on canManageRoles")
 
 // ---------------------------------------------------------------------------
 // Settings → Roles is wired to real data
