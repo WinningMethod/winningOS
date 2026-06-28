@@ -4,20 +4,14 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { createClient } from "@/core/supabase/server"
-import { allPermissions, isEditableGrant, type CoreRoleKey, type PermissionKey } from "./catalog"
+import { isPermissionKey, isEditableGrant, type CoreRoleKey, type PermissionKey } from "./catalog"
 import { roleHasLivePermission } from "./grants"
 
 const EDITABLE_ROLE_KEYS = ["admin", "member", "viewer"] as const
 type EditableRoleKey = (typeof EDITABLE_ROLE_KEYS)[number]
 
-const PERMISSION_KEY_SET = new Set<string>(allPermissions.map((permission) => permission.key))
-
 function isEditableRoleKey(value: string): value is EditableRoleKey {
   return EDITABLE_ROLE_KEYS.includes(value as EditableRoleKey)
-}
-
-function isPermissionKey(value: string): value is PermissionKey {
-  return PERMISSION_KEY_SET.has(value)
 }
 
 function readString(formData: FormData, key: string): string {

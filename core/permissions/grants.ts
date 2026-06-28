@@ -5,6 +5,8 @@ import {
   CORE_ROLE_KEYS,
   allPermissions,
   permissionsForRole,
+  isCoreRoleKey,
+  isPermissionKey,
   type CoreRoleKey,
   type PermissionKey,
 } from "./catalog"
@@ -14,12 +16,6 @@ export type RoleGrantMap = Record<CoreRoleKey, Set<PermissionKey>>
 type RoleGrantRow = {
   role_key: CoreRoleKey | null
   permission_key: PermissionKey | null
-}
-
-const PERMISSION_KEY_SET = new Set<string>(allPermissions.map((permission) => permission.key))
-
-function isCoreRoleKey(value: string | null): value is CoreRoleKey {
-  return value === "owner" || value === "admin" || value === "member" || value === "viewer"
 }
 
 function emptyGrantMap(): RoleGrantMap {
@@ -65,7 +61,7 @@ export async function getRoleGrantMap(): Promise<{ grants: RoleGrantMap; live: b
   const map = emptyGrantMap()
 
   for (const row of (data ?? []) as RoleGrantRow[]) {
-    if (isCoreRoleKey(row.role_key) && row.permission_key && PERMISSION_KEY_SET.has(row.permission_key)) {
+    if (isCoreRoleKey(row.role_key) && row.permission_key && isPermissionKey(row.permission_key)) {
       map[row.role_key].add(row.permission_key)
     }
   }

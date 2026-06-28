@@ -160,8 +160,14 @@ export const permissionsByKey: Record<PermissionKey, PermissionDef> = Object.fro
   allPermissions.map((permission) => [permission.key, permission]),
 ) as Record<PermissionKey, PermissionDef>
 
-function isCoreRoleKey(value: string | null | undefined): value is CoreRoleKey {
+export function isCoreRoleKey(value: string | null | undefined): value is CoreRoleKey {
   return value === "owner" || value === "admin" || value === "member" || value === "viewer"
+}
+
+const PERMISSION_KEY_SET = new Set<string>(allPermissions.map((p) => p.key))
+
+export function isPermissionKey(value: string): value is PermissionKey {
+  return PERMISSION_KEY_SET.has(value)
 }
 
 /** Whether a role holds a permission. Unknown/null roles hold nothing. */

@@ -34,9 +34,7 @@ export function SettingsTabs({
   // action redirect) delivers a new initialTab prop without unmounting the
   // component, so we need this effect to actually switch the panel.
   useEffect(() => {
-    if (isTabKey(initialTab)) {
-      setActive(initialTab)
-    }
+    setActive(isTabKey(initialTab) ? initialTab : "workspace")
   }, [initialTab])
 
   return (
