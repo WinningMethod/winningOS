@@ -2,6 +2,7 @@ import "server-only"
 
 import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { createClient } from "@/core/supabase/server"
+import { roleHasPermission } from "@/core/permissions/catalog"
 
 export type CoreMemberStatus = "active" | "invited" | "disabled" | "pending_access"
 export type CoreMemberRoleKey = "owner" | "admin" | "member" | "viewer"
@@ -53,11 +54,11 @@ function normalizeMember(row: CoreMemberRow): CoreMember {
   }
 }
 
-export async function getCoreMembers(): Promise<{ members: CoreMember[]; canManageMembers: boolean; canInviteRemoveMembers: boolean }> {
+export async function getCoreMembers(): Promise<{ members: CoreMember[]; canManageMembers: boolean; canInviteMembers: boolean; canRemoveMembers: boolean }> {
   const session = await ensureCoreSession()
 
   if (!session.hasActiveMembership) {
-    return { members: [], canManageMembers: false, canInviteRemoveMembers: false }
+    return { members: [], canManageMembers: false, canInviteMembers: false, canRemoveMembers: false }
   }
 
   const supabase = await createClient()
@@ -74,9 +75,13 @@ export async function getCoreMembers(): Promise<{ members: CoreMember[]; canMana
 
   const rows = (data ?? []) as CoreMemberRow[]
   const members = rows.map(normalizeMember)
+  const roleKey = session.membership?.roleKey
   return {
     members,
-    canManageMembers: members.some((member) => member.canManage),
-    canInviteRemoveMembers: session.membership?.roleKey === "owner",
+    // Permission-driven gating (catalog is the single source of truth).
+    // disable + role assignment are owner/admin; invite + remove are owner-only.
+    canManageMembers: roleHasPermission(roleKey, "members.disable"),
+    canInviteMembers: roleHasPermission(roleKey, "members.invite"),
+    canRemoveMembers: roleHasPermission(roleKey, "members.remove"),
   }
 }

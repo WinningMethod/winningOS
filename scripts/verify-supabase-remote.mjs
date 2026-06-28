@@ -89,7 +89,7 @@ select jsonb_build_object(
     select jsonb_agg(jsonb_build_object('table', tablename, 'rls', rowsecurity) order by tablename)
     from pg_tables
     where schemaname = 'public'
-      and tablename in ('core_profiles','core_workspaces','core_roles','core_memberships','core_brand_settings')
+      and tablename in ('core_profiles','core_workspaces','core_roles','core_memberships','core_brand_settings','core_permissions','core_role_permissions')
   ),
   'workspace_count', (select count(*) from public.core_workspaces where slug = 'winningos'),
   'active_workspace_count', (select count(*) from public.core_workspaces where slug = 'winningos' and deleted_at is null),
@@ -129,7 +129,9 @@ const [{ verification }] = extractJson(stdout)
 const requiredTables = [
   "core_brand_settings",
   "core_memberships",
+  "core_permissions",
   "core_profiles",
+  "core_role_permissions",
   "core_roles",
   "core_workspaces",
 ]
@@ -153,7 +155,7 @@ assert(
   "Missing expected Core member-management RPCs",
 )
 assert(
-  ["20260625231000", "20260625232000", "20260626162000", "20260626223000", "20260627001000", "20260627013000", "20260627014500", "20260627183000"].every((version) =>
+  ["20260625231000", "20260625232000", "20260626162000", "20260626223000", "20260627001000", "20260627013000", "20260627014500", "20260627183000", "20260627193000", "20260627194000"].every((version) =>
     verification.migration_versions.includes(version),
   ),
   "Missing expected Supabase migration history versions",

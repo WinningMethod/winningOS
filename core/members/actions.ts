@@ -7,13 +7,10 @@ import { resolveAppOriginFromHeaders } from "@/core/auth/origin"
 import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { createClient } from "@/core/supabase/server"
 import { createServiceRoleClient } from "@/core/supabase/service-role"
+import { roleHasPermission, type PermissionKey } from "@/core/permissions/catalog"
 
 const ASSIGNABLE_ROLE_KEYS = ["admin", "member", "viewer"] as const
 type AssignableRoleKey = typeof ASSIGNABLE_ROLE_KEYS[number]
-
-type MemberListRow = {
-  can_manage?: boolean
-}
 
 type AuthUserSummary = {
   id: string
@@ -62,25 +59,21 @@ function isAssignableRoleKey(value: string): value is AssignableRoleKey {
   return ASSIGNABLE_ROLE_KEYS.includes(value as AssignableRoleKey)
 }
 
-async function ensureCanManageMembers(): Promise<boolean> {
-  const supabase = await createClient()
-  const { data, error } = await supabase.rpc("core_list_workspace_members")
-
-  if (error) {
-    console.error("Failed to verify Core member-management permission", {
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-    })
+// Single source of truth for member-action authorization: the current member's
+// role, checked against the permission catalog. The Supabase RPCs re-enforce
+// these boundaries server-side (defense in depth); this gate fails fast and
+// keeps the app layer consistent with Settings → Roles.
+//
+// Returns false (deny) rather than throwing when session bootstrap fails — a
+// transient Supabase error should produce a ?status=failed redirect, not a 500.
+async function currentMemberHasPermission(permission: PermissionKey): Promise<boolean> {
+  try {
+    const session = await ensureCoreSession()
+    return roleHasPermission(session.membership?.roleKey, permission)
+  } catch (error) {
+    console.error("currentMemberHasPermission: session bootstrap failed", error instanceof Error ? error.message : "unknown")
     return false
   }
-
-  return ((data ?? []) as MemberListRow[]).some((member) => member.can_manage === true)
-}
-
-async function ensureCanInviteRemoveMembers(): Promise<boolean> {
-  const session = await ensureCoreSession()
-  return session.membership?.roleKey === "owner"
 }
 
 async function findAuthUserByEmail(email: string): Promise<AuthUserSummary | null> {
@@ -264,7 +257,7 @@ export async function inviteMember(formData: FormData): Promise<never> {
     redirect("/members?status=failed")
   }
 
-  if (!await ensureCanInviteRemoveMembers()) {
+  if (!await currentMemberHasPermission("members.invite")) {
     redirect("/members?status=failed")
   }
 
@@ -296,6 +289,10 @@ export async function activateMember(formData: FormData): Promise<never> {
   const profileId = readRequiredString(formData, "profileId")
   const roleKey = readRequiredString(formData, "roleKey")
 
+  if (!await currentMemberHasPermission("roles.assign")) {
+    redirect("/members?status=failed")
+  }
+
   const supabase = await createClient()
   const { error } = await supabase.rpc("core_set_member_role", {
     target_profile_id: profileId,
@@ -318,6 +315,10 @@ export async function activateMember(formData: FormData): Promise<never> {
 export async function disableMember(formData: FormData): Promise<never> {
   const membershipId = readRequiredString(formData, "membershipId")
 
+  if (!await currentMemberHasPermission("members.disable")) {
+    redirect("/members?status=failed")
+  }
+
   const supabase = await createClient()
   const { error } = await supabase.rpc("core_disable_member", {
     target_membership_id: membershipId,
@@ -339,7 +340,7 @@ export async function disableMember(formData: FormData): Promise<never> {
 export async function removeMember(formData: FormData): Promise<never> {
   const membershipId = readRequiredString(formData, "membershipId")
 
-  if (!await ensureCanInviteRemoveMembers()) {
+  if (!await currentMemberHasPermission("members.remove")) {
     redirect("/members?status=failed")
   }
 

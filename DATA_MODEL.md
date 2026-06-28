@@ -255,6 +255,20 @@ Composite primary key:
 (role_id, permission_id)
 ```
 
+### Implemented in Core
+
+`core_permissions` and `core_role_permissions` are live (migration
+`20260627194000_add_core_permissions.sql`). The implementation maps system roles
+by their stable **text key** (`role_key`, `permission_key`) rather than uuid
+foreign keys: Core's four roles are system roles identified by key, so a
+key-based map avoids coupling the permission catalog to per-workspace role rows
+and keeps the seed declarative. `core/permissions/catalog.ts` is the canonical
+source of truth the application gates on; the migration seed mirrors it and
+`scripts/validate-permissions.mjs` keeps the two in lockstep. Both tables are
+RLS-protected (read-only to active members); the seed is the only writer. The
+Settings → Roles view renders this catalog with live member counts. Server-side
+enforcement (RPCs/RLS keyed on these tables) and custom roles remain follow-ups.
+
 ## `core_brand_settings`
 
 Stores workspace-level branding and theme settings.
