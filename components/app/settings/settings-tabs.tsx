@@ -30,9 +30,11 @@ export function SettingsTabs({ rolesOverview }: { rolesOverview: CoreRolesOvervi
             return (
               <button
                 key={tab.key}
+                id={`tab-${tab.key}`}
                 role="tab"
                 type="button"
                 aria-selected={selected}
+                aria-controls={`panel-${tab.key}`}
                 onClick={() => setActive(tab.key)}
                 className={cn(
                   "flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -49,7 +51,12 @@ export function SettingsTabs({ rolesOverview }: { rolesOverview: CoreRolesOvervi
         </div>
       </div>
 
-      <div className="mt-6">
+      <div
+        id={`panel-${active}`}
+        role="tabpanel"
+        aria-labelledby={`tab-${active}`}
+        className="mt-6"
+      >
         {active === "workspace" && <WorkspaceSection />}
         {active === "roles" && <RolesSection overview={rolesOverview} />}
         {active === "branding" && <BrandingSection />}

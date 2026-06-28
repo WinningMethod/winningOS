@@ -52,6 +52,15 @@ for (const key of PERMISSION_KEYS) {
   assert(catalog.includes(`"${key}"`), `catalog defines permission ${key}`)
 }
 
+// Bidirectional check: the catalog must have exactly the same count of permission
+// definitions as PERMISSION_KEYS so that adding a key to the catalog without
+// updating this script causes a failure (not a silent miss).
+const catalogPermKeyCount = (catalog.match(/\bkey: "[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*"/g) ?? []).length
+assert(
+  catalogPermKeyCount === PERMISSION_KEYS.length,
+  `catalog defines exactly ${PERMISSION_KEYS.length} permissions (found ${catalogPermKeyCount})`,
+)
+
 for (const key of OWNER_ONLY_KEYS) {
   const ownerOnly = new RegExp(`key: "${key.replace(".", "\\.")}",[^\\n]*roles: OWNER_ONLY`)
   assert(ownerOnly.test(catalog), `catalog grants ${key} to owner only`)

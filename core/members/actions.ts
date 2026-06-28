@@ -63,9 +63,17 @@ function isAssignableRoleKey(value: string): value is AssignableRoleKey {
 // role, checked against the permission catalog. The Supabase RPCs re-enforce
 // these boundaries server-side (defense in depth); this gate fails fast and
 // keeps the app layer consistent with Settings → Roles.
+//
+// Returns false (deny) rather than throwing when session bootstrap fails — a
+// transient Supabase error should produce a ?status=failed redirect, not a 500.
 async function currentMemberHasPermission(permission: PermissionKey): Promise<boolean> {
-  const session = await ensureCoreSession()
-  return roleHasPermission(session.membership?.roleKey, permission)
+  try {
+    const session = await ensureCoreSession()
+    return roleHasPermission(session.membership?.roleKey, permission)
+  } catch (error) {
+    console.error("currentMemberHasPermission: session bootstrap failed", error instanceof Error ? error.message : "unknown")
+    return false
+  }
 }
 
 async function findAuthUserByEmail(email: string): Promise<AuthUserSummary | null> {
