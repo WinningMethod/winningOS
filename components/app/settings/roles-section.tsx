@@ -14,7 +14,7 @@ const roleColumnLabels: Record<CoreRoleKey, string> = {
 }
 
 export function RolesSection({ overview }: { overview: CoreRolesOverview }) {
-  const { roles, namespaces, countsAvailable, canManageRoles } = overview
+  const { roles, namespaces, countsAvailable, canManageRoles, grantsLive } = overview
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,6 +52,14 @@ export function RolesSection({ overview }: { overview: CoreRolesOverview }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {!grantsLive && (
+            <div
+              role="alert"
+              className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-400"
+            >
+              Permission data could not be refreshed — showing catalog defaults. Edits are disabled until the database is reachable.
+            </div>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -72,7 +80,7 @@ export function RolesSection({ overview }: { overview: CoreRolesOverview }) {
               </thead>
               <tbody>
                 {namespaces.map((group) => (
-                  <NamespaceRows key={group.namespace} group={group} canManageRoles={canManageRoles} />
+                  <NamespaceRows key={group.namespace} group={group} canManageRoles={canManageRoles && grantsLive} />
                 ))}
               </tbody>
             </table>

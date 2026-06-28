@@ -220,7 +220,7 @@ create or replace function public.core_set_role_permission(
 returns table (
   role_key text,
   permission_key text,
-  granted boolean
+  is_granted boolean
 )
 language plpgsql
 volatile
