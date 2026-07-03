@@ -435,7 +435,7 @@ private.core_is_active_member_of_any_workspace()
 private.core_profiles_share_active_workspace(target_profile_id uuid)
 ```
 
-These helpers live in the non-exposed `private` schema so they can support RLS policies without becoming public PostgREST RPC endpoints. The migration explicitly revokes private schema usage from public/anon/authenticated roles and revokes default public execute on the helper functions. The helpers are intended for RLS policy use, not direct application RPC calls. Direct grants to browser-facing roles are not allowed.
+These helpers live in the `private` schema, which is not in PostgREST's exposed schemas, so they never become public REST RPC endpoints. Because Postgres evaluates RLS policy expressions as the querying role, `authenticated` holds `USAGE` on the schema and `EXECUTE` on exactly the helpers that policies reference (`core_is_active_member`, `core_is_active_member_of_any_workspace`, `core_profiles_share_active_workspace`, `core_current_member_has_permission`) — added in `20260703210000_fix_rls_helper_grants.sql` after issues #46/#47 showed policy evaluation failing with `permission denied for schema private`. All other private helpers stay revoked (they run only inside security-definer functions), and nothing in `private` is ever granted to `anon` or `public`. `npm run db:validate` enforces this allowlist.
 
 Deferred helper functions:
 
