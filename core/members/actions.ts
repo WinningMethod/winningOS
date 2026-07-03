@@ -4,7 +4,9 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { resolveAppOriginFromHeaders } from "@/core/auth/origin"
+import { getCoreAuthBrand } from "@/core/auth/brand"
 import { ensureCoreSession } from "@/core/auth/bootstrap"
+import { logCoreAuditEvent } from "@/core/audit/log"
 import { createClient } from "@/core/supabase/server"
 import { createServiceRoleClient } from "@/core/supabase/service-role"
 import { type PermissionKey } from "@/core/permissions/catalog"
@@ -130,9 +132,13 @@ async function inviteAuthUser(email: string, displayName: string | null): Promis
   const admin = createServiceRoleClient()
   const headerStore = await headers()
   const origin = resolveAppOriginFromHeaders(headerStore)
+  const authBrand = await getCoreAuthBrand()
   const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${origin}/auth/callback`,
-    data: displayName ? { display_name: displayName } : undefined,
+    redirectTo: `${origin}/auth/callback?next=/set-password`,
+    data: {
+      ...(displayName ? { display_name: displayName } : {}),
+      brand_name: authBrand.name,
+    },
   })
 
   if (!error && data.user?.id) {
@@ -152,7 +158,7 @@ async function upsertInvitedMembership({
   email: string
   displayName: string | null
   roleKey: AssignableRoleKey
-}): Promise<void> {
+}): Promise<{ profileId: string }> {
   const admin = createServiceRoleClient()
 
   const { data: workspace, error: workspaceError } = await admin
@@ -239,6 +245,8 @@ async function upsertInvitedMembership({
   if (membershipError) {
     throw membershipError
   }
+
+  return { profileId }
 }
 
 export async function inviteMember(formData: FormData): Promise<never> {
@@ -255,11 +263,13 @@ export async function inviteMember(formData: FormData): Promise<never> {
   }
 
   let delivery: InviteDelivery = "sent"
+  let invitedProfileId: string | null = null
 
   try {
     const result = await inviteAuthUser(email, displayName)
     delivery = result.delivery
-    await upsertInvitedMembership({ userId: result.user.id, email, displayName, roleKey })
+    const membership = await upsertInvitedMembership({ userId: result.user.id, email, displayName, roleKey })
+    invitedProfileId = membership.profileId
   } catch (error) {
     const bucket = classifyInviteFailure(error)
     console.error("Failed to invite Core member", {
@@ -268,6 +278,13 @@ export async function inviteMember(formData: FormData): Promise<never> {
     })
     redirect(`/members?status=${bucket === "rate-limited" ? "invite-rate-limited" : "invite-failed"}`)
   }
+
+  await logCoreAuditEvent({
+    action: "member.invited",
+    subjectType: "profile",
+    subjectId: invitedProfileId,
+    metadata: { email, role: roleKey, delivery },
+  })
 
   revalidatePath("/members")
   redirect(`/members?status=${delivery === "existing" ? "member-added" : "invited"}`)
@@ -296,6 +313,13 @@ export async function activateMember(formData: FormData): Promise<never> {
     redirect("/members?status=failed")
   }
 
+  await logCoreAuditEvent({
+    action: "member.role_changed",
+    subjectType: "profile",
+    subjectId: profileId,
+    metadata: { role: roleKey },
+  })
+
   revalidatePath("/members")
   redirect("/members?status=updated")
 }
@@ -321,6 +345,12 @@ export async function disableMember(formData: FormData): Promise<never> {
     redirect("/members?status=failed")
   }
 
+  await logCoreAuditEvent({
+    action: "member.disabled",
+    subjectType: "membership",
+    subjectId: membershipId,
+  })
+
   revalidatePath("/members")
   redirect("/members?status=updated")
 }
@@ -345,6 +375,12 @@ export async function removeMember(formData: FormData): Promise<never> {
     })
     redirect("/members?status=failed")
   }
+
+  await logCoreAuditEvent({
+    action: "member.removed",
+    subjectType: "membership",
+    subjectId: membershipId,
+  })
 
   revalidatePath("/members")
   redirect("/members?status=removed")

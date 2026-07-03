@@ -31,10 +31,12 @@ export function resolveAppOriginFromHeaders(headers: Headers): string {
     return origin
   }
 
-  const requestOrigin = headers.get("origin")
+  if (process.env.NODE_ENV !== "production") {
+    const requestOrigin = headers.get("origin")
 
-  if (requestOrigin?.startsWith("http://localhost") || requestOrigin?.startsWith("http://127.0.0.1")) {
-    return requestOrigin
+    if (requestOrigin?.startsWith("http://localhost") || requestOrigin?.startsWith("http://127.0.0.1")) {
+      return requestOrigin
+    }
   }
 
   return assertProductionAppOrigin()

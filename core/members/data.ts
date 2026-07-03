@@ -55,11 +55,17 @@ function normalizeMember(row: CoreMemberRow): CoreMember {
   }
 }
 
-export async function getCoreMembers(): Promise<{ members: CoreMember[]; canManageMembers: boolean; canInviteMembers: boolean; canRemoveMembers: boolean }> {
+export async function getCoreMembers(): Promise<{
+  members: CoreMember[]
+  canManageMembers: boolean
+  canAssignRoles: boolean
+  canInviteMembers: boolean
+  canRemoveMembers: boolean
+}> {
   const session = await ensureCoreSession()
 
   if (!session.hasActiveMembership) {
-    return { members: [], canManageMembers: false, canInviteMembers: false, canRemoveMembers: false }
+    return { members: [], canManageMembers: false, canAssignRoles: false, canInviteMembers: false, canRemoveMembers: false }
   }
 
   const supabase = await createClient()
@@ -79,8 +85,10 @@ export async function getCoreMembers(): Promise<{ members: CoreMember[]; canMana
 
   // Permission-driven gating from the live grant map (core_role_permissions),
   // so the buttons we render match what the RPCs will actually allow after an
-  // owner edits a role. disable is admin-tier and editable; invite + remove are
-  // owner-only and locked. The RPCs re-enforce all three server-side.
+  // owner edits a role. disable and role-assignment are admin-tier and
+  // editable independently; invite + remove are owner-only and locked.
+  // disable/remove/role-assignment are re-enforced server-side by their RPCs;
+  // invite is currently app-layer-enforced only (see inviteAuthUser).
   const { grants } = await getRoleGrantMap()
   const roleKey = session.membership?.roleKey ?? null
   const roleGrants = CORE_ROLE_KEYS.includes(roleKey as CoreRoleKey)
@@ -90,6 +98,7 @@ export async function getCoreMembers(): Promise<{ members: CoreMember[]; canMana
   return {
     members,
     canManageMembers: roleGrants.has("members.disable"),
+    canAssignRoles: roleGrants.has("roles.assign"),
     canInviteMembers: roleGrants.has("members.invite"),
     canRemoveMembers: roleGrants.has("members.remove"),
   }

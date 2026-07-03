@@ -170,15 +170,6 @@ export function isPermissionKey(value: string): value is PermissionKey {
   return PERMISSION_KEY_SET.has(value)
 }
 
-/** Whether a role holds a permission. Unknown/null roles hold nothing. */
-export function roleHasPermission(roleKey: string | null | undefined, permissionKey: PermissionKey): boolean {
-  if (!isCoreRoleKey(roleKey)) {
-    return false
-  }
-
-  return permissionsByKey[permissionKey]?.roles.includes(roleKey) ?? false
-}
-
 /** All permission keys held by a role. */
 export function permissionsForRole(roleKey: CoreRoleKey): PermissionKey[] {
   return allPermissions.filter((permission) => permission.roles.includes(roleKey)).map((permission) => permission.key)

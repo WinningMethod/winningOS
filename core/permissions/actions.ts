@@ -3,8 +3,9 @@
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { ensureCoreSession } from "@/core/auth/bootstrap"
+import { logCoreAuditEvent } from "@/core/audit/log"
 import { createClient } from "@/core/supabase/server"
-import { isPermissionKey, isEditableGrant, type CoreRoleKey, type PermissionKey } from "./catalog"
+import { isPermissionKey, isEditableGrant, type CoreRoleKey } from "./catalog"
 import { roleHasLivePermission } from "./grants"
 
 const EDITABLE_ROLE_KEYS = ["admin", "member", "viewer"] as const
@@ -55,6 +56,13 @@ export async function setRolePermission(formData: FormData): Promise<never> {
     redirect("/settings?tab=roles&status=role-permission-failed")
   }
 
+  await logCoreAuditEvent({
+    action: "role_permission.changed",
+    subjectType: "role",
+    metadata: { role: roleKey, permission: permissionKey, granted },
+  })
+
   revalidatePath("/settings")
+  revalidatePath("/members")
   redirect("/settings?tab=roles&status=role-permission-updated")
 }

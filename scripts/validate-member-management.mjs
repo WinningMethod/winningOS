@@ -89,6 +89,7 @@ assert(memberActions.includes("createServiceRoleClient"), "invite action uses se
 assert(memberActions.includes("core_memberships") && memberActions.includes('const nextStatus = existingMembership?.status === "active" ? "active" : "invited"'), "invite action creates or restores invited Core membership")
 assert(!memberActions.includes("MemberInviteBlockedError") && !memberActions.includes("invite-removed"), "invite action allows removed invitees through the normal invite flow")
 assert(memberActions.includes("resolveAppOriginFromHeaders"), "invite action sends invite callback to app origin")
+assert(memberActions.includes("/auth/callback?next=/set-password"), "invite action forces new invitees onto the set-password page")
 assert(memberActions.includes("currentMemberHasPermission"), "member actions authorize through the permission catalog")
 assert(memberActions.includes('currentMemberHasPermission("members.invite")'), "invite action verifies members.invite (owner-only)")
 assert(memberActions.includes('currentMemberHasPermission("roles.assign")'), "activate action verifies roles.assign (owner/admin)")

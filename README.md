@@ -6,9 +6,9 @@ It is not intended to be a generic SaaS product. Each deployment is meant to be 
 
 ## Current status
 
-WinningOS Core is moving from implementation-contract phase into Supabase-backed implementation.
+WinningOS Core v0.1 implementation is code-complete and awaiting the Phase 9 readiness gate.
 
-The repo now contains the initial Core docs, a simplified static frontend wireframe, the compatibility contract for future build-time plugins, Supabase environment helpers, and initial Core schema migrations. The next priority is auth/profile bootstrap so Core can resolve real users into profiles and memberships.
+The app is fully Supabase-backed: email + password auth (sign-up, invites, recovery), profile and first-owner bootstrap, member lifecycle management, an owner-editable live permission grant map, persisted workspace and branding settings, and an append-only audit trail — all enforced by security-definer RPCs and RLS. Before plugin work starts, the pending migrations and hosted auth config must be applied to the live Supabase project and the readiness checklist in `IMPLEMENTATION_PLAN.md` must pass.
 
 ## Core principles
 

@@ -2,329 +2,198 @@
 
 ## Purpose
 
-This document defines the next implementation sequence for WinningOS Core v0.1.
+This document defines the implementation sequence for WinningOS Core v0.1 and records where that sequence currently stands.
 
-The goal is to move from a static wireframe and architecture docs into a real Supabase-backed core without losing the slow, reviewable, core-first discipline of the project.
+The goal is to finish a real Supabase-backed Core — auth, members, roles, permissions, settings — without losing the slow, reviewable, core-first discipline of the project. Plugin work starts only after the Core completion gate at the end of this plan passes.
 
 ## Current baseline
 
-WinningOS Core has:
+WinningOS Core has shipped (merged to `main`):
 
-- agent-agnostic project rules
-- core charter
-- architecture, data model, and security docs
-- a simplified static frontend wireframe
-- one-workspace Core scope
-- Vercel deployment configured for Next.js
-- compatibility contract for future build-time plugins
-
-The next phase is not plugin work. The next phase is to make the Core shell real while preserving the existing boundaries.
+- agent-agnostic project rules, core charter, architecture/data/security docs
+- compatibility contract for future build-time plugins (`COMPATIBILITY.md`)
+- Next.js app foundation with the simplified Core shell (`/`, `/home`, `/members`, `/settings`)
+- Supabase environment contract and client helpers (browser / server / service-role)
+- initial Core schema and seeds: `core_workspaces`, `core_profiles`, `core_memberships`, `core_roles`, `core_brand_settings` with RLS
+- auth/profile bootstrap: sign-in, callback handling, idempotent profile creation, first-owner bootstrap, protected app routes, pending-access state
+- member management: invite, activate, role change, disable, remove — enforced by security-definer RPCs
+- permission catalog: typed constants in `core/permissions/catalog.ts`, persisted to `core_permissions` / `core_role_permissions`, editable role grants (owner-only) with locked structural permissions
 
 ## Refined Core v0.1 scope
 
-Core v0.1 should implement only the primitives needed for a single-workspace company operating system foundation.
+Core v0.1 implements only the primitives needed for a single-workspace company operating system foundation.
 
 Core v0.1 includes:
 
 - Next.js app foundation
 - Supabase project/environment contract
-- Supabase Auth integration
+- Supabase Auth integration (email + password)
 - single-workspace bootstrap
 - profile creation/lookup
 - membership and role seed model
-- typed permission constants
-- basic server-side permission helpers
+- typed permission constants backed by live grant tables
+- server-side permission helpers
 - RLS-backed data access for core tables
 - persisted workspace settings
 - persisted branding settings
+- audit events for privileged actions
 - plugin-ready architecture boundaries
 
 Core v0.1 does not include:
 
-- workspace switching
-- workspace creation UI
-- multi-workspace management
-- plugin system implementation
-- meeting notes plugin
-- agent/chat functionality
-- provider configuration
-- provider secret storage
+- workspace switching, creation UI, or multi-workspace management
+- plugin system implementation or example plugins
+- agent/chat functionality, provider configuration, or provider secret storage
 - runtime plugin marketplace
-- custom auth provider abstraction
-- complex custom role editor
-- billing
-- business workflows
+- custom auth provider abstraction / SSO
+- complex custom role editor (the four system roles are the model)
+- billing or business workflows
 - external secrets manager integration
 
 ## Why Agent is not Core
 
-Agent/chat functionality is valuable, but it is not a universal Core primitive.
+Agent/chat functionality is valuable, but it is not a universal Core primitive. It creates extra product and security surface (provider selection and configuration, API key storage, chat/thread data, tool execution boundaries, audit requirements, permission namespaces) that belongs behind the future plugin boundary. Core must be strong enough to accept an Agent plugin later, but ships none of it in v0.1.
 
-It creates extra product and security surface:
+## Decision log
 
-- provider selection
-- model/provider configuration
-- provider API key storage
-- chat/thread data
-- tool execution boundaries
-- audit requirements
-- permission namespaces
+Decisions made while implementing, so later phases don't re-litigate them:
 
-Those belong behind the future plugin boundary. Core should be strong enough to accept an Agent plugin later, but should not ship Agent UI, Agent permissions, provider settings, or chat contracts in v0.1.
+1. **One deployment = one workspace** (`core_workspaces` has a single-active-row constraint). Future multi-workspace behavior is explicit plugin/integration territory.
+2. **First authenticated user becomes owner** of the seeded workspace (serialized in `core_bootstrap_current_user`). Later users wait in pending-access until invited/activated.
+3. **Email + password is the primary auth method** (issue #39). Magic-link-only sign-in caused email-provider rate limiting on every login. Password sign-in removes email from the hot path; email remains for invites, sign-up confirmation, and password recovery. Custom SMTP remains the lever if invite/recovery volume ever hits limits.
+4. **Permissions are explicit and boring.** The catalog in `core/permissions/catalog.ts` is the nameable source of truth; `core_role_permissions` is the live, owner-editable grant map the server enforces. Owner is immutable and structural permissions (`workspace.delete`, `members.invite`, `members.remove`, `roles.manage`) stay owner-only.
+5. **UI is never the security boundary.** Security-definer RPCs and RLS enforce every write; the app layer gates for UX consistency only.
+6. **Audit events are best-effort observability, not a security control.** They record who did what; RLS/RPCs remain the enforcement layer.
 
 ## Implementation sequence
 
-### Phase 0: Compatibility contract
+### Phase 0: Compatibility contract — DONE
 
-Goal: finish the future plugin contract without building plugin code.
+`COMPATIBILITY.md` defines future external plugin repo expectations, permission/table naming, and explicitly gates plugin work on Core being operational and tested.
 
-Tasks:
+### Phase 1: App foundation hygiene — DONE
 
-1. Add `COMPATIBILITY.md`.
-2. Define future external plugin repo expectations.
-3. Define future `IMPLEMENTATION.md` expectations for plugin repos.
-4. Define plugin permission and table naming.
-5. Explicitly state that Core must be operational and tested before `Example_Plugin` or real plugins.
+Package scripts (`build`, `typecheck`, validators), `.env.example`, `DEVELOPMENT.md`, isolated mock data.
 
-Validation:
+### Phase 2: Supabase environment contract — DONE
 
-```bash
-git diff --check
-npm run build
-```
+Browser-safe and server-only client helpers, documented public vs server-only variables, isolated service-role module.
 
-### Phase 1: App foundation hygiene
+Required public variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_APP_URL`.
+Required server-only variables: `SUPABASE_SERVICE_ROLE_KEY`.
 
-Goal: make the existing wireframe ready for real app wiring.
+### Phase 3: Initial schema and seed data — DONE
 
-Status: environment contract and client-helper skeletons are now established.
+Tables: `core_workspaces`, `core_profiles`, `core_memberships`, `core_roles`, `core_brand_settings`. Seeds: one workspace, owner/admin/member/viewer system roles, one default branding row. RLS enabled from the first migration. Validation via `npm run db:validate`.
 
-Completed groundwork:
+### Phase 4: Auth and profile bootstrap — DONE (magic-link era), REWORKED in Phase 4b
 
-1. Confirm package scripts work.
-2. Add `typecheck` script.
-3. Confirm `.env.local` is ignored.
-4. Add `.env.example` with non-secret placeholders.
-5. Keep mock data isolated so it can be replaced cleanly.
-6. Document local development setup in `DEVELOPMENT.md`.
+Sign-in/sign-out, callback handling, idempotent profile bootstrap, first-owner membership bootstrap, protected app routes, pending-access state.
 
-Validation:
+### Phase 4b: Email + password auth rework — IN PROGRESS (this slice)
 
-```bash
-npm run build
-```
-
-Future validation once scripts exist:
-
-```bash
-npm run lint
-npm run typecheck
-```
-
-### Phase 2: Supabase environment contract
-
-Goal: define environment variables and client boundaries before schema work.
-
-Status: initial contract added.
-
-Completed groundwork:
-
-1. Add browser-safe Supabase client helper.
-2. Add server-side Supabase client helper.
-3. Document public vs server-only variables.
-4. Keep service-role helper isolated in a server-only module.
-5. Add a local setup note for connecting a Supabase project.
-
-Required public variables:
-
-```text
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-```
-
-Required server-only variables:
-
-```text
-SUPABASE_SERVICE_ROLE_KEY
-```
-
-### Phase 3: Initial schema and seed data
-
-Goal: introduce the minimum schema needed for a single-workspace Core.
-
-Status: initial migrations are being added in the schema slice.
-
-Implemented initial tables:
-
-```text
-core_workspaces
-core_profiles
-core_memberships
-core_roles
-core_brand_settings
-```
-
-Implemented initial seed data:
-
-```text
-one workspace
-owner/admin/member/viewer system roles
-one default branding row
-```
-
-Important: permissions should start as typed constants in app code. Full permission and role-permission tables can wait until the permission surface is proven.
-
-Validation:
-
-- migration contract validation passes with `npm run db:validate`
-- seed path creates exactly one workspace row
-- unique constraints prevent conflicting settings rows
-- RLS is enabled for initial core tables
-
-### Phase 4: Auth and profile bootstrap
-
-Goal: connect Supabase Auth to Core profile records.
-
-This is the next implementation slice after initial schema migrations merge.
+Goal: make email + password the primary auth method (issue #39) with graceful error handling (issue #26).
 
 Tasks:
 
-1. Wire sign-in/sign-out path.
-2. On authenticated access, ensure a `core_profiles` row exists.
-3. Connect the authenticated profile to the single workspace through `core_memberships`.
-4. Redirect unauthenticated users to the public entry route.
-5. Keep unauthenticated UI simple; do not add real SSO until explicitly scoped.
+1. Sign-in page: email + password via `signInWithPassword` (no email sent on login).
+2. Sign-up path: `signUp` with email confirmation support, optional display name.
+3. Password recovery: `resetPasswordForEmail` → recovery callback → set-password page.
+4. Invite acceptance: invite email link → callback → set-password page → active membership on bootstrap.
+5. Callback route supports `signup` and `recovery` token types alongside `invite`/`magiclink` (legacy links keep working).
+6. Branded, repo-owned email templates for invite, recovery, and confirmation (alongside the existing magic-link template).
+7. Map Supabase password-auth error codes (`invalid_credentials`, `email_not_confirmed`, `weak_password`, `user_already_exists`, rate limits) to safe, specific user-facing messages.
 
 Validation:
 
-- unauthenticated users cannot access app routes
-- authenticated users resolve to one profile
-- profile bootstrap is idempotent
+- `npm run auth:validate`
+- sign-in never sends email; recovery and invite flows still deliver branded emails
+- every auth failure surfaces a distinct, safe error message
 
-### Phase 5: Membership, role, and permission helpers
+Deployment note: hosted Supabase Auth config (templates, password policy) requires `supabase config push` from an authenticated CLI session or the dashboard — the repo carries the config as source of truth.
 
-Goal: make access checks boring and reusable.
+### Phase 5: Membership, role, and permission helpers — DONE
 
-Tasks:
+Role keys, permission constants, role-to-permission mapping, server-side helpers (`ensureCoreSession`, live grant map in `core/permissions/grants.ts`), permission-gated server actions.
 
-1. Define role keys: `owner`, `admin`, `member`, `viewer`.
-2. Define Core permission constants.
-3. Define role-to-permission mapping in code.
-4. Add server-side helpers for:
-   - current profile
-   - current membership
-   - current role
-   - permission check
-5. Use helpers in server-side route/page boundaries before enabling write actions.
+### Phase 6: RLS policies — DONE
 
-Validation:
+RLS on all core tables, private helper functions (`core_is_active_member`, `core_current_profile_id`, `core_current_member_has_permission`), active-member read policies, security-definer RPCs for privileged writes, service role kept exceptional.
 
-- each role maps to expected permissions
-- permission helper denies by default
-- UI can consume permission shape without becoming the security boundary
+### Phase 6b: Editable role grants — DONE (PR #44)
 
-### Phase 6: RLS policies
+`core_role_permissions` is the live source of truth; owners toggle grants from Settings → Roles via `core_set_role_permission`. Owner immutable, structural permissions locked, admin-tier RPCs re-gated on live grants. Revoked invites no longer resurface as pending access (issue #43).
 
-Goal: enforce data access in Supabase, not only in UI code.
+### Phase 7: Persist core settings — IN PROGRESS (this slice)
+
+Goal: replace the remaining mock settings with real workspace-scoped data.
 
 Tasks:
 
-1. Enable RLS on core tables.
-2. Add helper SQL functions where needed.
-3. Add policies for active workspace members.
-4. Add elevated policies for management actions.
-5. Document policies beside migrations.
-
-Validation:
-
-- authenticated non-members cannot read workspace data
-- active members can read allowed workspace data
-- write actions require appropriate permissions
-- service role remains exceptional and documented
-
-### Phase 7: Persist core settings
-
-Goal: replace mock settings with real workspace-scoped data.
-
-Tasks:
-
-1. Read workspace metadata from `core_workspaces`.
-2. Read/update branding settings from `core_brand_settings`.
-3. Keep roles mostly read-only/system seeded.
-4. Add server-side validation for write actions.
+1. Read workspace metadata (name, slug, created) from `core_workspaces` on Home and Settings → Workspace.
+2. Update workspace name/slug via a permission-gated RPC (`workspace.manage`).
+3. Read/update branding (brand name, logo URL, primary color token) from `core_brand_settings` via a permission-gated RPC (`branding.manage`).
+4. Wire Home to live member counts; remove `lib/mock-data.ts` from the app entirely.
+5. Server-side validation for all write actions (length, slug format, color format).
 
 Validation:
 
 - settings render from Supabase data
-- branding writes persist
-- unauthorized users cannot write settings
+- workspace and branding writes persist and re-render
+- unauthorized users cannot write settings (RPC denies, not just hidden UI)
 
-### Phase 8: Audit posture
+### Phase 8: Audit posture — IN PROGRESS (this slice)
 
-Goal: introduce audit logging only once real privileged actions exist.
+Goal: record privileged actions now that they exist.
 
-Candidate events:
+Implemented events:
 
 ```text
 workspace.updated
 branding.updated
 member.invited
+member.role_changed
 member.disabled
-role.changed
+member.removed
+role_permission.changed
 ```
 
-Audit events can be deferred until after settings writes exist.
+Direction: a `core_audit_events` table written by the settings RPCs server-side and by the app layer for service-role flows (invites). Owners/admins can read the trail; Home surfaces recent activity. Audit is observability, not enforcement.
 
-### Phase 9: Plugin readiness review
+### Phase 9: Plugin readiness review — the Core completion gate
 
 Goal: verify Core is ready before any plugin repo or example plugin exists.
 
 Tasks:
 
-1. Confirm Core is operational with Supabase.
-2. Confirm auth, membership, permissions, RLS, and settings are tested.
-3. Reconcile implementation with `COMPATIBILITY.md`.
-4. Decide whether Core is ready for `Example_Plugin`.
-5. Keep Agent and Meeting Notes as validation examples only until this gate passes.
+1. Confirm Core is operational with Supabase: auth (password + invite + recovery), membership lifecycle, permission editing, settings persistence, audit trail.
+2. Run all validators (`db:validate`, `auth:validate`, `members:validate`, `permissions:validate`) plus `typecheck` and `build`.
+3. Apply pending migrations and hosted auth config to the live Supabase project.
+4. Reconcile implementation with `COMPATIBILITY.md`.
+5. Update `CORE_READINESS_REVIEW.md` with the completion status and declare the gate open (or list what blocks it).
 
-## Next implementation PR after this contract
+Exit criteria for starting plugin work:
 
-The next PR after the Supabase environment contract should introduce the initial schema carefully.
+- all validators and builds green
+- migrations applied to the live project without error
+- an owner can: sign in with a password, invite a member, edit a role grant, rename the workspace, update branding, and see each action in the audit trail
+- `Example_Plugin` explicitly approved as the next validation step
 
-Recommended PR:
+## Known deferred items (post-Core backlog)
 
-```text
-feat: add initial Core Supabase schema
-```
-
-Scope:
-
-- `supabase/migrations/`
-- `core_workspaces`
-- `core_profiles`
-- `core_memberships`
-- `core_roles`
-- `core_brand_settings`
-- seed/bootstrap direction for one workspace and system roles
-- no auth UI replacement yet
-- no plugin work yet
-- no agent/chat work yet
+- custom SMTP for invite/recovery volume (issue #39 follow-up; config-only)
+- hosted Supabase auth config push (requires `SUPABASE_ACCESS_TOKEN`; issue #19)
+- logo upload storage (branding stores a URL in Core v0.1)
+- audit writes moved inside the member RPCs (today: app-layer, best-effort)
+- workspace archive/delete flows behind `workspace.delete`
 
 ## Review gates
 
-Before writing migrations, confirm:
-
-- the single-workspace contract is accepted
-- the table list is accepted
-- RLS direction is accepted
-- permission constants are accepted
-- bootstrap behavior is accepted
-
 Before adding plugin code, confirm:
 
-- `COMPATIBILITY.md` exists
-- Core is operational and tested
-- core schema is stable enough to extend
-- plugin security expectations are documented
-- plugin permission and navigation contribution rules are documented
-- `Example_Plugin` has been explicitly approved as the next validation step
+- `COMPATIBILITY.md` exists — done
+- Core is operational and tested — Phase 9 gate
+- core schema is stable enough to extend — after Phase 7/8 migrations merge
+- plugin security expectations documented — done
+- plugin permission and navigation contribution rules documented — done
+- `Example_Plugin` explicitly approved as the next validation step — pending
