@@ -1,19 +1,83 @@
 import Link from "next/link"
-import { ArrowRight, Check, Circle, Info } from "lucide-react"
+import { ArrowRight, Activity, Check, Circle } from "lucide-react"
 import { PageContainer, PageHeader } from "@/components/app/page-header"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { currentWorkspace, members, setupChecklist } from "@/lib/mock-data"
+import { getCoreMembers } from "@/core/members/data"
+import { getCoreSettingsOverview, getRecentAuditEvents, type CoreAuditEventOverview } from "@/core/settings/data"
 
-export default function HomePage() {
-  const activeMembers = members.filter((m) => m.status === "active").length
-  const invitedMembers = members.filter((m) => m.status === "invited").length
-  const completed = setupChecklist.filter((c) => c.done).length
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  "workspace.updated": "updated workspace settings",
+  "branding.updated": "updated branding",
+  "member.invited": "invited a member",
+  "member.role_changed": "changed a member's role",
+  "member.disabled": "disabled a member",
+  "member.removed": "removed a member",
+  "role_permission.changed": "changed a role permission",
+}
+
+function formatCreated(value: string | null): string {
+  if (!value) {
+    return "Unknown"
+  }
+
+  return new Intl.DateTimeFormat("en", { month: "short", year: "numeric" }).format(new Date(value))
+}
+
+function formatRelativeTime(value: string): string {
+  const then = new Date(value).getTime()
+  const minutes = Math.round((Date.now() - then) / 60000)
+
+  if (!Number.isFinite(minutes) || minutes < 1) {
+    return "just now"
+  }
+
+  if (minutes < 60) {
+    return `${minutes}m ago`
+  }
+
+  const hours = Math.round(minutes / 60)
+
+  if (hours < 24) {
+    return `${hours}h ago`
+  }
+
+  const days = Math.round(hours / 24)
+
+  if (days < 30) {
+    return `${days}d ago`
+  }
+
+  return new Intl.DateTimeFormat("en", { month: "short", day: "2-digit", year: "numeric" }).format(new Date(value))
+}
+
+export default async function HomePage() {
+  const [settings, memberData, audit] = await Promise.all([
+    getCoreSettingsOverview(),
+    getCoreMembers(),
+    getRecentAuditEvents(),
+  ])
+
+  const workspaceName = settings.workspace?.name ?? "Workspace"
+  const activeMembers = memberData.members.filter((m) => m.status === "active").length
+  const waitingMembers = memberData.members.filter(
+    (m) => m.status === "invited" || m.status === "pending_access",
+  ).length
+
+  const brandingConfigured = Boolean(settings.branding?.primaryColor || settings.branding?.logoUrl)
+  const checklist = [
+    { id: "c_1", label: "Create workspace", done: true },
+    { id: "c_2", label: "Sign in and claim ownership", done: true },
+    { id: "c_3", label: "Configure branding", done: brandingConfigured },
+    { id: "c_4", label: "Invite members", done: memberData.members.length > 1 },
+    { id: "c_5", label: "Review plugin readiness", done: false },
+  ]
+  const completed = checklist.filter((c) => c.done).length
 
   return (
     <PageContainer>
       <PageHeader
-        title={currentWorkspace.name}
-        description="A calm starting point for your workspace. This is a static wireframe — nothing here is wired to a backend yet."
+        title={workspaceName}
+        description="A calm starting point for your workspace, backed by live Core data."
       />
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -21,13 +85,17 @@ export default function HomePage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Workspace overview</CardTitle>
-            <CardDescription>The essentials for {currentWorkspace.name}.</CardDescription>
+            <CardDescription>The essentials for {workspaceName}.</CardDescription>
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <Stat label="Plan" value={currentWorkspace.plan} />
-              <Stat label="Members" value={`${activeMembers} active`} hint={`${invitedMembers} invited`} />
-              <Stat label="Created" value={currentWorkspace.createdOn} />
+              <Stat label="Edition" value="Core v0.1" />
+              <Stat
+                label="Members"
+                value={`${activeMembers} active`}
+                hint={waitingMembers > 0 ? `${waitingMembers} waiting` : undefined}
+              />
+              <Stat label="Created" value={formatCreated(settings.workspace?.createdAt ?? null)} />
             </dl>
             <Link
               href="/members"
@@ -45,13 +113,13 @@ export default function HomePage() {
             <div className="flex items-center justify-between">
               <CardTitle>Get set up</CardTitle>
               <span className="text-sm font-medium text-muted-foreground">
-                {completed}/{setupChecklist.length}
+                {completed}/{checklist.length}
               </span>
             </div>
             <CardDescription>A short path to an operational baseline.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-1">
-            {setupChecklist.map((item) => (
+            {checklist.map((item) => (
               <div key={item.id} className="flex items-center gap-3 rounded-md px-1 py-1.5">
                 <span
                   className={
@@ -71,22 +139,44 @@ export default function HomePage() {
         </Card>
       </div>
 
-      {/* What's not wired yet */}
-      <div className="mt-6 flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-4">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-        <div>
-          <p className="text-sm font-medium">Not wired yet</p>
-          <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
-            Authentication, member invitations, and plugin installation are not wired in this Core wireframe.
-            Workspace configuration lives under{" "}
-            <Link href="/settings" className="font-medium text-foreground hover:underline">
-              Settings
-            </Link>
-            .
-          </p>
-        </div>
-      </div>
+      {/* Recent activity (audit trail, visible with workspace.manage) */}
+      {audit.canViewAudit && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Recent activity</CardTitle>
+            <CardDescription>
+              Privileged actions recorded in the Core audit trail. Visible to workspace managers.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {audit.events.length === 0 ? (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Activity className="h-4 w-4" />
+                No recorded activity yet. Workspace, branding, member, and role changes will appear here.
+              </p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-border">
+                {audit.events.map((event) => (
+                  <AuditRow key={event.id} event={event} />
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </PageContainer>
+  )
+}
+
+function AuditRow({ event }: { event: CoreAuditEventOverview }) {
+  return (
+    <li className="flex items-center justify-between gap-3 py-2.5 text-sm">
+      <span>
+        <span className="font-medium">{event.actorName ?? "System"}</span>{" "}
+        <span className="text-muted-foreground">{AUDIT_ACTION_LABELS[event.action] ?? event.action}</span>
+      </span>
+      <span className="shrink-0 text-xs text-muted-foreground">{formatRelativeTime(event.createdAt)}</span>
+    </li>
   )
 }
 

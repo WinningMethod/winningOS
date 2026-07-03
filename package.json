@@ -12,7 +12,8 @@
     "db:verify:remote": "node scripts/verify-supabase-remote.mjs",
     "auth:validate": "node scripts/validate-auth-bootstrap.mjs",
     "members:validate": "node scripts/validate-member-management.mjs",
-    "permissions:validate": "node scripts/validate-permissions.mjs"
+    "permissions:validate": "node scripts/validate-permissions.mjs",
+    "settings:validate": "node scripts/validate-core-settings.mjs"
   },
   "dependencies": {
     "@supabase/server": "^1.2.0",

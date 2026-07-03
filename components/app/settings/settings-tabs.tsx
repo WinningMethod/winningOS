@@ -7,6 +7,7 @@ import { WorkspaceSection } from "@/components/app/settings/workspace-section"
 import { RolesSection } from "@/components/app/settings/roles-section"
 import { BrandingSection } from "@/components/app/settings/branding-section"
 import type { CoreRolesOverview } from "@/core/permissions/data"
+import type { CoreSettingsOverview } from "@/core/settings/data"
 
 const tabs = [
   { key: "workspace", label: "Workspace", icon: SlidersHorizontal },
@@ -22,9 +23,11 @@ function isTabKey(value: string | undefined): value is TabKey {
 
 export function SettingsTabs({
   rolesOverview,
+  settingsOverview,
   initialTab,
 }: {
   rolesOverview: CoreRolesOverview
+  settingsOverview: CoreSettingsOverview
   initialTab?: string
 }) {
   const [active, setActive] = useState<TabKey>(isTabKey(initialTab) ? initialTab : "workspace")
@@ -75,9 +78,19 @@ export function SettingsTabs({
         aria-labelledby={`tab-${active}`}
         className="mt-6"
       >
-        {active === "workspace" && <WorkspaceSection />}
+        {active === "workspace" && (
+          <WorkspaceSection
+            workspace={settingsOverview.workspace}
+            canManage={settingsOverview.canManageWorkspace}
+          />
+        )}
         {active === "roles" && <RolesSection overview={rolesOverview} />}
-        {active === "branding" && <BrandingSection />}
+        {active === "branding" && (
+          <BrandingSection
+            branding={settingsOverview.branding}
+            canManage={settingsOverview.canManageBranding}
+          />
+        )}
       </div>
     </>
   )
