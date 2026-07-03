@@ -21,7 +21,11 @@ const STATUS_NOTICE_META: Record<string, { message: string; isFailure: boolean }
   },
   "branding-updated": { message: "Branding saved.", isFailure: false },
   "branding-invalid": {
-    message: "Branding was not saved. Brand name is required, the logo must be an https:// URL, and the primary color must be a #rrggbb hex value.",
+    message: "Branding was not saved. Brand name is required, the logo URL must be https://, and each theme color must be a #rrggbb hex value.",
+    isFailure: true,
+  },
+  "branding-logo-invalid": {
+    message: "Branding was not saved. Logo uploads must be an SVG, PNG, JPEG, or WebP up to 2 MB.",
     isFailure: true,
   },
   "branding-failed": {
