@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Palette, ShieldCheck, SlidersHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { WorkspaceSection } from "@/components/app/settings/workspace-section"
@@ -16,8 +16,26 @@ const tabs = [
 
 type TabKey = (typeof tabs)[number]["key"]
 
-export function SettingsTabs({ rolesOverview }: { rolesOverview: CoreRolesOverview }) {
-  const [active, setActive] = useState<TabKey>("workspace")
+function isTabKey(value: string | undefined): value is TabKey {
+  return tabs.some((tab) => tab.key === value)
+}
+
+export function SettingsTabs({
+  rolesOverview,
+  initialTab,
+}: {
+  rolesOverview: CoreRolesOverview
+  initialTab?: string
+}) {
+  const [active, setActive] = useState<TabKey>(isTabKey(initialTab) ? initialTab : "workspace")
+
+  // Sync when the server redirects back with a new ?tab= param. useState only
+  // uses its initializer on mount; a soft-nav re-render (e.g. after a form
+  // action redirect) delivers a new initialTab prop without unmounting the
+  // component, so we need this effect to actually switch the panel.
+  useEffect(() => {
+    setActive(isTabKey(initialTab) ? initialTab : "workspace")
+  }, [initialTab])
 
   return (
     <>
