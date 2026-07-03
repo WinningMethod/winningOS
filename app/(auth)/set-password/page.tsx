@@ -51,8 +51,11 @@ export default async function SetPasswordPage({
               autoComplete="new-password"
               required
               minLength={8}
+              aria-describedby="password-hint"
             />
-            <p className="text-xs text-muted-foreground">At least 8 characters.</p>
+            <p id="password-hint" className="text-xs text-muted-foreground">
+              At least 8 characters.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="confirmPassword">Confirm new password</Label>

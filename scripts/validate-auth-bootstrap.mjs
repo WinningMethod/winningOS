@@ -122,6 +122,10 @@ assert(authActions.includes("classifyAuthError"), "auth actions classify failure
 assert(authActions.includes("password !== confirmPassword"), "password forms verify the confirmation field")
 assert(authActions.includes("obfuscated user"), "sign-up documents the account-enumeration guard")
 assert(!authActions.includes("message: error.message"), "auth actions do not log email-bearing error messages")
+assert(
+  authActions.includes('errorCode === "email-not-confirmed" ? "invalid-credentials" : errorCode'),
+  "sign-in collapses email-not-confirmed into invalid-credentials to avoid account enumeration",
+)
 assert(originUtility.includes("NEXT_PUBLIC_APP_URL"), "origin utility avoids Supabase URL as app callback fallback")
 assert(originUtility.includes("NEXT_PUBLIC_APP_URL is required"), "origin utility requires explicit production app URL")
 

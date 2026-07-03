@@ -95,6 +95,14 @@ assert(homePage.includes("getCoreSettingsOverview"), "home page reads live works
 assert(homePage.includes("getCoreMembers"), "home page reads live member counts")
 assert(homePage.includes("getRecentAuditEvents"), "home page surfaces the audit activity feed")
 assert(!homePage.includes("mock-data"), "home page no longer reads mock data")
+assert(
+  !homePage.includes("memberData.members.length > 1"),
+  "home page checklist does not treat unbounded member count as 'invited'",
+)
+assert(
+  homePage.includes('m.status === "active" || m.status === "invited"'),
+  "home page 'Invite members' checklist item excludes uninvited pending_access profiles",
+)
 
 assert(!existsSync("lib/mock-data.ts"), "static mock data module is deleted")
 

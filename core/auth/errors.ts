@@ -33,7 +33,7 @@ export const AUTH_ERROR_CODES = [
 
 export type AuthErrorCode = (typeof AUTH_ERROR_CODES)[number]
 
-export function isAuthErrorCode(value: string | undefined): value is AuthErrorCode {
+function isAuthErrorCode(value: string | undefined): value is AuthErrorCode {
   return AUTH_ERROR_CODES.includes(value as AuthErrorCode)
 }
 

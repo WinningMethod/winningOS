@@ -96,11 +96,15 @@ export function BrandingSection({
                     placeholder={DEFAULT_PRIMARY_COLOR}
                     pattern="#[0-9a-fA-F]{6}"
                     title="#rrggbb hex value"
+                    aria-describedby="brand-primary-hint"
                     className="w-32 font-mono text-xs"
                     disabled={!canManage}
                   />
                   <code className="font-mono text-xs text-muted-foreground">--primary</code>
                 </div>
+                <p id="brand-primary-hint" className="text-xs text-muted-foreground">
+                  #rrggbb hex value.
+                </p>
               </div>
 
               {canManage && (

@@ -65,9 +65,13 @@ export function WorkspaceSection({
                   maxLength={60}
                   pattern="[a-z0-9]+(-[a-z0-9]+)*"
                   title="Lowercase letters, numbers, and hyphens"
+                  aria-describedby="ws-slug-hint"
                   className="font-mono text-xs"
                   disabled={!canManage}
                 />
+                <p id="ws-slug-hint" className="text-xs text-muted-foreground">
+                  Lowercase letters, numbers, and hyphens.
+                </p>
               </div>
             </div>
             {canManage && (

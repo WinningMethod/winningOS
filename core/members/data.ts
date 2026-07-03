@@ -86,8 +86,9 @@ export async function getCoreMembers(): Promise<{
   // Permission-driven gating from the live grant map (core_role_permissions),
   // so the buttons we render match what the RPCs will actually allow after an
   // owner edits a role. disable and role-assignment are admin-tier and
-  // editable independently; invite + remove are owner-only and locked. The
-  // RPCs re-enforce all four server-side.
+  // editable independently; invite + remove are owner-only and locked.
+  // disable/remove/role-assignment are re-enforced server-side by their RPCs;
+  // invite is currently app-layer-enforced only (see inviteAuthUser).
   const { grants } = await getRoleGrantMap()
   const roleKey = session.membership?.roleKey ?? null
   const roleGrants = CORE_ROLE_KEYS.includes(roleKey as CoreRoleKey)

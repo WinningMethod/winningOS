@@ -43,7 +43,11 @@ export async function signInWithPassword(formData: FormData): Promise<never> {
       name: error.name,
       bucket: errorCode,
     })
-    redirect(`/sign-in?error=${errorCode}`)
+    // "email-not-confirmed" is only ever distinguishable from "wrong
+    // password" for accounts that exist — surfacing it separately would let
+    // an attacker enumerate registered emails. Collapse it into the generic
+    // credentials message here.
+    redirect(`/sign-in?error=${errorCode === "email-not-confirmed" ? "invalid-credentials" : errorCode}`)
   }
 
   redirect("/home")
@@ -81,7 +85,7 @@ export async function signUpWithPassword(formData: FormData): Promise<never> {
     options: {
       emailRedirectTo: `${origin}/auth/callback`,
       data: {
-        ...(displayName ? { display_name: displayName } : {}),
+        ...(displayName ? { display_name: displayName.slice(0, 120) } : {}),
         brand_name: authBrand.name,
       },
     },

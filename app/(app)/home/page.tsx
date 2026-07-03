@@ -62,13 +62,18 @@ export default async function HomePage() {
   const waitingMembers = memberData.members.filter(
     (m) => m.status === "invited" || m.status === "pending_access",
   ).length
+  // "pending_access" members signed in without ever being invited, so they
+  // don't count toward "someone was actually invited" for the checklist.
+  const invitedOrActiveMembers = memberData.members.filter(
+    (m) => m.status === "active" || m.status === "invited",
+  ).length
 
   const brandingConfigured = Boolean(settings.branding?.primaryColor || settings.branding?.logoUrl)
   const checklist = [
     { id: "c_1", label: "Create workspace", done: true },
     { id: "c_2", label: "Sign in and claim ownership", done: true },
     { id: "c_3", label: "Configure branding", done: brandingConfigured },
-    { id: "c_4", label: "Invite members", done: memberData.members.length > 1 },
+    { id: "c_4", label: "Invite members", done: invitedOrActiveMembers > 1 },
     { id: "c_5", label: "Review plugin readiness", done: false },
   ]
   const completed = checklist.filter((c) => c.done).length
