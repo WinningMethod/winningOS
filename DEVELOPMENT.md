@@ -86,8 +86,12 @@ The hosted Supabase Auth project must use the same redirect and email-template c
 
 - Site URL: `https://winning-os.vercel.app`
 - Redirect allow-list includes local development, production, the stable PR branch alias, and Vercel preview wildcard URLs.
-- Magic-link subject: `Sign in to WinningOS Core`
-- Magic-link template: `supabase/templates/magic_link.html`
+- Minimum password length: 8 (email + password is the primary auth method, issue #39)
+- Repo-owned branded email templates in `supabase/templates/`:
+  - `invite.html` — member invitations (lands on `/set-password`)
+  - `confirmation.html` — sign-up email confirmation
+  - `recovery.html` — password reset (lands on `/set-password`)
+  - `magic_link.html` — legacy links only; sign-in no longer sends magic links
 
 After changing `supabase/config.toml` or auth email templates, push the hosted Auth config with a Supabase access token:
 
@@ -95,7 +99,7 @@ After changing `supabase/config.toml` or auth email templates, push the hosted A
 SUPABASE_ACCESS_TOKEN=<token> npx supabase config push --project-ref <project-ref> --yes
 ```
 
-Do not rely on local `config.toml` alone for hosted Auth behavior; hosted magic-link URLs and email branding come from the Supabase project Auth configuration.
+Do not rely on local `config.toml` alone for hosted Auth behavior; hosted auth link URLs, password policy, and email branding come from the Supabase project Auth configuration.
 
 ## Environment variable rules
 
@@ -202,18 +206,20 @@ npm run typecheck
 
 ## Current expected app behavior
 
-During this phase, the UI still uses mock data.
+The app is fully Supabase-backed: auth, members, roles, permissions, workspace/branding settings, and the audit feed all read and write live data. There is no mock data left in the app.
 
-The Supabase helpers and initial migrations exist so future PRs can wire real auth/data safely without inventing environment boundaries or schema shape inside feature work.
-
-Expected routes remain:
+Expected routes:
 
 ```text
 /
+/sign-in  /sign-up  /forgot-password  /set-password
+/auth/callback  /auth/sign-out  /pending-access
 /home
 /members
 /settings
 ```
+
+See `ROUTE_MAP.md` for the auth/data/permission boundary of each route.
 
 
 ## Supabase migration safety notes
@@ -229,9 +235,12 @@ Validate the migration contract without needing a running Supabase container:
 ```bash
 npm run db:validate
 npm run auth:validate
+npm run members:validate
+npm run permissions:validate
+npm run settings:validate
 ```
 
-This checks that the expected Core migrations, tables, seed records, RLS enables, and helper functions are present. It is not a replacement for applying migrations to a real Supabase project.
+These check that the expected Core migrations, tables, seed records, RLS enables, helper functions, and app wiring are present. They are not a replacement for applying migrations to a real Supabase project.
 
 ## Apply migrations to the remote Supabase project
 
@@ -253,16 +262,13 @@ The remote verification script reads `.env.local`, does not print secret values,
 
 ## Next implementation steps
 
-After this initial schema phase, the next implementation slices should be:
+The Core v0.1 implementation slices (auth bootstrap, member management, live permissions, persisted settings, audit events) are complete. What remains before plugin work:
 
-1. auth/profile bootstrap
-2. first-owner bootstrap path for the seeded workspace
-3. membership and permission helpers
-4. replacement of mock reads with Supabase reads
-5. persisted settings writes
-6. RLS policy expansion for permission-aware writes
+1. apply pending migrations to the live Supabase project (`npx supabase db push`)
+2. push the hosted Auth config (password policy + email templates)
+3. run the Phase 9 readiness checklist in `IMPLEMENTATION_PLAN.md`
 
-Do not start plugin work until Core is operational and tested.
+Do not start plugin work until the Phase 9 gate in `IMPLEMENTATION_PLAN.md` passes.
 
 ## Supabase Auth local URLs
 
@@ -273,16 +279,16 @@ Local Supabase Auth redirects use `http://localhost:3000` as `site_url` and allo
 `core_profiles` includes a minimal authenticated INSERT policy (`user_id = auth.uid()`) so the next auth/profile slice can create user-owned profiles through the Supabase client or replace that path with a deliberate security-definer trigger. Non-active membership rows remain hidden from ordinary member reads until elevated member-management policies are added.
 
 
-## Auth bootstrap behavior
+## Auth behavior
 
-The app now has a minimal Supabase Auth path:
+The app uses email + password as the primary auth method (issue #39):
 
-- `/sign-in` sends an email OTP magic link.
-- `/auth/callback` exchanges the code for a Supabase session.
-- protected app routes call `ensureCoreSession()`.
-- the first authenticated user becomes owner of the seeded workspace.
-- authenticated users without membership are routed to `/pending-access`.
+- `/sign-in` calls `signInWithPassword` — no email is sent on login.
+- `/sign-up` creates an account (`signUp`); with confirmations enabled, a branded confirmation email is sent.
+- `/forgot-password` sends a branded recovery email that lands on `/set-password`. This also lets pre-password (magic-link era) accounts set their first password.
+- Member invites send a branded invite email that lands on `/set-password`.
+- `/auth/callback` handles code exchange, token-hash verification (invite/magiclink/recovery/signup), and legacy hash-token links.
+- Protected app routes call `ensureCoreSession()`; the first authenticated user becomes owner of the seeded workspace; authenticated users without membership are routed to `/pending-access`.
+- All auth failures map to the safe error vocabulary in `core/auth/errors.ts` (issue #26) — no vendor-internal or user-supplied text is reflected.
 
-This slice intentionally does not add member invitations, role editing, plugin work, or persisted reads for every dashboard card.
-
-For production auth redirects, set `NEXT_PUBLIC_APP_URL` to the deployed app origin. WinningOS intentionally does not trust forwarded host headers for magic-link callback URLs.
+For production auth redirects, set `NEXT_PUBLIC_APP_URL` to the deployed app origin. WinningOS intentionally does not trust forwarded host headers for auth callback URLs.

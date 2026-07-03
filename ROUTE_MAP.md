@@ -2,278 +2,84 @@
 
 ## Purpose
 
-This document maps the current Core wireframe surfaces to future authentication, data, and permission boundaries.
+This document maps the implemented Core surfaces to their authentication, data, and permission boundaries.
 
 The route map prevents backend work from drifting away from the product surface and prevents UI routes from implying permissions that do not exist.
 
 ## Routing principles
 
-- Routes should reflect the single-workspace Core scope.
-- Routes should not accept arbitrary workspace IDs in URLs for Core v0.1.
+- Routes reflect the single-workspace Core scope.
+- Routes do not accept arbitrary workspace IDs in URLs for Core v0.1.
 - The active workspace is the instance workspace, not a user-selected tenant.
-- UI visibility is not security; server/data boundaries must enforce access.
-- Settings can contain sections/tabs without becoming separate backend concepts prematurely.
-- Agent/chat routes are plugin territory and should not exist in Core v0.1.
+- UI visibility is not security; security-definer RPCs and RLS enforce access.
+- Settings contains sections/tabs without becoming separate backend concepts prematurely.
+- Agent/chat routes are plugin territory and do not exist in Core v0.1.
 
 ## Current route inventory
 
 ```text
-/
-/home
-/members
-/settings
+/                    public entry, links to sign-in/sign-up
+/sign-in             email + password sign-in
+/sign-up             account creation (first account becomes owner)
+/forgot-password     password reset request
+/set-password        choose a password (invite acceptance + recovery)
+/auth/callback       Supabase auth link handling (code, token_hash, hash tokens)
+/auth/sign-out       same-origin POST sign-out
+/pending-access      authenticated, waiting for membership
+/home                workspace home (protected)
+/members             member management (protected)
+/settings            workspace / roles / branding tabs (protected)
 ```
 
-The app also has shared authenticated layout code under `app/(app)/layout.tsx`.
+Shared boundaries: `app/(auth)/layout.tsx` wraps the public auth pages; `app/(app)/layout.tsx` requires an active membership via `ensureCoreSession()` and redirects to `/sign-in` or `/pending-access`.
 
-## Public routes
+## Public and auth routes
 
 ### `/`
 
-Purpose:
+Public entry. Explains WinningOS Core and links to `/sign-in` and `/sign-up`. No data, no permissions.
 
-- public entry/sign-in placeholder
-- explain WinningOS Core
-- route users into the demo/app shell during wireframe phase
+### `/sign-in`, `/sign-up`, `/forgot-password`
 
-Current state:
+Email + password auth (issue #39). Sign-in sends no email. Sign-up may send a confirmation email; forgot-password sends a recovery email. All failures surface as safe error codes from `core/auth/errors.ts` — nothing user-supplied or vendor-internal is reflected. Authenticated visitors with an active membership are redirected to `/home`; pending users to `/pending-access`.
 
-- static wireframe
-- no real Supabase Auth
-- no real SSO
+### `/set-password`
 
-Future behavior:
+Requires an authenticated session (arrived via invite or recovery link, or already signed in). Updates the password via `supabase.auth.updateUser`, then redirects to `/home`.
 
-- unauthenticated users land here or on a dedicated sign-in route
-- authenticated users may redirect to `/home`
+### `/auth/callback`
 
-Permissions:
+Handles Supabase PKCE `code` exchange, `token_hash` verification (`invite`, `magiclink`, `recovery`, `signup`), and legacy hash-token sessions. Invite and recovery land on `/set-password`; other links land on `/home`. Only same-app relative `next` paths are followed. Expired links map to a distinct `link-expired` error.
 
-```text
-none
-```
+### `/pending-access`
 
-Data:
-
-```text
-none, until auth is wired
-```
+Authenticated users without an active membership wait here. Invited memberships are promoted to active automatically by `core_bootstrap_current_user` on the next session bootstrap.
 
 ## Authenticated app routes
 
 ### `/home`
 
-Purpose:
+Workspace home backed by live data: `core_workspaces` metadata, member counts from `core_list_workspace_members`, a real setup checklist, and the recent `core_audit_events` feed (visible with the live `workspace.manage` grant).
 
-- workspace home
-- orientation and setup status
-- calm landing page for the single workspace
-
-Required auth:
-
-```text
-authenticated user
-active membership
-```
-
-Minimum permission:
-
-```text
-workspace.view
-```
-
-Future data:
-
-```text
-core_workspaces
-core_memberships summary
-core_brand_settings status
-plugin readiness status, later
-```
-
-Notes:
-
-- Should not show business workflow analytics.
-- Should not imply multiple workspaces.
-- Should not show agent/provider status in Core.
+Required auth: active membership. Minimum permission: `workspace.view`.
 
 ### `/members`
 
-Purpose:
+Member lifecycle: invite (owner-only), role assignment, disable, remove. Buttons render from the live grant map; the RPCs (`core_set_member_role`, `core_disable_member`, `core_remove_member`) and the service-role invite flow re-enforce every action server-side. Member actions are recorded in the audit trail.
 
-- view workspace members
-- show role/status information
-- placeholder invite/manage controls
+Required auth: active membership. Minimum permission: `members.view`. Action permissions: `members.invite`, `members.disable`, `members.remove`, `roles.assign`.
 
-Required auth:
-
-```text
-authenticated user
-active membership
-```
-
-Minimum permission:
-
-```text
-members.view
-```
-
-Future action permissions:
-
-```text
-members.invite
-members.remove
-roles.assign
-```
-
-Future data:
-
-```text
-core_profiles
-core_memberships
-core_roles
-```
-
-Notes:
-
-- Invited/disabled/removed statuses are part of membership state.
-- Management controls should be disabled/hidden for users without permission, but server actions must enforce permissions too.
+Data: `core_profiles`, `core_memberships`, `core_roles` via `core_list_workspace_members`.
 
 ### `/settings`
 
-Purpose:
+Single settings surface with three tabs (deep-linkable via `?tab=`):
 
-- single Core settings surface
-- contains workspace, roles, and branding sections
-- avoids expanding primary nav too early
+- **Workspace** — name/slug read from `core_workspaces`; writes via `core_update_workspace_settings` (requires live `workspace.manage`).
+- **Roles** — live permission catalog from `core_permissions` / `core_role_permissions`; owners toggle grants via `core_set_role_permission` (owner immutable, structural permissions locked).
+- **Branding** — brand name, logo URL, and primary color read from `core_brand_settings`; writes via `core_update_brand_settings` (requires live `branding.manage`).
 
-Required auth:
-
-```text
-authenticated user
-active membership
-```
-
-Minimum permission:
-
-```text
-settings.view
-```
-
-Sections:
-
-```text
-Workspace
-Roles
-Branding
-```
-
-Core settings must not include:
-
-```text
-Agent
-Chat
-Provider configuration
-Single sign-on
-Plugin installation UI
-```
-
-## Settings sections
-
-### Workspace section
-
-Purpose:
-
-- display/update workspace metadata
-- reinforce single-workspace Core model
-
-Minimum view permission:
-
-```text
-workspace.view
-```
-
-Future write permission:
-
-```text
-workspace.manage
-```
-
-Future data:
-
-```text
-core_workspaces
-```
-
-Must not include:
-
-- workspace switcher
-- workspace creation
-- workspace deletion in v0.1 unless explicitly scoped
-- SSO settings until auth provider strategy is defined
-
-### Roles section
-
-Purpose:
-
-- show system roles and permission posture
-- make permissions understandable without building a full role editor
-
-Minimum view permission:
-
-```text
-roles.view
-```
-
-Future action permissions:
-
-```text
-roles.assign
-roles.manage
-```
-
-Future data:
-
-```text
-core_roles
-permission constants
-```
-
-Notes:
-
-- Custom role editing is deferred.
-- Full permission tables are deferred.
-- Role assignment may be needed before role customization.
-- Agent/chat/provider permissions do not belong in Core.
-
-### Branding section
-
-Purpose:
-
-- manage workspace brand identity and theme tokens
-
-Minimum view permission:
-
-```text
-branding.view
-```
-
-Future write permission:
-
-```text
-branding.manage
-```
-
-Future data:
-
-```text
-core_brand_settings
-```
-
-Notes:
-
-- `theme_json` may store values early.
-- Components should consume typed theme tokens/helpers.
+Core settings must not include: Agent, Chat, provider configuration, single sign-on, plugin installation UI.
 
 ## Deferred routes
 
@@ -295,61 +101,44 @@ Do not add these in Core v0.1 unless explicitly scoped:
 /analytics
 ```
 
-Future plugin routes should live behind a compatibility contract, not by ad hoc route additions.
+Future plugin routes live behind the compatibility contract, not ad hoc route additions.
 
 ## Permission summary
 
 ```text
 /                         public
+/sign-in|/sign-up|/forgot-password   public
+/set-password             authenticated
 /home                     workspace.view
-/members                  members.view
+/members                  members.view (+ action permissions above)
 /settings                 settings.view
-/settings:workspace       workspace.view / workspace.manage
-/settings:roles           roles.view / roles.assign / roles.manage
-/settings:branding        branding.view / branding.manage
+/settings?tab=workspace   workspace.view / workspace.manage
+/settings?tab=roles       roles.view / roles.assign / roles.manage
+/settings?tab=branding    branding.view / branding.manage
+audit feed on /home       workspace.manage
 ```
-
-If settings sections are implemented as tabs inside `/settings`, the same logical permissions still apply.
 
 ## Data loading direction
 
-Initial implementation should prefer server-side loading for protected app routes.
-
-Suggested direction:
+Protected app routes load data server-side:
 
 ```text
 server route/page boundary
-  get current user session
-  resolve core profile
-  resolve active membership in the single workspace
-  check permission where needed
-  load route data
+  ensureCoreSession(): user -> profile -> membership (bootstrap RPC)
+  check live permission grants where needed
+  load route data through the user client (RLS) or permission-gated RPCs
   render client components with safe props
 ```
 
-Client components may render interactive UI, but should not own privileged decisions.
+Client components render interactive UI but never own privileged decisions.
 
 ## Redirect and error states
 
-Expected states:
-
 ```text
-unauthenticated -> public entry/sign-in
-authenticated without profile -> bootstrap/profile creation path
-authenticated without active membership -> setup/access-needed state
-authenticated without permission -> restricted state
-missing core workspace -> setup/bootstrap error
+unauthenticated -> /sign-in
+authenticated without profile -> profile created by bootstrap RPC
+authenticated without active membership -> /pending-access
+authenticated without permission -> controls hidden + server denies with safe status codes
+expired/invalid email link -> /sign-in with a distinct safe error code
+missing core workspace seed -> bootstrap RPC raises; error boundary renders
 ```
-
-These states should be explicit before auth implementation begins.
-
-## Missing pieces identified
-
-The current wireframe gives us route shape, but implementation still needs:
-
-- exact auth redirect behavior
-- bootstrap behavior for first workspace/owner
-- permission helper API
-- RLS policy tests or verification method
-- settings write flow design
-- plugin compatibility contract before any plugin routes are added

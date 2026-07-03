@@ -315,13 +315,24 @@ Before merging implementation work, answer:
 5. Should `Example_Plugin` wait until after Core is operational and tested? Current decision: yes.
 
 
-## Auth/profile bootstrap status
+## Core v0.1 completion status
 
-The current implementation slice moves Core from static auth placeholders to a real Supabase-backed session boundary. It adds email OTP sign-in, callback handling, profile bootstrap, first-owner membership bootstrap for the seeded workspace, protected app routes, and a pending-access state for signed-in users who are not members.
+All implementation slices are code-complete:
 
-Still deferred:
+- **Auth (email + password, issue #39):** password sign-in with no email on the hot path, sign-up with confirmation, password recovery, invite acceptance via `/set-password`, branded repo-owned email templates, and a shared safe error vocabulary (issue #26).
+- **Profiles + bootstrap:** idempotent profile creation, serialized first-owner bootstrap, invited-membership promotion, protected routes, pending-access state.
+- **Members:** invite / role change / disable / remove, enforced by security-definer RPCs; revoked invites stay hidden (issue #43).
+- **Permissions:** typed catalog persisted to `core_permissions` / `core_role_permissions`; owners edit grants live from Settings → Roles (issue #42) with owner immutability and locked structural permissions.
+- **Settings (Phase 7):** workspace name/slug and branding (brand name, logo URL, primary color) persist through permission-gated RPCs; no mock data remains.
+- **Audit (Phase 8):** append-only `core_audit_events` written by the settings RPCs server-side and by app-layer member/role flows; recent activity surfaces on Home for workspace managers.
 
-- member invitations and membership management
-- permission-aware write helpers
-- persisted workspace/branding settings writes
-- plugin/agent/chat functionality
+## Phase 9 gate — what blocks plugin work
+
+Operational steps that need a human/credentialed environment:
+
+1. Apply pending migrations to the live Supabase project (`npx supabase db push`), including PR #44's migrations and the audit/settings migrations.
+2. Push the hosted Auth config (password policy + the four email templates) with an authenticated Supabase CLI session (`supabase config push`) — this environment has no `SUPABASE_ACCESS_TOKEN` (issue #19 note).
+3. Walk the owner journey on the deployed app: password sign-in → invite a member → edit a role grant → rename the workspace → update branding → confirm each action appears in the audit trail.
+4. Approve `Example_Plugin` as the next validation step.
+
+Deferred to the post-Core backlog (recorded in `IMPLEMENTATION_PLAN.md`): custom SMTP, logo upload storage, audit writes inside the member RPCs, workspace archive/delete.

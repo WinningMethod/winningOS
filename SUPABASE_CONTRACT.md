@@ -116,7 +116,7 @@ The helpers should make unsafe usage hard:
 
 The first schema stays small.
 
-Implemented initial tables:
+Implemented tables:
 
 ```text
 core_workspaces
@@ -124,14 +124,14 @@ core_profiles
 core_memberships
 core_roles
 core_brand_settings
+core_permissions
+core_role_permissions
+core_audit_events
 ```
 
 Deferred tables:
 
 ```text
-core_permissions
-core_role_permissions
-core_audit_events
 plugin-specific tables
 ```
 
@@ -145,7 +145,7 @@ core_chat_messages
 provider secret tables
 ```
 
-Permissions should begin as typed constants in application code. Full permission tables can be added after the permission surface is proven.
+Permissions began as typed constants in `core/permissions/catalog.ts`; the catalog is now persisted to `core_permissions` / `core_role_permissions`, and `core_role_permissions` is the live, owner-editable grant map the server enforces.
 
 ## `core_workspaces`
 
@@ -397,22 +397,30 @@ If an Agent plugin is added later, it should own its plugin-specific tables and 
 
 Core should not pre-create agent tables before the plugin boundary exists.
 
-## Deferred `core_audit_events`
+## `core_audit_events`
 
-Audit logging matters, but it should arrive after real privileged actions exist.
+Implemented (migration `20260703120000_add_audit_events.sql`) now that real privileged actions exist.
 
-Candidate fields later:
+Fields:
 
 ```text
 id uuid primary key
-workspace_id uuid references core_workspaces(id)
+workspace_id uuid not null references core_workspaces(id)
 actor_profile_id uuid nullable references core_profiles(id)
-event_type text not null
-target_type text nullable
-target_id uuid nullable
-metadata_json jsonb not null default '{}'::jsonb
+action text not null (dot-namespaced, e.g. workspace.updated)
+subject_type text nullable
+subject_id uuid nullable
+metadata jsonb not null default '{}'::jsonb
 created_at timestamptz not null default now()
 ```
+
+Rules:
+
+- append-only: no client insert/update/delete policies; writes go through the
+  `private.core_append_audit_event` helper (settings RPCs) or the service role
+  (app-layer member flows)
+- reads require the live `workspace.manage` grant
+- audit is observability, not a security control
 
 ## RLS expectations
 
