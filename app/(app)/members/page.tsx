@@ -79,8 +79,8 @@ function filterMembers(members: CoreMember[], filter: CoreMemberStatus | "all", 
   })
 }
 
-function UpdateRoleForm({ member, canManageMembers }: { member: CoreMember; canManageMembers: boolean }) {
-  if (!canManageMembers || member.roleKey === "owner") {
+function UpdateRoleForm({ member, canAssignRoles }: { member: CoreMember; canAssignRoles: boolean }) {
+  if (!canAssignRoles || member.roleKey === "owner") {
     return null
   }
 
@@ -179,7 +179,7 @@ export default async function MembersPage({
   const filter = filters.some((item) => item.key === requestedFilter)
     ? requestedFilter as CoreMemberStatus | "all"
     : "all"
-  const { members, canManageMembers, canInviteMembers, canRemoveMembers } = await getCoreMembers()
+  const { members, canManageMembers, canAssignRoles, canInviteMembers, canRemoveMembers } = await getCoreMembers()
   const visible = filterMembers(members, filter, query)
   const statusNotice = STATUS_NOTICE_META[params?.status ?? ""] ?? null
   const statusMessage = statusNotice?.message ?? null
@@ -341,9 +341,9 @@ export default async function MembersPage({
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{formatDate(member.joinedAt ?? member.profileCreatedAt)}</td>
                       <td className="px-4 py-3">
-                        {canManageMembers ? (
+                        {canManageMembers || canAssignRoles || canRemoveMembers ? (
                           <div className="flex flex-wrap gap-2">
-                            <UpdateRoleForm member={member} canManageMembers={canManageMembers} />
+                            <UpdateRoleForm member={member} canAssignRoles={canAssignRoles} />
                             <DisableMemberForm member={member} canManageMembers={canManageMembers} />
                             <RemoveMemberForm member={member} canRemoveMembers={canRemoveMembers} />
                             {member.roleKey === "owner" ? <span className="text-xs text-muted-foreground">Owner protected</span> : null}

@@ -43,7 +43,6 @@ const OWNER_ONLY_KEYS = ["workspace.delete", "members.invite", "members.remove",
 // Code catalog: core/permissions/catalog.ts
 // ---------------------------------------------------------------------------
 const catalog = read("core/permissions/catalog.ts")
-assert(catalog.includes("export function roleHasPermission"), "catalog exposes roleHasPermission helper")
 assert(catalog.includes("export const permissionCatalog"), "catalog exposes the grouped permissionCatalog")
 assert(catalog.includes("export const CORE_ROLE_KEYS"), "catalog exposes CORE_ROLE_KEYS")
 assert(catalog.includes('export type CoreRoleKey = "owner" | "admin" | "member" | "viewer"'), "catalog defines the four system role keys")

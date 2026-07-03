@@ -134,7 +134,7 @@ async function inviteAuthUser(email: string, displayName: string | null): Promis
   const origin = resolveAppOriginFromHeaders(headerStore)
   const authBrand = await getCoreAuthBrand()
   const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${origin}/auth/callback`,
+    redirectTo: `${origin}/auth/callback?next=/set-password`,
     data: {
       ...(displayName ? { display_name: displayName } : {}),
       brand_name: authBrand.name,

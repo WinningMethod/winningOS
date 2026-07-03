@@ -60,7 +60,7 @@ export async function updateWorkspaceSettings(formData: FormData): Promise<never
 export async function updateBrandingSettings(formData: FormData): Promise<never> {
   const brandName = readTrimmedString(formData, "brandName")
   const logoUrl = readTrimmedString(formData, "logoUrl")
-  const primaryColor = readTrimmedString(formData, "primaryColor")
+  const primaryColor = readTrimmedString(formData, "primaryColor").toLowerCase()
 
   if (
     !brandName

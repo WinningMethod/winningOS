@@ -63,5 +63,6 @@ export async function setRolePermission(formData: FormData): Promise<never> {
   })
 
   revalidatePath("/settings")
+  revalidatePath("/members")
   redirect("/settings?tab=roles&status=role-permission-updated")
 }
