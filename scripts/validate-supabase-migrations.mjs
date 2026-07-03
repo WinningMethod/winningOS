@@ -129,7 +129,7 @@ assertIncludes(
 assertIncludes(
   migrationText,
   "revoke all on schema private from authenticated;",
-  "does not grant direct private schema usage to authenticated users",
+  "base schema starts the private schema fully locked down",
 )
 
 assertIncludes(
@@ -151,10 +151,51 @@ for (const helperSignature of [
   )
 }
 
-if (/grant\s+execute\s+on\s+function\s+private\.[^;]*\s+to\s+[^;]*(authenticated|anon|public)/i.test(migrationText)) {
-  fail("private RLS helper functions should not be directly granted to browser-facing roles")
+// RLS policy expressions run with the privileges of the QUERYING role, so the
+// authenticated role must hold USAGE on the private schema and EXECUTE on
+// exactly the helpers that policies reference (issues #46/#47). Everything
+// else in the private schema stays revoked, and anon/public get nothing.
+const POLICY_HELPER_SIGNATURES = [
+  "private.core_is_active_member(uuid)",
+  "private.core_is_active_member_of_any_workspace()",
+  "private.core_profiles_share_active_workspace(uuid)",
+  "private.core_current_member_has_permission(uuid, text)",
+]
+
+assertIncludes(
+  migrationText,
+  "grant usage on schema private to authenticated;",
+  "grants authenticated the schema usage RLS policy evaluation requires",
+)
+
+for (const helperSignature of POLICY_HELPER_SIGNATURES) {
+  assertIncludes(
+    migrationText,
+    `grant execute on function ${helperSignature} to authenticated;`,
+    `grants authenticated execute on policy helper ${helperSignature}`,
+  )
+}
+
+const privateGrantStatements = migrationText.match(/grant\s+execute\s+on\s+function\s+private\.[^;]+;/gi) ?? []
+
+for (const statement of privateGrantStatements) {
+  if (/to[^;]*(anon|public)\b/i.test(statement)) {
+    fail(`private helpers must never be granted to anon/public: ${statement.trim()}`)
+  }
+
+  const allowed = POLICY_HELPER_SIGNATURES.some((signature) => statement.includes(signature))
+
+  if (!allowed) {
+    fail(`only policy-referenced private helpers may be granted to authenticated: ${statement.trim()}`)
+  }
+}
+
+pass("private helper grants are limited to policy-referenced helpers for authenticated only")
+
+if (/grant\s+usage\s+on\s+schema\s+private\s+to[^;]*(anon|public)\b/i.test(migrationText)) {
+  fail("private schema usage must never be granted to anon/public")
 } else {
-  pass("private RLS helpers are not directly granted to browser-facing roles")
+  pass("private schema usage is never granted to anon/public")
 }
 
 assertIncludes(
