@@ -2,7 +2,10 @@ import { NextResponse } from "next/server"
 import { resolveAppOriginFromRequest } from "@/core/auth/origin"
 import { createClient } from "@/core/supabase/server"
 
-type SupportedTokenHashType = "invite" | "magiclink"
+// invite/recovery land on set-password; magiclink/signup go straight to the app.
+// magiclink stays supported so links emailed before the password rework still work.
+const SUPPORTED_TOKEN_HASH_TYPES = ["invite", "magiclink", "recovery", "signup"] as const
+type SupportedTokenHashType = (typeof SUPPORTED_TOKEN_HASH_TYPES)[number]
 
 type HashTokenSessionPayload = {
   access_token?: unknown
@@ -10,11 +13,31 @@ type HashTokenSessionPayload = {
 }
 
 function isSupportedTokenHashType(value: string | null): value is SupportedTokenHashType {
-  return value === "invite" || value === "magiclink"
+  return SUPPORTED_TOKEN_HASH_TYPES.includes(value as SupportedTokenHashType)
 }
 
-function signInRedirect(origin: string, errorCode: "missing-code" | "invalid-callback-link" | "callback-failed") {
+function signInRedirect(
+  origin: string,
+  errorCode: "missing-code" | "invalid-callback-link" | "callback-failed" | "link-expired",
+) {
   return NextResponse.redirect(new URL(`/sign-in?error=${errorCode}`, origin))
+}
+
+// Only same-app relative paths may be used as post-auth destinations.
+function sanitizeNextPath(value: string | null): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) {
+    return null
+  }
+
+  return value
+}
+
+function destinationForTokenType(tokenType: SupportedTokenHashType, nextPath: string | null): string {
+  if (nextPath) {
+    return nextPath
+  }
+
+  return tokenType === "invite" || tokenType === "recovery" ? "/set-password" : "/home"
 }
 
 function isSameOrigin(request: Request, expectedOrigin: string): boolean {
@@ -22,9 +45,11 @@ function isSameOrigin(request: Request, expectedOrigin: string): boolean {
   return origin !== null && origin === expectedOrigin
 }
 
-function completeHashTokenSession(origin: string) {
-  const homeUrl = JSON.stringify(new URL("/home", origin).toString())
+function completeHashTokenSession(origin: string, nextPath: string | null) {
+  const successUrl = JSON.stringify(new URL(nextPath ?? "/home", origin).toString())
+  const recoveryUrl = JSON.stringify(new URL("/set-password", origin).toString())
   const missingCodeUrl = JSON.stringify(new URL("/sign-in?error=missing-code", origin).toString())
+  const expiredUrl = JSON.stringify(new URL("/sign-in?error=link-expired", origin).toString())
   const failedUrl = JSON.stringify(new URL("/sign-in?error=callback-failed", origin).toString())
 
   return new NextResponse(
@@ -43,6 +68,12 @@ function completeHashTokenSession(origin: string) {
         const hash = new URLSearchParams(window.location.hash.slice(1));
         const access_token = hash.get("access_token");
         const refresh_token = hash.get("refresh_token");
+        const link_type = hash.get("type");
+
+        if (hash.get("error_code") === "otp_expired") {
+          window.location.replace(${expiredUrl});
+          return;
+        }
 
         if (!access_token || !refresh_token) {
           window.location.replace(${missingCodeUrl});
@@ -58,7 +89,13 @@ function completeHashTokenSession(origin: string) {
             body: JSON.stringify({ access_token, refresh_token }),
           });
 
-          window.location.replace(response.ok ? ${homeUrl} : ${failedUrl});
+          if (!response.ok) {
+            window.location.replace(${failedUrl});
+            return;
+          }
+
+          const needsPassword = link_type === "invite" || link_type === "recovery";
+          window.location.replace(needsPassword ? ${recoveryUrl} : ${successUrl});
         } catch {
           window.location.replace(${failedUrl});
         }
@@ -81,8 +118,15 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get("code")
   const tokenHash = requestUrl.searchParams.get("token_hash")
   const tokenType = requestUrl.searchParams.get("type")
-  const redirectTo = new URL("/home", origin)
+  const nextPath = sanitizeNextPath(requestUrl.searchParams.get("next"))
+  const errorCode = requestUrl.searchParams.get("error_code")
   const supabase = await createClient()
+
+  // Supabase redirects expired/used links back with error params instead of a code.
+  if (errorCode) {
+    console.warn("Supabase auth callback reported an error", { errorCode })
+    return signInRedirect(origin, errorCode === "otp_expired" ? "link-expired" : "callback-failed")
+  }
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
@@ -96,7 +140,7 @@ export async function GET(request: Request) {
       return signInRedirect(origin, "callback-failed")
     }
 
-    return NextResponse.redirect(redirectTo)
+    return NextResponse.redirect(new URL(nextPath ?? "/home", origin))
   }
 
   if (tokenHash) {
@@ -119,13 +163,13 @@ export async function GET(request: Request) {
         name: error.name,
         type: tokenType,
       })
-      return signInRedirect(origin, "callback-failed")
+      return signInRedirect(origin, error.code === "otp_expired" ? "link-expired" : "callback-failed")
     }
 
-    return NextResponse.redirect(redirectTo)
+    return NextResponse.redirect(new URL(destinationForTokenType(tokenType, nextPath), origin))
   }
 
-  return completeHashTokenSession(origin)
+  return completeHashTokenSession(origin, nextPath)
 }
 
 export async function POST(request: Request) {

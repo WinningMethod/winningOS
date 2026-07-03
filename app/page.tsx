@@ -34,7 +34,7 @@ export default function AuthEntryPage() {
           <Card className="p-6">
             <h2 className="text-sm font-semibold">Sign in to your workspace</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Supabase Auth now creates the Core profile and first-owner bootstrap path.
+              Use your email and password. The first account becomes the workspace owner.
             </p>
 
             <div className="mt-5 flex flex-col gap-2.5">
@@ -42,37 +42,30 @@ export default function AuthEntryPage() {
                 href="/sign-in"
                 className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
-                Continue with email
+                Sign in
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/sign-up"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-border bg-secondary px-6 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                Create an account
               </Link>
             </div>
-
-            <div className="my-5 flex items-center gap-3">
-              <span className="h-px flex-1 bg-border" />
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Wireframe</span>
-              <span className="h-px flex-1 bg-border" />
-            </div>
-
-            <Link
-              href="/home"
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-border bg-secondary px-6 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              Enter demo workspace
-              <ArrowRight className="h-4 w-4" />
-            </Link>
           </Card>
 
           <div className="mt-4 flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2.5">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
             <p className="text-xs leading-relaxed text-muted-foreground">
-              <span className="font-medium text-foreground">Continue with email</span> to sign in. The workspace
-              pages are protected and will redirect unauthenticated users back here.
+              Workspace pages are protected. Unauthenticated visitors are redirected back here, and new
+              accounts wait for an owner or admin to grant access.
             </p>
           </div>
         </div>
       </main>
 
       <footer className="px-5 py-6 text-center text-xs text-muted-foreground lg:px-8">
-        WinningOS Core — Supabase Auth foundation with plugin-ready boundaries.
+        WinningOS Core — Supabase-backed foundation with plugin-ready boundaries.
       </footer>
     </div>
   )

@@ -1,22 +1,23 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { LogIn } from "lucide-react"
+import { UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { AuthErrorNotice } from "@/components/app/auth-notice"
-import { signInWithPassword } from "@/core/auth/actions"
+import { AuthErrorNotice, AuthStatusNotice } from "@/components/app/auth-notice"
+import { signUpWithPassword } from "@/core/auth/actions"
 import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { authErrorMessage, toAuthErrorCode } from "@/core/auth/errors"
 
-export default async function SignInPage({
+export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ error?: string }>
+  searchParams?: Promise<{ sent?: string; error?: string }>
 }) {
   const params = await searchParams
   const errorMessage = authErrorMessage(toAuthErrorCode(params?.error))
+  const sent = params?.sent === "1" && !errorMessage
   const session = await ensureCoreSession()
 
   if (session.hasActiveMembership) {
@@ -31,15 +32,27 @@ export default async function SignInPage({
     <>
       <div className="mb-8 text-center">
         <h1 className="text-2xl font-semibold tracking-tight text-balance">
-          Sign in to WinningOS Core
+          Create your Core account
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground text-pretty">
-          Use your email and password to access this workspace.
+          The first account becomes the workspace owner. Everyone after that waits for
+          an owner or admin to grant access.
         </p>
       </div>
 
       <Card className="p-6">
-        <form action={signInWithPassword} className="flex flex-col gap-3">
+        <form action={signUpWithPassword} className="flex flex-col gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="displayName">Name</Label>
+            <Input
+              id="displayName"
+              name="displayName"
+              type="text"
+              autoComplete="name"
+              maxLength={120}
+              placeholder="Your name (optional)"
+            />
+          </div>
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -52,30 +65,41 @@ export default async function SignInPage({
             />
           </div>
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              <Link
-                href="/forgot-password"
-                className="text-xs font-medium text-primary hover:underline"
-              >
-                Forgot password?
-              </Link>
-            </div>
+            <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               name="password"
               type="password"
-              autoComplete="current-password"
+              autoComplete="new-password"
               required
+              minLength={8}
+            />
+            <p className="text-xs text-muted-foreground">At least 8 characters.</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="confirmPassword">Confirm password</Label>
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={8}
             />
           </div>
           <Button type="submit" size="lg" className="w-full">
-            <LogIn className="h-4 w-4" />
-            Sign in
+            <UserPlus className="h-4 w-4" />
+            Create account
           </Button>
         </form>
 
         <div className="mt-4 min-h-12">
+          {sent && (
+            <AuthStatusNotice
+              title="Check your email"
+              message="If this address is new, a confirmation link is on its way. Open it to finish creating your account."
+            />
+          )}
           <AuthErrorNotice error={errorMessage} />
         </div>
 
@@ -86,20 +110,12 @@ export default async function SignInPage({
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
-          New here?{" "}
-          <Link href="/sign-up" className="font-medium text-primary hover:underline">
-            Create an account
+          Already have an account?{" "}
+          <Link href="/sign-in" className="font-medium text-primary hover:underline">
+            Sign in
           </Link>
         </p>
       </Card>
-
-      <p className="mt-4 rounded-md border border-border bg-muted/40 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-        Signed up before passwords existed? Use{" "}
-        <Link href="/forgot-password" className="font-medium text-foreground hover:underline">
-          Forgot password
-        </Link>{" "}
-        once to set a password for your existing account.
-      </p>
     </>
   )
 }

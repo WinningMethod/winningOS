@@ -36,7 +36,7 @@ type BootstrapRow = {
 }
 
 function displayNameFromUser(email: string | null | undefined, metadata: Record<string, unknown> | undefined): string {
-  const metadataName = metadata?.name ?? metadata?.full_name
+  const metadataName = metadata?.display_name ?? metadata?.name ?? metadata?.full_name
 
   if (typeof metadataName === "string" && metadataName.trim()) {
     return metadataName.trim().slice(0, 120)

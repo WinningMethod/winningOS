@@ -35,7 +35,7 @@ const STATUS_NOTICE_META: Record<string, { message: string; isFailure: boolean }
   updated: { message: "Member access updated.", isFailure: false },
   removed: { message: "Member access removed.", isFailure: false },
   "member-added": {
-    message: "Existing auth user added to this workspace. Ask them to sign in with a magic link.",
+    message: "Existing auth user added to this workspace. They can sign in with their email and password.",
     isFailure: false,
   },
   invited: { message: "Member invite sent. They will appear as active after signing in.", isFailure: false },
