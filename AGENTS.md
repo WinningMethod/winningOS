@@ -77,6 +77,8 @@ When permission implementation begins, permission checks must be designed for bo
 
 Plugins are build-time source modules governed by `COMPATIBILITY.md` (`core-v0`). Plugin repos live outside Core and are built from the `Example_Plugin` template.
 
+Three-repository rule: this repo and the template repo are pristine framework repos. Plugins are installed only into separate deployment repos (clones of Core, one per company OS or scratch integration test). Never install a plugin into this repo: `plugins/` stays absent/empty and the future `config/plugins.ts` default stays `[]`. Integration proofs happen in a throwaway deployment repo.
+
 Inside Core, plugin work is limited to the Phase 10 host primitives (`core/plugins/`, `config/plugins.ts`, the `/p/[plugin]` host route, plugin validators). Do not implement plugin features, business workflows, or agent/chat functionality in Core folders.
 
 The meeting notes and agent plugins remain future validation use cases, not Core scope.

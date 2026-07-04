@@ -23,7 +23,7 @@ Lands with Core Phase 10 (the plugin host — being built in the Core repo in pa
 - app-side plugin permission helpers and the Roles-grid "Plugins" group,
 - Core validators that check installed plugins against manifests.
 
-Until Phase 10 merges, the template's integration test is documentation-level (install steps written and reviewed); after it merges, do one real install into a Core deployment and fix whichever side is wrong. That integration run is the contract's proof.
+Until Phase 10 merges, the template's integration test is documentation-level (install steps written and reviewed); after it merges, do one real install into a **scratch deployment repo** — a third repo created by cloning Core; never into `WinningMethod/winningOS` or the template repo themselves — and fix whichever framework side is wrong. That integration run is the contract's proof (three-repository model in `COMPATIBILITY.md`).
 
 ## Template repo requirements
 
@@ -133,7 +133,7 @@ Plugins reuse data instead of recreating it, through **declared dependencies** (
 1. Scaffold the template repo to the contract shape; mirror the manifest type.
 2. Build the example feature end-to-end (routes/components/server/db) against the SQL templates above.
 3. Write the plugin-repo validators and `CREATING_A_PLUGIN.md`.
-4. When Core Phase 10 merges: do one real install into a Core deployment (copy source, one registry line, install migrations, db push) and run Core's acceptance checklist. File issues against whichever repo violates the contract — the contract wins arguments; PRs change the contract.
+4. When Core Phase 10 merges: create a scratch deployment repo (clone Core into a new third repo), install the template's plugin source there (copy source, one registry line, install migrations, db push), and run Core's acceptance checklist. Never install into the Core or template framework repos. File issues against whichever framework repo violates the contract — the contract wins arguments; PRs change the contract.
 5. Done when: the acceptance checklist passes on a live deployment, disable-level removal is verified (delete the registry line → Core builds, `/p/example_plugin` 404s, nav entry gone), and a second agent can produce a new working plugin from the template by following `CREATING_A_PLUGIN.md` without asking questions.
 
 ## House style, briefly
