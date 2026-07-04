@@ -47,7 +47,7 @@ export function RolesSection({ overview }: { overview: CoreRolesOverview }) {
           <CardTitle>Permissions</CardTitle>
           <CardDescription>
             {canManageRoles
-              ? "Toggle a grant to change what Admin, Member, and Viewer can do — each change saves immediately. Owner always holds every permission, and the structural owner-only permissions (workspace deletion, member invite/remove, role management) are locked. Every change is enforced server-side."
+              ? "Toggle a grant to change what Admin, Member, and Viewer can do — each change saves immediately. Owner always holds every permission, and the structural owner-only permissions (workspace deletion, member removal, role management) are locked. Every change is enforced server-side."
               : "Explicit action strings grouped by namespace, and the system roles that hold each one. This is the live Core permission catalog — the same grants the server enforces. Only owners can edit these."}
           </CardDescription>
         </CardHeader>
