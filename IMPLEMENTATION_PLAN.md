@@ -201,7 +201,10 @@ Shipped (each piece is specified in `COMPATIBILITY.md`):
    deployment edits to install a plugin. Stays `[]` in the framework repos.
 3. `/p/[plugin]/[[...segments]]` host route — resolves manifest route tables
    (exact keys win over `[param]` keys); 404s for unregistered ids and
-   unmatched paths; inherits the (app) layout's auth/membership guard.
+   unmatched paths; inherits the (app) layout's auth/membership guard;
+   forwards Next-style `params`/`searchParams` as optional route-component
+   props (the integration proof caught the template's status notices needing
+   `searchParams`).
 4. Navigation: `core/plugins/navigation.ts` computes the permission-gated
    "Plugins" sidebar group server-side from the live grant map; the client
    sidebar receives serializable items and resolves icon names via the curated
@@ -227,11 +230,26 @@ Shipped (each piece is specified in `COMPATIBILITY.md`):
    DDL, no slug resolution, `dependsOn` targets registered earlier, cross-plugin
    FKs limited to declared `publicTables`.
 
-Remaining validation: create a scratch deployment repo (a third repo cloned from
-Core — plugins never install into this repo or the template repo; see the
-three-repository model in `COMPATIBILITY.md`), install the template plugin
-there, run the acceptance checklist, verify disable-level removal, then
-approve real plugins.
+Integration proof (run 2026-07-04 in a scratch deployment repo per the
+three-repository model — never in this repo or the template repo):
+
+- Installed the template's `example_plugin` by the blessed path: source copy,
+  one registry line, one install-date-timestamped migration.
+- `typecheck` passed against the real barrel with zero template changes; all
+  six validators and the production build green; `/p/*` verified at runtime to
+  sit behind the (app) auth guard (unauthenticated → `/sign-in`).
+- Disable-level removal verified: registry line deleted with source left in
+  place → typecheck, validators, and build stay green; routes/nav/settings
+  vanish by construction.
+- Two framework-side findings, both fixed in Core: `plugins:validate` parsed
+  commented manifest examples as real declarations (now strips line comments),
+  and route components had no way to read search params or `[param]` bindings
+  (the host now forwards Next-style `params`/`searchParams` as optional props
+  — the template's status notices depended on it).
+
+Still user-side before approving real plugins: `supabase db push` of the
+pending migrations and the live owner→viewer acceptance walkthrough
+(`TESTING.md`) on a deployment attached to a real Supabase project.
 
 ## Known deferred items (post-Core backlog)
 
