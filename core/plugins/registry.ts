@@ -12,6 +12,12 @@ export function findInstalledPlugin(pluginId: string): WinningOSPluginManifest |
   return installedPlugins.find((plugin) => plugin.id === pluginId) ?? null
 }
 
+export type PluginRouteMatch = {
+  component: React.ComponentType
+  /** `[name]` bindings from the matched route key, Next-page style. */
+  params: Record<string, string>
+}
+
 /**
  * Resolve a request path under /p/{plugin_id} to a manifest route component.
  * Route keys are plugin-relative ("", "/new", "/items/[id]"); exact matches win
@@ -20,11 +26,11 @@ export function findInstalledPlugin(pluginId: string): WinningOSPluginManifest |
 export function matchPluginRoute(
   manifest: WinningOSPluginManifest,
   segments: readonly string[],
-): React.ComponentType | null {
+): PluginRouteMatch | null {
   const requestPath = segments.length > 0 ? `/${segments.join("/")}` : ""
 
   if (Object.prototype.hasOwnProperty.call(manifest.routes, requestPath)) {
-    return manifest.routes[requestPath]
+    return { component: manifest.routes[requestPath], params: {} }
   }
 
   for (const [routePath, component] of Object.entries(manifest.routes)) {
@@ -38,13 +44,22 @@ export function matchPluginRoute(
       continue
     }
 
-    const matches = routeSegments.every(
-      (routeSegment, index) =>
-        (routeSegment.startsWith("[") && routeSegment.endsWith("]")) || routeSegment === segments[index],
-    )
+    const params: Record<string, string> = {}
+    let matches = true
+
+    for (let index = 0; index < routeSegments.length; index += 1) {
+      const routeSegment = routeSegments[index]
+
+      if (routeSegment.startsWith("[") && routeSegment.endsWith("]")) {
+        params[routeSegment.slice(1, -1)] = segments[index]
+      } else if (routeSegment !== segments[index]) {
+        matches = false
+        break
+      }
+    }
 
     if (matches) {
-      return component
+      return { component, params }
     }
   }
 

@@ -142,7 +142,7 @@ export type WinningOSPluginManifest = {
 Rules:
 
 - The manifest is the **single source of declarations**. Validators compare it against migrations and permission constants; drift fails review.
-- `routes` keys are plugin-relative (`""`, `"/new"`, `"/items/[id]"`). Core mounts them under `/p/{plugin_id}` — collisions with Core routes or other plugins are structurally impossible. Exact keys win over `[param]` keys; route components receive no props (client components read dynamic segments from `useParams().segments`).
+- `routes` keys are plugin-relative (`""`, `"/new"`, `"/items/[id]"`). Core mounts them under `/p/{plugin_id}` — collisions with Core routes or other plugins are structurally impossible. Exact keys win over `[param]` keys. Route components may optionally accept the Next-style page props Core's host forwards: `params` (a Promise resolving to the `[name]` bindings from the matched route key) and `searchParams` (Next's promise, untouched); prop-less components simply ignore them.
 - Declare `tables`, `publicTables`, permission keys, and `dependsOn` pluginIds as **string literals** (not computed values) — the validators read them statically, and a value they cannot read fails the build.
 - Everything the plugin renders receives Core context via the Plugin API, not via props smuggled around the shell.
 

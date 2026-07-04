@@ -101,6 +101,11 @@ if (!existsSync(join(root, hostRoutePath))) {
   const hostRouteSource = read(hostRoutePath)
   assertIncludes(hostRouteSource, "notFound()", "host route 404s unregistered plugins and unmatched paths")
   assertIncludes(hostRouteSource, "findInstalledPlugin", "host route resolves plugins through the registry")
+  assertIncludes(
+    hostRouteSource,
+    "searchParams={searchParams}",
+    "host route forwards Next-style params/searchParams to route components",
+  )
 }
 
 const barrelSource = read("core/plugins/api.ts")
@@ -206,8 +211,10 @@ for (const pluginId of registeredIds) {
   // Namespace ownership: every plugin permission/table literal in the source
   // belongs to this plugin. (Literals are the contract: tables, publicTables,
   // dependsOn, and permission keys must be written as string literals so
-  // validators can read them.)
-  const permissionLiterals = new Set(sourceText.match(/plugin\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*/g) ?? [])
+  // validators can read them.) Code lines only — comments may cite examples.
+  const permissionLiterals = new Set(
+    stripLineComments(sourceText).match(/plugin\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*/g) ?? [],
+  )
 
   for (const key of permissionLiterals) {
     if (!key.startsWith(`plugin.${pluginId}.`)) {
@@ -216,7 +223,7 @@ for (const pluginId of registeredIds) {
   }
 
   const manifestText = readFileSync(join(pluginDir, "manifest.ts"), "utf8")
-  const declaredTables = new Set(manifestText.match(/plugin_[a-z][a-z0-9_]*/g) ?? [])
+  const declaredTables = new Set(stripLineComments(manifestText).match(/plugin_[a-z][a-z0-9_]*/g) ?? [])
   const foreignTables = [...declaredTables].filter((table) => !table.startsWith(`plugin_${pluginId}_`))
 
   // Foreign table names in the manifest are legitimate only as dependency
@@ -261,8 +268,9 @@ for (const pluginId of registeredIds) {
   }
 
   // Dependencies: every dependsOn target is registered EARLIER (install order),
-  // and cross-plugin FKs hit the owner's declared publicTables only.
-  const dependsOnIds = [...manifestText.matchAll(/pluginId:\s*"([a-z][a-z0-9_]*)"/g)]
+  // and cross-plugin FKs hit the owner's declared publicTables only. Parse code
+  // lines only — the template ships a commented dependsOn example by design.
+  const dependsOnIds = [...stripLineComments(manifestText).matchAll(/pluginId:\s*"([a-z][a-z0-9_]*)"/g)]
     .map((match) => match[1])
     .filter((id, index, all) => all.indexOf(id) === index)
 
