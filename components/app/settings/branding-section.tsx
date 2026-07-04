@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { updateBrandingSettings } from "@/core/settings/actions"
 import type { CoreBrandingOverview } from "@/core/settings/data"
+import { foregroundFor } from "@/core/branding/color"
 
 const DEFAULT_PRIMARY_COLOR = "#3a5bd9"
 const DEFAULT_SECONDARY_COLOR = "#eef1f8"
@@ -82,6 +83,8 @@ export function BrandingSection({
                       id="brand-logo"
                       name="logoUrl"
                       type="url"
+                      aria-label="Logo URL"
+                      aria-describedby="brand-logo-hint"
                       defaultValue={branding.logoUrl ?? ""}
                       placeholder="…or paste a public https:// image URL"
                       maxLength={2048}
@@ -166,8 +169,10 @@ export function BrandingSection({
                 <span className="text-xs font-semibold">{branding.brandName}</span>
               </div>
               <div className="rounded-md border border-border p-3" style={{ backgroundColor: tertiaryColor }}>
-                <p className="text-xs font-medium text-neutral-900">Workspace surface</p>
-                <p className="mt-0.5 text-[11px] text-neutral-600">
+                <p className="text-xs font-medium" style={{ color: foregroundFor(tertiaryColor) }}>
+                  Workspace surface
+                </p>
+                <p className="mt-0.5 text-[11px]" style={{ color: foregroundFor(tertiaryColor), opacity: 0.7 }}>
                   Named tokens keep components consistent.
                 </p>
                 <div className="mt-3 flex gap-2">
@@ -178,8 +183,8 @@ export function BrandingSection({
                     Primary
                   </span>
                   <span
-                    className="rounded border border-border px-2.5 py-1 text-[11px] font-medium text-neutral-900"
-                    style={{ backgroundColor: secondaryColor }}
+                    className="rounded border border-border px-2.5 py-1 text-[11px] font-medium"
+                    style={{ backgroundColor: secondaryColor, color: foregroundFor(secondaryColor) }}
                   >
                     Secondary
                   </span>

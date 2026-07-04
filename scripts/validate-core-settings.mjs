@@ -145,11 +145,20 @@ assert(brandTheme.includes("--primary:") && brandTheme.includes("--secondary:") 
 assert(brandTheme.includes("HEX_COLOR_PATTERN.test"), "brand theme re-validates colors before emitting CSS")
 assert(brandTheme.includes("foregroundFor"), "brand theme derives readable foregrounds by luminance")
 
+const brandColor = read("core/branding/color.ts")
+assert(!brandColor.includes('import "server-only"'), "shared color math stays safe to bundle for the browser")
+assert(brandColor.includes("export function foregroundFor"), "color module exports the shared foreground-contrast helper")
+
 const rootLayout = read("app/layout.tsx")
 assert(rootLayout.includes("getCoreBrandTheme") && rootLayout.includes("brandThemeCss"), "root layout injects the saved brand theme")
 
 const brandingSectionV2 = read("components/app/settings/branding-section.tsx")
 assert(brandingSectionV2.includes('name="secondaryColor"') && brandingSectionV2.includes('name="tertiaryColor"'), "branding section edits secondary and tertiary colors")
 assert(brandingSectionV2.includes('type="file"') && brandingSectionV2.includes('name="logoFile"'), "branding section offers logo upload")
+assert(brandingSectionV2.includes('aria-label="Logo URL"'), "logo URL input keeps an accessible name once the file input takes the visible Logo label")
+assert(
+  brandingSectionV2.includes("foregroundFor(tertiaryColor)") && brandingSectionV2.includes("foregroundFor(secondaryColor)"),
+  "branding preview derives readable text color from the chosen secondary/tertiary colors instead of a fixed light-mode class",
+)
 
 console.log("Core settings + audit validation passed.")

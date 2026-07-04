@@ -2,6 +2,7 @@ import "server-only"
 
 import { cache } from "react"
 import { createServiceRoleClient } from "@/core/supabase/service-role"
+import { foregroundFor } from "./color"
 
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/
 
@@ -59,18 +60,6 @@ export const getCoreBrandTheme = cache(async (): Promise<CoreBrandTheme> => {
     return EMPTY_THEME
   }
 })
-
-/** Perceived luminance (0..1) of a #rrggbb color for foreground contrast. */
-function luminance(hex: string): number {
-  const r = parseInt(hex.slice(1, 3), 16) / 255
-  const g = parseInt(hex.slice(3, 5), 16) / 255
-  const b = parseInt(hex.slice(5, 7), 16) / 255
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b
-}
-
-function foregroundFor(hex: string): string {
-  return luminance(hex) > 0.6 ? "#171717" : "#ffffff"
-}
 
 /**
  * CSS that overrides the design tokens in globals.css with the saved brand
