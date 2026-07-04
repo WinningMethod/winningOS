@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
+import { brandThemeCss, getCoreBrandTheme } from "@/core/branding/theme"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -27,14 +28,20 @@ export const viewport: Viewport = {
   ],
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // Workspace brand colors override the default design tokens everywhere,
+  // including auth pages (issue #50). brandThemeCss only ever emits values
+  // that re-validated as #rrggbb hex.
+  const brandCss = brandThemeCss(await getCoreBrandTheme())
+
   return (
     <html lang="en" suppressHydrationWarning className="bg-background">
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+        {brandCss ? <style id="core-brand-theme">{brandCss}</style> : null}
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>

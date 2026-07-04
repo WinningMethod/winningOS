@@ -106,4 +106,59 @@ assert(
 
 assert(!existsSync("lib/mock-data.ts"), "static mock data module is deleted")
 
+// ---------------------------------------------------------------------------
+// Role-permission grant fix (issue #49)
+// ---------------------------------------------------------------------------
+const grantFixMigration = read(join(migrationsDir, "20260704100000_fix_role_permission_grant_conflict.sql"))
+const grantFixSqlOnly = grantFixMigration.split("\n").filter((line) => !line.trim().startsWith("--")).join("\n")
+assert(grantFixMigration.includes("on conflict on constraint core_role_permissions_pkey do nothing"), "set_role_permission upsert uses the named constraint (no PL/pgSQL ambiguity)")
+assert(!grantFixSqlOnly.includes("on conflict (role_key, permission_key)"), "set_role_permission no longer uses the ambiguous column-inference conflict form")
+assert(grantFixMigration.includes("core_current_member_has_permission(target_workspace_id, 'roles.manage')"), "set_role_permission still requires roles.manage")
+assert(grantFixMigration.includes("('workspace.delete', 'members.invite', 'members.remove', 'roles.manage')"), "set_role_permission still locks the structural owner-only permissions")
+
+// ---------------------------------------------------------------------------
+// Branding v2: three theme colors + logo upload + app inheritance (issue #50)
+// ---------------------------------------------------------------------------
+const brandingV2Migration = read(join(migrationsDir, "20260704101000_branding_theme_v2.sql"))
+assert(brandingV2Migration.includes("drop function if exists public.core_update_brand_settings(text, text, text);"), "branding v2 drops the old three-parameter RPC signature")
+assert(brandingV2Migration.includes("new_secondary_color text") && brandingV2Migration.includes("new_tertiary_color text"), "branding v2 RPC accepts secondary and tertiary colors")
+assert(brandingV2Migration.includes("secondary color must be a #rrggbb hex value") && brandingV2Migration.includes("tertiary color must be a #rrggbb hex value"), "branding v2 RPC validates all colors server-side")
+assert(brandingV2Migration.includes("core_current_member_has_permission(target_workspace_id, 'branding.manage')"), "branding v2 RPC still requires branding.manage")
+assert(brandingV2Migration.includes("'branding.updated'") && brandingV2Migration.includes("'secondary_color', clean_secondary_color"), "branding v2 audit event records all colors")
+assert(brandingV2Migration.includes("grant execute on function public.core_update_brand_settings(text, text, text, text, text) to authenticated"), "branding v2 RPC is executable by authenticated users")
+assert(brandingV2Migration.includes("revoke all on function public.core_update_brand_settings(text, text, text, text, text) from public"), "branding v2 RPC revokes default public execute")
+assert(brandingV2Migration.includes("insert into storage.buckets") && brandingV2Migration.includes("'core-brand'"), "branding v2 creates the public brand-asset bucket")
+
+const settingsActionsV2 = read("core/settings/actions.ts")
+assert(settingsActionsV2.includes("new_secondary_color") && settingsActionsV2.includes("new_tertiary_color"), "branding action submits secondary and tertiary colors")
+assert(settingsActionsV2.includes("uploadBrandLogo"), "branding action supports logo upload")
+assert(settingsActionsV2.includes("MAX_LOGO_BYTES"), "logo upload enforces a size cap")
+assert(settingsActionsV2.includes("image/svg+xml"), "logo upload allowlists image content types")
+assert(settingsActionsV2.includes("branding-logo-invalid"), "logo upload failures surface a distinct status")
+assert(settingsActionsV2.indexOf("roleHasLivePermission") < settingsActionsV2.indexOf("uploadBrandLogo(logoFile)"), "permission gate runs before any storage upload")
+assert(settingsActionsV2.includes('revalidatePath("/", "layout")'), "branding saves revalidate the themed root layout")
+
+const brandTheme = read("core/branding/theme.ts")
+assert(brandTheme.includes("getCoreBrandTheme"), "brand theme module reads saved colors")
+assert(brandTheme.includes("brandThemeCss"), "brand theme module renders token overrides")
+assert(brandTheme.includes("--primary:") && brandTheme.includes("--secondary:") && brandTheme.includes("--accent:"), "brand theme overrides the primary/secondary/accent tokens")
+assert(brandTheme.includes("HEX_COLOR_PATTERN.test"), "brand theme re-validates colors before emitting CSS")
+assert(brandTheme.includes("foregroundFor"), "brand theme derives readable foregrounds by luminance")
+
+const brandColor = read("core/branding/color.ts")
+assert(!brandColor.includes('import "server-only"'), "shared color math stays safe to bundle for the browser")
+assert(brandColor.includes("export function foregroundFor"), "color module exports the shared foreground-contrast helper")
+
+const rootLayout = read("app/layout.tsx")
+assert(rootLayout.includes("getCoreBrandTheme") && rootLayout.includes("brandThemeCss"), "root layout injects the saved brand theme")
+
+const brandingSectionV2 = read("components/app/settings/branding-section.tsx")
+assert(brandingSectionV2.includes('name="secondaryColor"') && brandingSectionV2.includes('name="tertiaryColor"'), "branding section edits secondary and tertiary colors")
+assert(brandingSectionV2.includes('type="file"') && brandingSectionV2.includes('name="logoFile"'), "branding section offers logo upload")
+assert(brandingSectionV2.includes('aria-label="Logo URL"'), "logo URL input keeps an accessible name once the file input takes the visible Logo label")
+assert(
+  brandingSectionV2.includes("foregroundFor(tertiaryColor)") && brandingSectionV2.includes("foregroundFor(secondaryColor)"),
+  "branding preview derives readable text color from the chosen secondary/tertiary colors instead of a fixed light-mode class",
+)
+
 console.log("Core settings + audit validation passed.")

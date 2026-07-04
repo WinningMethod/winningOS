@@ -5,8 +5,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { updateBrandingSettings } from "@/core/settings/actions"
 import type { CoreBrandingOverview } from "@/core/settings/data"
+import { foregroundFor } from "@/core/branding/color"
 
 const DEFAULT_PRIMARY_COLOR = "#3a5bd9"
+const DEFAULT_SECONDARY_COLOR = "#eef1f8"
+const DEFAULT_TERTIARY_COLOR = "#f2f4f9"
 
 export function BrandingSection({
   branding,
@@ -24,6 +27,8 @@ export function BrandingSection({
   }
 
   const primaryColor = branding.primaryColor ?? DEFAULT_PRIMARY_COLOR
+  const secondaryColor = branding.secondaryColor ?? DEFAULT_SECONDARY_COLOR
+  const tertiaryColor = branding.tertiaryColor ?? DEFAULT_TERTIARY_COLOR
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
@@ -34,8 +39,8 @@ export function BrandingSection({
             <CardTitle>Identity</CardTitle>
             <CardDescription>
               {canManage
-                ? "Brand name, logo, and primary color for this workspace. Changes save immediately, appear in auth emails, and are recorded in the audit trail."
-                : "Brand name, logo, and primary color for this workspace. You need the branding.manage permission to edit them."}
+                ? "Brand name, logo, and theme colors for this workspace. Saved colors restyle the whole app (and future plugins), appear in auth emails, and every change is recorded in the audit trail."
+                : "Brand name, logo, and theme colors for this workspace. You need the branding.manage permission to edit them."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -54,8 +59,8 @@ export function BrandingSection({
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="brand-logo">Logo URL</Label>
-                <div className="flex items-center gap-4">
+                <Label htmlFor="brand-logo-file">Logo</Label>
+                <div className="flex items-start gap-4">
                   <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted text-muted-foreground">
                     {branding.logoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element -- remote logo host is workspace-configured, not build-time known
@@ -64,48 +69,73 @@ export function BrandingSection({
                       <ImageIcon className="h-5 w-5" />
                     )}
                   </span>
-                  <div className="flex-1">
+                  <div className="flex flex-1 flex-col gap-2">
+                    <Input
+                      id="brand-logo-file"
+                      name="logoFile"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      aria-describedby="brand-logo-hint"
+                      disabled={!canManage}
+                      className="h-auto py-1.5 file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-secondary-foreground"
+                    />
                     <Input
                       id="brand-logo"
                       name="logoUrl"
                       type="url"
+                      aria-label="Logo URL"
+                      aria-describedby="brand-logo-hint"
                       defaultValue={branding.logoUrl ?? ""}
-                      placeholder="https://example.com/logo.svg"
+                      placeholder="…or paste a public https:// image URL"
                       maxLength={2048}
                       disabled={!canManage}
                     />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Public https:// URL to an SVG or PNG. Leave blank for none; file upload arrives with storage support.
+                    <p id="brand-logo-hint" className="text-xs text-muted-foreground">
+                      Upload an SVG, PNG, JPEG, or WebP up to 2 MB — or paste a public URL. An uploaded
+                      file replaces the URL.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="brand-primary">Primary color</Label>
-                <div className="flex items-center gap-3">
-                  <span
-                    className="h-9 w-9 shrink-0 rounded-md border border-border"
-                    style={{ backgroundColor: primaryColor }}
-                    aria-hidden="true"
-                  />
-                  <Input
-                    id="brand-primary"
-                    name="primaryColor"
-                    defaultValue={branding.primaryColor ?? ""}
-                    placeholder={DEFAULT_PRIMARY_COLOR}
-                    pattern="#[0-9a-fA-F]{6}"
-                    title="#rrggbb hex value"
-                    aria-describedby="brand-primary-hint"
-                    className="w-32 font-mono text-xs"
-                    disabled={!canManage}
-                  />
-                  <code className="font-mono text-xs text-muted-foreground">--primary</code>
-                </div>
-                <p id="brand-primary-hint" className="text-xs text-muted-foreground">
-                  #rrggbb hex value.
+              <fieldset className="flex flex-col gap-3">
+                <legend className="text-sm font-medium">Theme colors</legend>
+                <p className="text-xs text-muted-foreground" id="brand-colors-hint">
+                  #rrggbb hex values. Leave a field blank to keep the default token. Saved colors apply
+                  across the app: primary drives buttons and focus, secondary drives subtle surfaces,
+                  tertiary drives hover accents.
                 </p>
-              </div>
+                <ColorField
+                  id="brand-primary"
+                  name="primaryColor"
+                  label="Primary color"
+                  token="--primary"
+                  value={branding.primaryColor}
+                  swatch={primaryColor}
+                  placeholder={DEFAULT_PRIMARY_COLOR}
+                  disabled={!canManage}
+                />
+                <ColorField
+                  id="brand-secondary"
+                  name="secondaryColor"
+                  label="Secondary color"
+                  token="--secondary"
+                  value={branding.secondaryColor}
+                  swatch={secondaryColor}
+                  placeholder={DEFAULT_SECONDARY_COLOR}
+                  disabled={!canManage}
+                />
+                <ColorField
+                  id="brand-tertiary"
+                  name="tertiaryColor"
+                  label="Tertiary color"
+                  token="--accent"
+                  value={branding.tertiaryColor}
+                  swatch={tertiaryColor}
+                  placeholder={DEFAULT_TERTIARY_COLOR}
+                  disabled={!canManage}
+                />
+              </fieldset>
 
               {canManage && (
                 <div>
@@ -125,7 +155,7 @@ export function BrandingSection({
         <Card className="sticky top-20">
           <CardHeader>
             <CardTitle>Preview</CardTitle>
-            <CardDescription>How the saved primary color reads on a workspace surface.</CardDescription>
+            <CardDescription>How the saved colors read on a workspace surface.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-lg border border-border p-4">
@@ -138,9 +168,11 @@ export function BrandingSection({
                 </span>
                 <span className="text-xs font-semibold">{branding.brandName}</span>
               </div>
-              <div className="rounded-md border border-border p-3">
-                <p className="text-xs font-medium">Workspace surface</p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
+              <div className="rounded-md border border-border p-3" style={{ backgroundColor: tertiaryColor }}>
+                <p className="text-xs font-medium" style={{ color: foregroundFor(tertiaryColor) }}>
+                  Workspace surface
+                </p>
+                <p className="mt-0.5 text-[11px]" style={{ color: foregroundFor(tertiaryColor), opacity: 0.7 }}>
                   Named tokens keep components consistent.
                 </p>
                 <div className="mt-3 flex gap-2">
@@ -150,7 +182,10 @@ export function BrandingSection({
                   >
                     Primary
                   </span>
-                  <span className="rounded border border-border px-2.5 py-1 text-[11px] font-medium">
+                  <span
+                    className="rounded border border-border px-2.5 py-1 text-[11px] font-medium"
+                    style={{ backgroundColor: secondaryColor, color: foregroundFor(secondaryColor) }}
+                  >
                     Secondary
                   </span>
                 </div>
@@ -158,6 +193,51 @@ export function BrandingSection({
             </div>
           </CardContent>
         </Card>
+      </div>
+    </div>
+  )
+}
+
+function ColorField({
+  id,
+  name,
+  label,
+  token,
+  value,
+  swatch,
+  placeholder,
+  disabled,
+}: {
+  id: string
+  name: string
+  label: string
+  token: string
+  value: string | null
+  swatch: string
+  placeholder: string
+  disabled: boolean
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="flex items-center gap-3">
+        <span
+          className="h-9 w-9 shrink-0 rounded-md border border-border"
+          style={{ backgroundColor: swatch }}
+          aria-hidden="true"
+        />
+        <Input
+          id={id}
+          name={name}
+          defaultValue={value ?? ""}
+          placeholder={placeholder}
+          pattern="#[0-9a-fA-F]{6}"
+          title="#rrggbb hex value"
+          aria-describedby="brand-colors-hint"
+          className="w-32 font-mono text-xs"
+          disabled={disabled}
+        />
+        <code className="font-mono text-xs text-muted-foreground">{token}</code>
       </div>
     </div>
   )

@@ -16,6 +16,8 @@ export type CoreBrandingOverview = {
   brandName: string
   logoUrl: string | null
   primaryColor: string | null
+  secondaryColor: string | null
+  tertiaryColor: string | null
 }
 
 export type CoreSettingsOverview = {
@@ -94,9 +96,8 @@ export async function getCoreSettingsOverview(): Promise<CoreSettingsOverview> {
     })
   }
 
-  const primaryColor = typeof brandRow?.theme_json?.primary_color === "string"
-    ? brandRow.theme_json.primary_color
-    : null
+  const themeColor = (key: string): string | null =>
+    typeof brandRow?.theme_json?.[key] === "string" ? (brandRow.theme_json[key] as string) : null
 
   return {
     workspace: workspaceRow
@@ -111,7 +112,9 @@ export async function getCoreSettingsOverview(): Promise<CoreSettingsOverview> {
       ? {
           brandName: brandRow.brand_name,
           logoUrl: brandRow.logo_url,
-          primaryColor,
+          primaryColor: themeColor("primary_color"),
+          secondaryColor: themeColor("secondary_color"),
+          tertiaryColor: themeColor("tertiary_color"),
         }
       : null,
     canManageWorkspace,
