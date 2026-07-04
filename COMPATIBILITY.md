@@ -111,6 +111,17 @@ export type WinningOSPluginManifest = {
   }
   /** Every table the plugin owns. Must match db/migrations exactly. */
   tables: `plugin_${string}`[]
+  /**
+   * Tables this plugin exposes as its stable interface. Other plugins may
+   * read and foreign-key ONLY these. Schema changes to public tables are
+   * breaking (major version). Omit/empty = nothing shared.
+   */
+  publicTables?: `plugin_${string}`[]
+  /**
+   * Plugins this plugin builds on. Dependencies must be installed first,
+   * uninstalled after, and expose what this plugin uses via publicTables.
+   */
+  dependsOn?: { pluginId: string; minVersion: string }[]
 }
 ```
 
@@ -174,8 +185,31 @@ Enforcement:
 - Tables: `plugin_{plugin_id}_{table}`. Never `core_*`. The name is a convention, not a parser — identity comes from the manifest's `tables` list, never from splitting on `_`.
 - Every plugin table: `workspace_id uuid not null references core_workspaces(id)` (single-workspace today, but this is what makes plugin data portable and future-proof), `created_at`/`updated_at`, RLS **enabled in the same migration that creates the table**, policies written before any app code reads it.
 - Reference Core identity (`core_profiles.id`, `core_memberships.id`) — never duplicate it, never reference `auth.users` directly.
-- Plugin migrations may touch, exhaustively: their own `plugin_{plugin_id}_*` objects; idempotent seed inserts into `core_permissions` / `core_role_permissions` for their own `plugin.{id}.*` keys; a `plugin-{plugin_id}` storage bucket. **Nothing else** — no ALTER on `core_*` tables, no `private` schema changes, no grants to `anon`, no touching other plugins' objects.
+- Plugin migrations may touch, exhaustively: their own `plugin_{plugin_id}_*` objects; idempotent seed inserts into `core_permissions` / `core_role_permissions` for their own `plugin.{id}.*` keys; a `plugin-{plugin_id}` storage bucket; foreign keys **to** the `publicTables` of plugins they declare in `dependsOn`. **Nothing else** — no ALTER on `core_*` tables or other plugins' tables, no `private` schema changes, no grants to `anon`.
 - SQL sharp edges the template encodes (all hit in Core's own history): policy helper functions run as the querying role; `ON CONFLICT` must use the named-constraint form inside PL/pgSQL when output columns shadow column names; qualify columns when output parameters could collide; resolve the workspace structurally (`deleted_at is null`, oldest first) — **never by slug**.
+
+## Sharing data across plugins (dependencies)
+
+Plugins should not recreate each other's data. A Client Changelog plugin that tracks changes to a CRM plugin's clients should reference `plugin_crm_clients` — not maintain a second client list. But undeclared cross-plugin coupling is how ecosystems rot, so reuse is allowed **only** through declared dependencies:
+
+**Reading:**
+
+- Any plugin may read **Core** tables through RLS — that is what RLS is for. Plugins must reference Core identity (`core_profiles`, `core_memberships`) rather than duplicate it; the same logic extends to plugin data.
+- A plugin may read and foreign-key **another plugin's** tables only when (a) it lists that plugin in its manifest `dependsOn`, and (b) the target table appears in the owner's `publicTables`. Everything not in `publicTables` is that plugin's private schema and may change without notice.
+
+**Writing:**
+
+- Never directly. A plugin writes another plugin's tables only through server functions/RPCs the owning plugin deliberately exposes — the same rule plugins already follow for Core tables.
+
+**Ordering and lifecycle (this is where undeclared coupling bites):**
+
+- Dependencies are one-directional; cycles are forbidden.
+- Install order: dependencies first. `config/plugins.ts` is an ordered array; the Phase 10 validator checks that every `dependsOn` target appears earlier in it.
+- Disable order: dependents first. You cannot remove the CRM's registry line while Client Changelog is still registered — the validator fails the build, which is exactly the guardrail you want.
+- Purge order: dependents' `db/uninstall.sql` run before the dependency's. The dependent chooses its FK behavior deliberately and documents it in `IMPLEMENTATION.md`: `on delete cascade` (changelog entries die with their client) or `on delete restrict` (the CRM cannot delete a client that has history — a product decision, stated out loud).
+- Versioning: the dependent pins `minVersion`; the owner treats `publicTables` schema as semver-stable — breaking changes to a public table are a major version, called out in its `IMPLEMENTATION.md`.
+
+**A gravity warning for deployment owners:** if several plugins need the same entity, that entity is drifting toward infrastructure. Rather than everyone depending on the CRM (which then can never be replaced), consider promoting the shared entity to a small data-owning plugin — e.g. a `clients` plugin whose main job is owning `plugin_clients_clients` and exposing it as public — with the CRM and the changelog both depending on it. The contract supports either shape; choose deliberately.
 
 ## Navigation and settings
 
@@ -207,7 +241,8 @@ Future-pacing rule: because routes, nav, settings, and permissions all derive fr
 - [ ] All routes under `/p/{plugin_id}`; no Core route or shell changes.
 - [ ] All tables `plugin_{plugin_id}_*`, workspace-scoped, RLS enabled in the creating migration.
 - [ ] Permission keys `plugin.{plugin_id}.*` only; deny-by-default verified; DB-side checks used in RLS/RPCs.
-- [ ] Migrations only touch the allowed surface (own objects + own permission seeds + own bucket).
+- [ ] Migrations only touch the allowed surface (own objects + own permission seeds + own bucket + FKs to declared dependencies' public tables).
+- [ ] Every cross-plugin reference targets a `publicTables` entry of a plugin listed in `dependsOn`; registry order puts dependencies first; FK delete behavior is documented; `db/uninstall.sql` ordering notes dependents-first.
 - [ ] Secrets server-only, `PLUGIN_{ID}_*` named, documented.
 - [ ] Disable-level removal verified: registry line removed → Core builds, routes 404, nav gone, no console errors.
 - [ ] `db/uninstall.sql` present and reviewed.

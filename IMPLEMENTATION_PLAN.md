@@ -208,7 +208,9 @@ Tasks (each one is specified in `COMPATIBILITY.md`):
 8. Grant `private.core_current_profile_id()` EXECUTE to authenticated if plugin
    RLS templates need it (decide with the template's first real policy set).
 9. `plugins:validate` — Core-side validator: registered manifests match declared
-   tables/permissions; plugin migrations touch only the allowed surface.
+   tables/permissions; plugin migrations touch only the allowed surface; every
+   `dependsOn` target is registered earlier in `config/plugins.ts` (install
+   order) and cross-plugin FKs hit declared `publicTables` only.
 
 Validation: install the template plugin into a deployment, run the acceptance
 checklist in `COMPATIBILITY.md`, verify disable-level removal, then approve real

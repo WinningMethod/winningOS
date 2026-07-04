@@ -106,6 +106,15 @@ delete from public.core_permissions where key like 'plugin.example_plugin.%';
 -- Audit history intentionally retains plugin.example_plugin.* action strings.
 ```
 
+## Cross-plugin data (build this into the template's manifest and docs)
+
+Plugins reuse data instead of recreating it, through **declared dependencies** (full rules in COMPATIBILITY.md "Sharing data across plugins"): manifest `dependsOn` + the owner's `publicTables` gate all cross-plugin reads and foreign keys; writes only via the owner's exposed server functions; registry order = install order (dependencies first, dependents removed first). The template must:
+
+- include `publicTables` and `dependsOn` in its mirrored manifest type,
+- declare its own example table in `publicTables` (so the template demonstrates *being* a dependency),
+- leave `dependsOn: []` with a commented example (`{ pluginId: "crm", minVersion: "1.0.0" }`),
+- document in `CREATING_A_PLUGIN.md` when to depend on another plugin vs. when a shared entity deserves its own small data-owning plugin.
+
 ## Sharp edges (every one of these caused a real Core bug — encode them in the template's validators and docs)
 
 1. **RLS helper privileges**: policy expressions execute as the querying role. If a policy calls a function the `authenticated` role can't EXECUTE (or in a schema without USAGE), every read of that table 500s with `permission denied for schema private` (#46/#47). Only use the already-granted helpers listed above.
