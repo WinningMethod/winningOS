@@ -21,11 +21,11 @@ As the repo matures, additional source-of-truth documents may be added, such as:
 
 ## Current phase
 
-WinningOS Core is in implementation-contract phase.
+WinningOS Core v0.1 is code-complete: Supabase-backed auth (email + password), members, live editable permissions, persisted workspace/branding settings, and an audit trail, all enforced by security-definer RPCs and RLS.
 
-The repo has an initial static frontend wireframe and a compatibility contract for future build-time plugins. The immediate priority is to make Core operational with Supabase/auth/data while keeping plugin work deferred until Core is fully tested.
+The current focus is the plugin boundary. `COMPATIBILITY.md` is the buildable `core-v0` contract; the `Example_Plugin` template is being built in a separate repo from `PLUGIN_TEMPLATE_HANDOVER.md`; Core's next slice is Phase 10 (plugin host primitives) in `IMPLEMENTATION_PLAN.md`.
 
-Do not jump ahead to plugin implementation or business-specific features unless explicitly asked.
+Inside this repo, plugin work means Phase 10 host primitives only. Business-specific features and real plugin implementations still do not belong here.
 
 ## Product rules
 
@@ -75,11 +75,11 @@ When permission implementation begins, permission checks must be designed for bo
 
 ## Plugin rules
 
-Plugins are out of scope until WinningOS Core is operational, tested, and ready to support them.
+Plugins are build-time source modules governed by `COMPATIBILITY.md` (`core-v0`). Plugin repos live outside Core and are built from the `Example_Plugin` template.
 
-The meeting notes plugin is a future validation use case, not current core scope.
+Inside Core, plugin work is limited to the Phase 10 host primitives (`core/plugins/`, `config/plugins.ts`, the `/p/[plugin]` host route, plugin validators). Do not implement plugin features, business workflows, or agent/chat functionality in Core folders.
 
-Do not add plugin folders, plugin manifests, plugin repositories, or plugin implementations until Core is operational/tested and plugin work is explicitly approved.
+The meeting notes and agent plugins remain future validation use cases, not Core scope.
 
 ## Validation rules
 

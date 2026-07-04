@@ -107,6 +107,17 @@ assert(tiersMigration.includes("only owners can change an admin member"), "set_m
 assert(tiersMigration.includes("actor_role_key := private.core_current_member_role_key(target_workspace_id)"), "set_member_role resolves the acting role server-side")
 
 // ---------------------------------------------------------------------------
+// Plugin permission readiness (COMPATIBILITY.md core-v0)
+// ---------------------------------------------------------------------------
+const pluginKeysMigrationFile = migrationFiles.find((file) => file.endsWith("_allow_plugin_permission_keys.sql"))
+assert(Boolean(pluginKeysMigrationFile), "adds plugin permission key format migration")
+const pluginKeysMigration = read(join(migrationsDir, pluginKeysMigrationFile))
+assert(pluginKeysMigration.includes("^plugin\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"), "schema accepts plugin.{plugin_id}.{action} permission keys")
+assert(pluginKeysMigration.includes("core_audit_events_action_format"), "schema accepts plugin.{plugin_id}.{event} audit actions")
+assert(pluginKeysMigration.includes("deny-by-default"), "plugin key migration documents deny-by-default (no grants added)")
+assert(!pluginKeysMigration.includes("insert into"), "plugin key migration only widens formats; it seeds nothing")
+
+// ---------------------------------------------------------------------------
 // Bug fix migration: 20260627193000_fix_member_action_status_ambiguity.sql
 // ---------------------------------------------------------------------------
 const fixMigrationFile = migrationFiles.find((file) => file.endsWith("_fix_member_action_status_ambiguity.sql"))

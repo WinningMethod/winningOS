@@ -64,6 +64,9 @@ Decisions made while implementing, so later phases don't re-litigate them:
 4. **Permissions are explicit and boring.** The catalog in `core/permissions/catalog.ts` is the nameable source of truth; `core_role_permissions` is the live, owner-editable grant map the server enforces. Owner is immutable and structural permissions (`workspace.delete`, `members.invite`, `members.remove`, `roles.manage`) stay owner-only.
 5. **UI is never the security boundary.** Security-definer RPCs and RLS enforce every write; the app layer gates for UX consistency only.
 6. **Audit events are best-effort observability, not a security control.** They record who did what; RLS/RPCs remain the enforcement layer.
+7. **Plugins integrate through one registry file and one URL prefix.** A plugin is source under `plugins/{plugin_id}/` plus one line in `config/plugins.ts`; all its routes live under `/p/{plugin_id}`. Installation, discovery, navigation, settings, and removal all derive from the manifest, so uninstalling is deleting one line (see `COMPATIBILITY.md`).
+8. **Plugins import Core only through the `core/plugins/api` barrel.** Everything else under `core/` is internal and free to refactor inside a compatibility level.
+9. **Plugin data removal is never automatic.** Disabling a plugin leaves its tables and grants intact; purging is an explicit operator-run `db/uninstall.sql`.
 
 ## Implementation sequence
 
@@ -176,14 +179,45 @@ Exit criteria for starting plugin work:
 
 - all validators and builds green
 - migrations applied to the live project without error
-- an owner can: sign in with a password, invite a member, edit a role grant, rename the workspace, update branding, and see each action in the audit trail
+- an owner can: sign in with a password, invite a member, edit a role grant, rename the workspace, update branding, and see each action in the audit trail (`TESTING.md` is the script)
 - `Example_Plugin` explicitly approved as the next validation step
+
+### Phase 10: Plugin host primitives — NEXT Core slice (parallel to the template repo)
+
+Goal: give Core the minimal machinery that makes the `core-v0` contract real, so the
+`Example_Plugin` template (built in its own repo from `PLUGIN_TEMPLATE_HANDOVER.md`)
+can be installed as the contract's proof.
+
+Groundwork already merged: migration `20260704200000` widened the permission/audit
+key constraints so `plugin.{plugin_id}.{action}` keys and `plugin.{id}.{event}`
+audit actions are storable, and DB-side checks (`core_current_member_has_permission`)
+already resolve plugin keys from the live grant map.
+
+Tasks (each one is specified in `COMPATIBILITY.md`):
+
+1. `core/plugins/manifest.ts` — the `WinningOSPluginManifest` type.
+2. `config/plugins.ts` — the empty-by-default install registry; the ONLY file a
+   deployment edits to install a plugin.
+3. `/p/[plugin]` host route — mounts manifest routes; 404s for unregistered ids.
+4. Navigation: render a permission-gated "Plugins" sidebar group from manifests.
+5. Settings → Plugins: list installed plugins; mount manifest settings panels.
+6. `core/plugins/api.ts` — the sanctioned import barrel (session, permission
+   helpers incl. plugin keys, Supabase clients, audit logger, UI kit).
+7. App-side plugin permission helper (live grant map without the Core-catalog
+   filter) + Roles grid grows a "Plugins" group of editable grants.
+8. Grant `private.core_current_profile_id()` EXECUTE to authenticated if plugin
+   RLS templates need it (decide with the template's first real policy set).
+9. `plugins:validate` — Core-side validator: registered manifests match declared
+   tables/permissions; plugin migrations touch only the allowed surface.
+
+Validation: install the template plugin into a deployment, run the acceptance
+checklist in `COMPATIBILITY.md`, verify disable-level removal, then approve real
+plugins.
 
 ## Known deferred items (post-Core backlog)
 
 - custom SMTP for invite/recovery volume (issue #39 follow-up; config-only)
 - hosted Supabase auth config push (requires `SUPABASE_ACCESS_TOKEN`; issue #19)
-- logo upload storage (branding stores a URL in Core v0.1)
 - audit writes moved inside the member RPCs (today: app-layer, best-effort)
 - workspace archive/delete flows behind `workspace.delete`
 

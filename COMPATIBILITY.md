@@ -1,491 +1,226 @@
-# WinningOS Core Compatibility Contract
+# WinningOS Core Compatibility Contract — `core-v0`
 
 ## Purpose
 
-This document defines how future build-time plugins may extend WinningOS Core without weakening the Core foundation.
+This document is the specification that WinningOS build-time plugins are built against. The first plugin template repo is built to this contract, every future plugin is built from that template, and Core validates against these rules. When this document and reality disagree, fix one of them in a reviewed PR — never silently.
 
-It is a contract for future work, not an implementation step. WinningOS Core must become operational and tested before any plugin repo, example plugin, plugin loader, or real plugin is built.
+Status: **Core v0.1 is code-complete.** The Phase 9 readiness gate (live migrations + the owner→viewer walkthrough in `TESTING.md`) is the last step before the plugin template repo is created. The sections below marked *Core ships in Phase 10* are the plugin-host primitives Core adds next; the template can be authored against this spec in parallel.
 
-## Current decision
+## The one-paragraph model
 
-WinningOS Core v0.1 is the base system:
-
-- one workspace per Core deployment
-- Supabase-backed auth and data
-- profiles
-- memberships
-- roles
-- permissions
-- workspace settings
-- branding/theme tokens
-- app shell and navigation ownership
-- plugin-readiness rules
-
-Plugin work is deliberately deferred.
-
-Do not build these yet:
-
-- `Example_Plugin`
-- Agent/chat plugin
-- meeting notes plugin
-- plugin folders inside Core
-- plugin manifests
-- plugin registry UI
-- runtime plugin marketplace
-- auto-install or one-click install flows
+A WinningOS plugin is a folder of reviewed source code (`plugins/{plugin_id}/`) plus SQL migrations, included in a deployment **before build**. A deployment installs a plugin by adding its source and registering its manifest in exactly **one file** (`config/plugins.ts`). Core owns the shell, auth, membership, permissions, theme, and navigation; the plugin contributes routes under `/p/{plugin_id}/…`, permission strings under `plugin.{plugin_id}.*`, tables named `plugin_{plugin_id}_*`, and optional navigation/settings entries — all declared in its manifest, all enforceable without trusting the plugin's UI. Removing the registry line makes the plugin disappear from the product; deleting its data is a separate, explicit operator decision.
 
 ## Compatibility level
-
-The initial compatibility level is:
 
 ```text
 core-v0
 ```
 
-`core-v0` is a compatibility level, not the same thing as the product version `v0.1`. The compatibility level is intentionally coarser so multiple early Core product versions can share the same plugin contract until the contract itself changes.
+`core-v0` is a contract level, not the product version. Multiple Core releases share it until the contract itself breaks. It means:
 
-`core-v0` means:
+- single-workspace Core (one deployment = one workspace, enforced by a DB constraint)
+- Supabase Auth (email + password) and Postgres with RLS
+- explicit permission strings resolved from the live `core_role_permissions` grant map
+- security-definer RPCs and RLS as the enforcement layer; UI is never the boundary
+- build-time inclusion only — no runtime loading, no marketplace, no install UI
+- plugins import Core code **only** through the `core/plugins/api` barrel (*Core ships in Phase 10*)
 
-- single-workspace WinningOS Core
-- source-owned deployment
-- Supabase Auth and Postgres foundation
-- explicit permission strings
-- RLS-protected data model
-- build-time plugin inclusion only
-- no runtime plugin marketplace
+Breaking any rule in this document is a new compatibility level (`core-v1`), announced in this file with migration notes — never a silent change. Additive changes (new API exports, new optional manifest fields) stay within `core-v0`.
 
-Future plugin repos may eventually declare compatibility with `core-v0` or a more precise semver range, but no plugin compatibility implementation exists yet.
+## What a plugin is / is not
 
-## What a plugin is
+A plugin **is**: reviewed, version-controlled source; included before build; deployed as part of the company OS; scoped by Core auth, workspace, permission, and RLS boundaries.
 
-A WinningOS plugin is future source code that extends a WinningOS deployment at build time.
-
-A plugin is:
-
-- reviewed source code
-- version-controlled
-- included before build/deploy
-- deployed as part of the company operating system
-- scoped to the same Core auth, workspace, permission, and RLS boundaries
-
-A plugin is not:
-
-- runtime-loaded code
-- a marketplace extension installed by a user from the UI
-- a remote SaaS product masquerading as Core
-- a browser-only script injection
-- a package that bypasses source review
-- a second app with its own identity/workspace model
-
-## Future external plugin repositories
-
-Future plugins may live in separate GitHub repositories.
-
-That distribution model is allowed later because it keeps plugin code independently inspectable, forkable, versioned, and reusable across deployments.
-
-However, a separate plugin repo does not mean runtime installation. A plugin becomes part of a WinningOS deployment only when its source is explicitly included in the deployment before build.
-
-Allowed future inclusion methods may include:
-
-```text
-copy source into plugins/{plugin_id}
-git subtree into plugins/{plugin_id}
-git submodule into plugins/{plugin_id}
-```
-
-These are future options, not current implementation requirements.
-
-Core must not auto-fetch plugin repositories.
-Core must not install plugin repositories from the UI.
-Core must not execute plugin code that has not been included and reviewed as part of the deployment source.
-
-## Future plugin repo requirements
-
-Every future plugin repository should include an `IMPLEMENTATION.md` file.
-
-A future plugin repo should eventually contain something like:
-
-```text
-README.md
-IMPLEMENTATION.md
-plugin.manifest.ts
-permissions.ts
-components/
-routes/
-server/
-db/migrations/
-tests/
-```
-
-This is a future contract shape. Do not create these folders in Core yet.
-
-### Required `IMPLEMENTATION.md` content
-
-A plugin repo's `IMPLEMENTATION.md` should explain:
-
-1. What the plugin does.
-2. Which Core compatibility level it requires.
-3. How to include the plugin source in a deployment.
-4. Required environment variables.
-5. Database migrations and RLS policies.
-6. Permissions added by the plugin.
-7. Routes or settings sections requested by the plugin.
-8. Navigation entries requested by the plugin.
-9. Server-only secrets and external integration boundaries.
-10. Test/validation commands.
-11. Removal instructions.
-12. Known limitations.
-
-The implementation guide must be explicit enough that a human or agent can integrate the plugin without guessing.
-
-## Core owns forever
-
-WinningOS Core owns these primitives:
-
-- auth/session boundary
-- single active workspace assumption for v0.1
-- profile model
-- membership model
-- role model
-- core permission model
-- workspace settings
-- branding/theme token model
-- app shell and navigation rendering
-- Supabase client/server conventions
-- RLS expectations
-- service-role usage restrictions
-- plugin compatibility rules
-- repo-wide contribution rules
-
-Plugins may extend Core, but must not redefine these primitives.
-
-## What plugins may eventually contribute
-
-After Core is operational and tested, future plugins may be allowed to contribute:
-
-- routes
-- UI components
-- navigation requests
-- settings-section requests
-- server actions or route handlers
-- plugin-specific database tables
-- plugin-specific migrations
-- plugin-specific permissions
-- plugin-specific audit event types
-- background jobs, later
-- external integrations, later
-
-Every contribution must be declared, reviewable, and scoped by Core auth, workspace, permission, and RLS rules.
-
-## What plugins must not do
-
-Plugins must not:
-
-- bypass Supabase Auth
-- bypass active membership checks
-- bypass Core permission checks
-- bypass RLS
-- expose service-role keys or provider secrets to browser code
-- define a competing profile model
-- define a competing member model
-- define a competing workspace model
-- introduce workspace switching into Core v0.1
-- mutate Core tables directly without an approved Core API or documented migration
-- replace the Core app shell
-- replace Home, Members, or Settings
-- add runtime plugin loading
-- install themselves from the UI
-- add business workflows into Core folders
-- assume Agent/chat exists in Core
-- add external provider configuration to Core settings
+A plugin **is not**: runtime-loaded code; a UI-installed marketplace extension; a remote SaaS masquerading as Core; a second app with its own identity or workspace model; a package that bypasses source review.
 
 ## Plugin identity
 
-Every future plugin should have a stable plugin id.
+- `plugin_id`: lowercase `snake_case`, unique per deployment, **stable forever once released** (it is baked into table names, permission strings, URLs, and audit history).
+- Display name is separate and freely changeable.
+- Reserved ids: `core`, `plugin`, `plugins`, `example` may not be used by real plugins (`example_plugin` is reserved for the template itself).
 
-Plugin ids should be:
+## Repository shape (the template defines this)
 
-- lowercase
-- snake_case
-- unique within a deployment
-- stable once released
-
-Examples:
+Every plugin repo is created from the template and keeps this shape:
 
 ```text
-example_plugin
-meeting_notes
-agent
-crm
+README.md                 what it does, screenshots, status
+IMPLEMENTATION.md         integration guide (contract below)
+manifest.ts               the WinningOSPluginManifest export
+permissions.ts            permission-string constants, typed
+components/               plugin UI (client + server components)
+routes/                   route components the host route mounts
+server/                   server actions, data access ("server-only")
+db/migrations/            001_init.sql, 002_*.sql ... (ordinals, not timestamps)
+db/uninstall.sql          explicit data-removal script (never auto-run)
+tests/ or scripts/        validation commands runnable in the plugin repo
 ```
 
-Plugin ids should not use display names with spaces as technical identifiers.
+### `IMPLEMENTATION.md` must state
 
-## Permission naming convention
+1. What the plugin does.
+2. `compatibility: core-v0` (and the Core commit/tag it was last verified against).
+3. Exact install steps (copy/subtree command + the one-line registry edit + migration install command).
+4. Required environment variables (server-only names; never `NEXT_PUBLIC_*` secrets).
+5. Every table it creates and every permission it registers (must match the manifest).
+6. Navigation and settings entries it requests.
+7. External integrations and where their secrets live.
+8. Validation commands.
+9. Removal: disable / remove-source / purge-data, each spelled out.
+10. Known limitations.
 
-Core permissions use short Core namespaces:
+## The manifest (the contract's load-bearing artifact)
 
-```text
-workspace.*
-members.*
-roles.*
-branding.*
-settings.*
-plugins.*
+Core exports this type from `core/plugins/manifest.ts` (*Core ships in Phase 10*; the template mirrors it until then):
+
+```ts
+export type WinningOSPluginManifest = {
+  /** Stable snake_case id. Never changes after first release. */
+  id: string
+  /** Human display name. */
+  name: string
+  /** Plugin semver. */
+  version: string
+  /** Compatibility level this plugin was built and verified against. */
+  compatibility: "core-v0"
+  /** Every permission the plugin registers. Format: plugin.{id}.{action}. */
+  permissions: {
+    key: `plugin.${string}.${string}`
+    name: string
+    description: string
+    /** Default role grants seeded by the plugin's migration. */
+    defaultRoles: ("owner" | "admin" | "member" | "viewer")[]
+  }[]
+  /** Navigation entries Core MAY render (Core decides placement/order). */
+  navigation: {
+    label: string
+    /** Path under the plugin host: /p/{id}{path}. Use "" for the root. */
+    path: string
+    /** lucide-react icon name; Core resolves it, falls back to a generic icon. */
+    icon: string
+    /** Permission required to see the entry. */
+    permission: `plugin.${string}.${string}`
+  }[]
+  /** Route table: path under /p/{id} → React component (server or client). */
+  routes: Record<string, React.ComponentType>
+  /** Optional Settings → Plugins panel. */
+  settings?: {
+    label: string
+    permission: `plugin.${string}.${string}`
+    component: React.ComponentType
+  }
+  /** Every table the plugin owns. Must match db/migrations exactly. */
+  tables: `plugin_${string}`[]
+}
 ```
-
-The plural `plugins.*` namespace is Core-owned and protects Core plugin-management/readiness actions. The singular `plugin.{plugin_id}.*` namespace is future plugin-owned and protects actions inside a specific plugin. They differ intentionally; reviewers should be careful not to glob or typo them as interchangeable names.
-
-Future plugin permissions should use this convention:
-
-```text
-plugin.{plugin_id}.{action}
-```
-
-Examples:
-
-```text
-plugin.meeting_notes.view
-plugin.meeting_notes.create
-plugin.meeting_notes.manage
-plugin.agent.view
-plugin.agent.configure
-```
-
-Reason:
-
-- plugin permissions are visibly separate from Core permissions
-- permission collisions are less likely
-- future audits can distinguish Core capability from plugin capability
 
 Rules:
 
-- plugins must declare every permission they introduce
-- plugin permission checks deny by default
-- plugin permissions must map to Core roles through an approved registration path later
-- plugin UI visibility is not security
-- plugin server/data boundaries must enforce permissions too
+- The manifest is the **single source of declarations**. Validators compare it against migrations and permission constants; drift fails review.
+- `routes` keys are plugin-relative (`""`, `"/new"`, `"/items/[id]"`). Core mounts them under `/p/{plugin_id}` — collisions with Core routes or other plugins are structurally impossible.
+- Everything the plugin renders receives Core context via the Plugin API, not via props smuggled around the shell.
 
-## Database naming convention
+## Installation (exactly one blessed path)
 
-Future plugin tables should use this convention:
+1. Bring the source: copy or `git subtree add` the plugin repo into `plugins/{plugin_id}/`. (Submodules are discouraged: they complicate clones, CI, and review.)
+2. Register it: add one line to `config/plugins.ts` (*Core ships this file, default empty, in Phase 10*):
 
-```text
-plugin_{plugin_id}_{table}
+```ts
+import examplePlugin from "@/plugins/example_plugin/manifest"
+
+export const installedPlugins = [examplePlugin]
 ```
 
-Examples:
+3. Install migrations: copy each `db/migrations/NNN_*.sql` into `supabase/migrations/` as `{today}_plugin_{plugin_id}_{NNN}_{name}.sql`, then `npx supabase db push`.
+4. `npm run typecheck && npm run build` plus Core validators — a compatibility mismatch is a **type error** (the manifest's `compatibility` literal must match Core's current level).
+
+Core must never auto-fetch plugin repos, install from the UI, or execute plugin code that was not included and reviewed as deployment source.
+
+### Why ordinal migration filenames in the plugin repo
+
+Plugin repos number migrations `001_…`, `002_…`. The **install date** provides the timestamp when they are copied into Core. This keeps ordering correct relative to each deployment's own history (two deployments can install the same plugin years apart), and prevents cross-repo timestamp collisions. Installed migration files are never edited afterward; plugin upgrades append new ordinals.
+
+## The Plugin API surface (*Core ships in Phase 10*)
+
+Plugins import Core **only** from `@/core/plugins/api` — a reviewed barrel that re-exports, at minimum:
 
 ```text
-plugin_meeting_notes_notes
-plugin_meeting_notes_sources
-plugin_agent_threads
-plugin_agent_messages
+ensureCoreSession            profile / membership / workspace context
+pluginPermission helpers     has(sessionRole, "plugin.{id}.{action}") via live grants
+createClient / service-role  Supabase access under Core conventions
+logCoreAuditEvent            best-effort audit append (plugin.{id}.{event} actions)
+UI kit                       components/ui/* (Button, Card, Input, ...) + theme tokens
+PageContainer / PageHeader   so plugin pages match the shell
 ```
 
-Parsing rule:
+Everything else under `core/` is internal and may change without notice inside `core-v0`. This is the single most important future-compatibility rule: Core refactors freely behind the barrel; plugins that import around the barrel are rejected in review.
 
-The `plugin_{plugin_id}_{table}` convention is a naming convention, not a reliable parser format. Because plugin ids may contain underscores, code must not derive `plugin_id` by splitting the table name on `_`. Plugin identity should come from the future plugin manifest/registry, and the table list should be declared explicitly.
+## Permissions
 
-Rules:
+Format and storage:
 
-- plugin tables must not use `core_` prefixes
-- plugin tables must include `workspace_id` unless an exception is documented and approved
-- plugin tables must enable RLS
-- plugin tables must reference Core profiles/memberships where applicable rather than duplicating identity
-- plugin migrations must be reviewable SQL or generated output checked into source
-- plugin tables must not assume multiple Core workspaces in v0.1
+- Key format: `plugin.{plugin_id}.{action}` — three lowercase segments. The live schema accepts this (namespace column = `plugin`); Core migration `20260704200000` widened the format constraints that previously allowed only `namespace.action`.
+- Registered by the plugin's **first migration**: idempotent inserts into `core_permissions` (with `namespace = 'plugin'`) and default grants into `core_role_permissions`, using the named-constraint conflict form (see SQL template in the handover doc).
+- Deny by default: no grant row → denied everywhere. Unknown keys never grant.
 
-## RLS expectations for plugins
+Enforcement:
 
-Future plugin data must be protected by RLS.
+- **Database:** plugin RLS policies and RPCs call `private.core_current_member_has_permission(workspace_id, 'plugin.{id}.{action}')` — this reads the live grant map and already works for plugin keys. Owner always holds every permission by construction.
+- **App:** the Phase 10 helpers expose the same check for UI gating. UI visibility is never the boundary.
+- Owners edit plugin grants in Settings → Roles exactly like Core's editable grants (the grid grows a "Plugins" group in Phase 10). Plugin permissions can never enter the structural locked set (`workspace.delete`, `members.remove`, `roles.manage`), and plugins cannot grant themselves Core permissions — their migrations may insert **only** `plugin.{their_id}.*` keys.
 
-Default expectation:
+## Database rules
 
-- active workspace members may read plugin data only when permitted
-- plugin writes require plugin-specific permissions
-- plugin admin actions require explicit elevated permissions
-- non-members cannot read plugin data
-- service-role usage is exceptional and documented
+- Tables: `plugin_{plugin_id}_{table}`. Never `core_*`. The name is a convention, not a parser — identity comes from the manifest's `tables` list, never from splitting on `_`.
+- Every plugin table: `workspace_id uuid not null references core_workspaces(id)` (single-workspace today, but this is what makes plugin data portable and future-proof), `created_at`/`updated_at`, RLS **enabled in the same migration that creates the table**, policies written before any app code reads it.
+- Reference Core identity (`core_profiles.id`, `core_memberships.id`) — never duplicate it, never reference `auth.users` directly.
+- Plugin migrations may touch, exhaustively: their own `plugin_{plugin_id}_*` objects; idempotent seed inserts into `core_permissions` / `core_role_permissions` for their own `plugin.{id}.*` keys; a `plugin-{plugin_id}` storage bucket. **Nothing else** — no ALTER on `core_*` tables, no `private` schema changes, no grants to `anon`, no touching other plugins' objects.
+- SQL sharp edges the template encodes (all hit in Core's own history): policy helper functions run as the querying role; `ON CONFLICT` must use the named-constraint form inside PL/pgSQL when output columns shadow column names; qualify columns when output parameters could collide; resolve the workspace structurally (`deleted_at is null`, oldest first) — **never by slug**.
 
-Plugins should reuse Core membership and permission helpers once those exist.
+## Navigation and settings
 
-## Navigation contribution rules
+- Core owns the shell and final rendering. Plugin nav entries come from manifests, are permission-gated per entry, render in a "Plugins" sidebar group below Core items (*Core ships in Phase 10*), and disappear automatically when the registry entry is removed.
+- Plugins never: replace the shell; replace or reorder Home/Members/Settings; inject workspace switchers; add auth controls; render outside their `/p/{plugin_id}` subtree except via declared settings panels.
+- Plugin settings live under `Settings → Plugins → {name}` via the manifest's `settings` entry — never as new top-level Core settings tabs, and never provider/API-key fields inside Core's Workspace/Branding sections.
 
-Core owns the shell and final navigation rendering.
+## Secrets and external calls
 
-Future plugins may request navigation entries, but Core decides:
+- Plugin secrets are server-only env vars, named `PLUGIN_{PLUGIN_ID}_*` (uppercase id), documented in `IMPLEMENTATION.md`, never `NEXT_PUBLIC_*`, never imported into client components (`server-only` guards required).
+- External calls that use secrets happen in `server/` code only.
+- Agent/chat plugins carry the highest secret/tool-execution risk; they follow this contract like everyone else and get extra review on provider credential storage and tool boundaries.
 
-- whether the entry is shown
-- where the entry is placed
-- which permission gates it
-- whether the entry belongs in primary nav, settings, or a plugin section
+## Removal (three explicit levels)
 
-Plugins must not:
+1. **Disable** — delete the plugin's line from `config/plugins.ts`. Routes 404, nav and settings entries vanish, Core builds and runs. Data, tables, and grants remain untouched. This must always be sufficient to "turn off" a plugin.
+2. **Remove source** — also delete `plugins/{plugin_id}/`. Same runtime result; the deployment no longer carries the code.
+3. **Purge data** — operator explicitly runs the plugin's `db/uninstall.sql` (drops the plugin's tables, deletes its `plugin.{id}.%` rows from `core_permissions`/`core_role_permissions`). Never automatic, never bundled into disable/remove. Audit history keeps historical `plugin.{id}.*` action strings by design.
 
-- replace the shell
-- replace Home, Members, or Settings
-- inject workspace switchers
-- add global account/auth controls
-- bypass permission-aware navigation rules
+Future-pacing rule: because routes, nav, settings, and permissions all derive from the manifest + registry line, there is exactly **one** thing to remove and nothing to forget. Orphaned grant rows after level 1/2 are harmless (deny-by-default reads them only for display) and are cleaned by level 3.
 
-## Settings contribution rules
+## Acceptance checklist (run against every plugin PR, starting with the template)
 
-Core settings remain Core-owned.
+- [ ] Source included at build time under `plugins/{plugin_id}/`; registered in `config/plugins.ts` only.
+- [ ] Stable snake_case id; not a reserved id.
+- [ ] `IMPLEMENTATION.md` covers all ten required points.
+- [ ] Manifest `compatibility` matches Core's current level (build fails otherwise).
+- [ ] Manifest permissions/tables match `permissions.ts`, migrations, and `db/uninstall.sql` exactly (no drift).
+- [ ] All routes under `/p/{plugin_id}`; no Core route or shell changes.
+- [ ] All tables `plugin_{plugin_id}_*`, workspace-scoped, RLS enabled in the creating migration.
+- [ ] Permission keys `plugin.{plugin_id}.*` only; deny-by-default verified; DB-side checks used in RLS/RPCs.
+- [ ] Migrations only touch the allowed surface (own objects + own permission seeds + own bucket).
+- [ ] Secrets server-only, `PLUGIN_{ID}_*` named, documented.
+- [ ] Disable-level removal verified: registry line removed → Core builds, routes 404, nav gone, no console errors.
+- [ ] `db/uninstall.sql` present and reviewed.
+- [ ] Plugin validation commands pass; Core validators + typecheck + build pass with the plugin installed.
 
-Future plugins may request settings sections only through a documented registration path.
+## Sequencing from here
 
-Plugin settings should be grouped under plugin-aware surfaces such as:
+1. Core: pass the Phase 9 live gate (`TESTING.md` walkthrough).
+2. Template: build the `Example_Plugin` template repo to this spec (see `PLUGIN_TEMPLATE_HANDOVER.md`) — it can start now.
+3. Core: ship Phase 10 (plugin host: manifest type, registry, host route, nav/settings integration, API barrel, plugin validators).
+4. Integrate the template into a Core deployment as the contract's proof; fix whichever side is wrong.
+5. Only then: real plugins (Agent, Meeting Notes remain the validation examples — Core still pre-builds none of their internals).
 
-```text
-Settings > Plugins > {Plugin Name}
-```
+## Core owns forever
 
-or another explicitly approved placement.
-
-Plugins must not add provider/API-key settings to Core workspace settings directly.
-
-## Secret handling rules
-
-Plugin secrets must be server-only.
-
-Rules:
-
-- no plugin secret may use a public/browser env prefix
-- plugin API keys must not be exposed to client components
-- plugin external calls that require secrets must happen server-side
-- plugin secret storage must be documented before implementation
-- plugin secret rotation/removal expectations must be documented when applicable
-
-Agent/chat plugins are especially sensitive because provider credentials, tool execution, and conversation data can introduce extra risk. They must wait until Core is operational and compatibility rules are proven.
-
-## Removal rules
-
-A plugin should be removable without breaking Core.
-
-Removal expectations:
-
-- removing plugin source should not break Core routes
-- Core should still build without the plugin
-- plugin data deletion must require explicit migration or operator action
-- plugin removal must not delete data silently
-- plugin nav/settings entries should disappear when the plugin source is absent
-
-Future plugin repos should document removal in `IMPLEMENTATION.md`.
-
-## Versioning and compatibility changes
-
-Compatibility rules should change slowly.
-
-Breaking changes may include:
-
-- changing plugin permission naming
-- changing plugin table naming
-- changing workspace assumptions
-- changing navigation contribution APIs
-- changing settings contribution APIs
-- changing migration/RLS expectations
-
-If a future change breaks `core-v0`, introduce a new compatibility level rather than silently changing the contract.
-
-## Future validation checklist
-
-A future plugin should not be accepted unless it passes a checklist like this:
-
-- [ ] Plugin source is included at build time.
-- [ ] Plugin declares a stable plugin id.
-- [ ] Plugin includes `IMPLEMENTATION.md`.
-- [ ] Plugin declares Core compatibility.
-- [ ] Plugin declares all permissions.
-- [ ] Plugin tables use `plugin_{plugin_id}_{table}` naming.
-- [ ] Plugin tables are workspace-scoped or explicitly justified.
-- [ ] Plugin tables have RLS.
-- [ ] Plugin secrets are server-only.
-- [ ] Plugin does not mutate Core tables without approved APIs/migrations.
-- [ ] Plugin does not introduce workspace switching.
-- [ ] Plugin does not replace the Core shell.
-- [ ] Plugin can be removed without breaking Core.
-- [ ] Plugin has tests or validation commands.
-
-This checklist is future-facing. It should become executable only after Core is operational and the first reference plugin is intentionally scoped.
-
-## Future validation examples
-
-Agent/chat and meeting notes are useful future validation examples, but they are not current work.
-
-### Future Agent plugin
-
-A future Agent plugin would own:
-
-- agent/chat UI
-- provider configuration
-- provider secret strategy
-- model/provider adapters
-- chat/thread tables
-- tool execution boundaries
-- agent-specific permissions
-- agent-specific audit events
-
-Core should not pre-build these.
-
-### Future Meeting Notes plugin
-
-A future Meeting Notes plugin would own:
-
-- meeting records
-- transcript references
-- recorder/source integrations
-- summaries
-- meeting-specific permissions
-- meeting-specific tables
-- meeting-specific RLS
-
-Core should not pre-build these.
-
-## Example plugin timing
-
-An `Example_Plugin` repository is a good future idea, but not yet.
-
-Required order:
-
-1. Finish and merge this compatibility contract.
-2. Build WinningOS Core until it is operational.
-3. Test Core thoroughly, including auth, data, permissions, RLS, and deployment setup.
-4. Only then create an `Example_Plugin` repo to prove the contract.
-5. Only after the example validates the contract should real plugins begin.
-
-The example plugin should validate Core compatibility; it should not define Core compatibility.
-
-## Current non-goals
-
-Do not implement any of these now:
-
-- plugin loader
-- plugin registry
-- plugin manifest parser
-- plugin settings registry
-- plugin nav registry
-- plugin migration runner
-- external plugin repo
-- Example_Plugin repo
-- Agent plugin
-- meeting notes plugin
-- runtime marketplace
-- plugin install UI
-
-## Core readiness gate before plugins
-
-Before any plugin work begins, Core must be:
-
-- operational with Supabase
-- deployed successfully
-- documented for local development
-- backed by initial schema migrations
-- protected by RLS
-- wired to real auth
-- using server-side permission helpers
-- tested for role/permission behavior
-- able to load and update Core settings from real data
-- verified to build cleanly
-
-Plugin work waits until this gate is met.
+Auth/session boundary · single-workspace assumption · profile/membership/role models · the Core permission model and structural locked set · workspace settings · branding/theme tokens · app shell and navigation rendering · Supabase conventions · RLS expectations · service-role restrictions · this contract. Plugins extend; they never redefine.
