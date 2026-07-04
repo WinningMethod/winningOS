@@ -161,4 +161,28 @@ assert(
   "branding preview derives readable text color from the chosen secondary/tertiary colors instead of a fixed light-mode class",
 )
 
+// ---------------------------------------------------------------------------
+// Slug is metadata, never a resolution key (issue #52)
+// ---------------------------------------------------------------------------
+const slugFixMigration = read(join(migrationsDir, "20260704120000_unpin_workspace_slug.sql"))
+const slugFixSqlOnly = slugFixMigration.split("\n").filter((line) => !line.trim().startsWith("--")).join("\n")
+assert(slugFixMigration.includes("create or replace function public.core_bootstrap_current_user"), "slug-fix migration redefines the bootstrap RPC")
+assert(!slugFixSqlOnly.includes("slug = 'winningos'"), "bootstrap RPC no longer resolves the workspace by slug")
+assert(slugFixMigration.includes("where w.deleted_at is null") && slugFixMigration.includes("order by w.created_at asc"), "bootstrap RPC resolves the single active workspace structurally")
+assert(slugFixMigration.includes("for update"), "bootstrap RPC still serializes the first-owner decision")
+assert(slugFixMigration.includes("on conflict on constraint core_memberships_workspace_profile_key do nothing"), "bootstrap RPC keeps the named membership constraint")
+assert(slugFixMigration.includes("grant execute on function public.core_bootstrap_current_user(text) to authenticated"), "bootstrap RPC stays granted to authenticated only")
+
+for (const appFile of ["core/auth/brand.ts", "core/branding/theme.ts", "core/members/actions.ts"]) {
+  const contents = read(appFile)
+  assert(!contents.includes('eq("slug"'), `${appFile} no longer resolves the workspace by slug`)
+  assert(contents.includes('is("deleted_at", null)'), `${appFile} resolves the single active workspace structurally`)
+}
+
+const workspaceSectionSlug = read("components/app/settings/workspace-section.tsx")
+assert(workspaceSectionSlug.includes("nothing in Core resolves by it"), "workspace section explains the slug's purpose")
+
+const remoteVerify = read("scripts/verify-supabase-remote.mjs")
+assert(!remoteVerify.includes("slug = 'winningos'"), "remote verification does not depend on the editable slug value")
+
 console.log("Core settings + audit validation passed.")

@@ -91,8 +91,8 @@ select jsonb_build_object(
     where schemaname = 'public'
       and tablename in ('core_profiles','core_workspaces','core_roles','core_memberships','core_brand_settings','core_permissions','core_role_permissions')
   ),
-  'workspace_count', (select count(*) from public.core_workspaces where slug = 'winningos'),
-  'active_workspace_count', (select count(*) from public.core_workspaces where slug = 'winningos' and deleted_at is null),
+  'workspace_count', (select count(*) from public.core_workspaces),
+  'active_workspace_count', (select count(*) from public.core_workspaces where deleted_at is null),
   'role_keys', (select jsonb_agg(key order by key) from public.core_roles),
   'system_role_count', (select count(*) from public.core_roles where is_system),
   'brand_settings_count', (select count(*) from public.core_brand_settings),
@@ -139,8 +139,10 @@ const tableNames = verification.tables.map((table) => table.table)
 
 assert(requiredTables.every((table) => tableNames.includes(table)), "Missing one or more Core tables")
 assert(verification.tables.every((table) => table.rls === true), "One or more Core tables has RLS disabled")
-assert(Number(verification.workspace_count) === 1, "Expected exactly one winningos workspace")
-assert(Number(verification.active_workspace_count) === 1, "Expected exactly one active winningos workspace")
+// The slug is owner-editable (#52), so the single-workspace invariant is
+// verified structurally, never by slug value.
+assert(Number(verification.workspace_count) >= 1, "Expected at least one workspace row")
+assert(Number(verification.active_workspace_count) === 1, "Expected exactly one active workspace")
 assert(
   JSON.stringify(verification.role_keys) === JSON.stringify(["admin", "member", "owner", "viewer"]),
   "Seeded role keys do not match expected Core defaults",

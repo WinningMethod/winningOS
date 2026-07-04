@@ -70,7 +70,8 @@ export function WorkspaceSection({
                   disabled={!canManage}
                 />
                 <p id="ws-slug-hint" className="text-xs text-muted-foreground">
-                  Lowercase letters, numbers, and hyphens.
+                  Lowercase letters, numbers, and hyphens. A machine-readable label for exports and
+                  future integrations — nothing in Core resolves by it, so it is safe to change.
                 </p>
               </div>
             </div>

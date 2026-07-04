@@ -161,12 +161,14 @@ async function upsertInvitedMembership({
 }): Promise<{ profileId: string }> {
   const admin = createServiceRoleClient()
 
+  // The single active workspace — never resolve by slug, it is owner-editable (#52).
   const { data: workspace, error: workspaceError } = await admin
     .from("core_workspaces")
     .select("id")
-    .eq("slug", "winningos")
     .is("deleted_at", null)
-    .single()
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle()
 
   if (workspaceError || !workspace?.id) {
     throw workspaceError ?? new Error("WinningOS workspace not found")

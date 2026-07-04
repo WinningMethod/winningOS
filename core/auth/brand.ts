@@ -20,11 +20,13 @@ function normalizeBrandName(value: unknown): string | null {
 export async function getCoreAuthBrand(): Promise<CoreAuthBrand> {
   try {
     const supabase = createServiceRoleClient()
+    // The single active workspace — never resolve by slug, it is owner-editable (#52).
     const { data: workspace, error: workspaceError } = await supabase
       .from("core_workspaces")
       .select("id")
-      .eq("slug", "winningos")
       .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+      .limit(1)
       .maybeSingle()
 
     if (workspaceError || !workspace) {
