@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { RotateCcw } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -35,6 +35,7 @@ export function ColorField({
   disabled: boolean
 }) {
   const [text, setText] = useState(value ?? "")
+  const textInputRef = useRef<HTMLInputElement>(null)
 
   // Sync when a save round-trips: the server redirect re-renders with a new
   // value prop (possibly normalized, e.g. lowercased) without remounting.
@@ -57,6 +58,7 @@ export function ColorField({
           className="h-9 w-11 shrink-0 cursor-pointer rounded-md border border-border bg-transparent p-1 disabled:cursor-not-allowed disabled:opacity-50"
         />
         <Input
+          ref={textInputRef}
           id={id}
           name={name}
           value={text}
@@ -71,7 +73,13 @@ export function ColorField({
         {!disabled && text !== "" && (
           <button
             type="button"
-            onClick={() => setText("")}
+            onClick={() => {
+              setText("")
+              // The button unmounts once text clears; move focus to the field
+              // it just reset instead of dropping it to the document body.
+              textInputRef.current?.focus()
+            }}
+            aria-label={`Reset ${label} to default`}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <RotateCcw className="h-3 w-3" />

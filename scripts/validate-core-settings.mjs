@@ -194,6 +194,8 @@ assert(colorField.includes('type="color"'), "color field renders a native color 
 assert(colorField.includes("useState") && colorField.includes("useEffect"), "picker and hex text field stay in sync, including after save round-trips")
 assert(colorField.includes("Reset to default"), "color field can clear back to the default token (pickers cannot represent unset)")
 assert(colorField.includes('pattern="#[0-9a-fA-F]{6}"'), "hex text field keeps client-side format validation")
+assert(colorField.includes("aria-label={`Reset ${label} to default`}"), "reset button has a unique accessible name across the three color rows")
+assert(colorField.includes(".focus()"), "reset restores focus to the text field it just cleared instead of dropping it to the document")
 
 const brandingSectionPicker = read("components/app/settings/branding-section.tsx")
 assert(brandingSectionPicker.includes('from "@/components/app/settings/color-field"'), "branding section uses the shared picker color field")
