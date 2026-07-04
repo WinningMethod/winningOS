@@ -20,7 +20,7 @@ type AuthUserSummary = {
   email?: string | null
 }
 
-type InviteDelivery = "sent" | "existing"
+type InviteDelivery = "sent" | "existing" | "reinvited"
 
 type InviteAuthResult = {
   user: AuthUserSummary
@@ -158,7 +158,7 @@ async function upsertInvitedMembership({
   email: string
   displayName: string | null
   roleKey: AssignableRoleKey
-}): Promise<{ profileId: string }> {
+}): Promise<{ profileId: string; status: "active" | "invited" }> {
   const admin = createServiceRoleClient()
 
   // The single active workspace — never resolve by slug, it is owner-editable (#52).
@@ -248,7 +248,7 @@ async function upsertInvitedMembership({
     throw membershipError
   }
 
-  return { profileId }
+  return { profileId, status: nextStatus }
 }
 
 export async function inviteMember(formData: FormData): Promise<never> {
@@ -264,14 +264,28 @@ export async function inviteMember(formData: FormData): Promise<never> {
     redirect("/members?status=failed")
   }
 
+  // The admin tier is owner territory (#60): admins invite at member/viewer
+  // only. The invite flow acts through the service role, so this app-layer
+  // gate is the boundary; core_set_member_role enforces the same rule for
+  // role changes.
+  if (roleKey === "admin") {
+    const session = await ensureCoreSession()
+
+    if (session.membership?.roleKey !== "owner") {
+      redirect("/members?status=invite-admin-owner-only")
+    }
+  }
+
   let delivery: InviteDelivery = "sent"
   let invitedProfileId: string | null = null
+  let membershipStatus: string = "invited"
 
   try {
     const result = await inviteAuthUser(email, displayName)
     delivery = result.delivery
     const membership = await upsertInvitedMembership({ userId: result.user.id, email, displayName, roleKey })
     invitedProfileId = membership.profileId
+    membershipStatus = membership.status
   } catch (error) {
     const bucket = classifyInviteFailure(error)
     console.error("Failed to invite Core member", {
@@ -279,6 +293,32 @@ export async function inviteMember(formData: FormData): Promise<never> {
       message: error instanceof Error ? error.message : "Unknown invite failure",
     })
     redirect(`/members?status=${bucket === "rate-limited" ? "invite-rate-limited" : "invite-failed"}`)
+  }
+
+  // Re-invite of an existing auth user (#62): inviteUserByEmail cannot email
+  // someone who already has an auth account (e.g. a previously removed and
+  // re-invited member), so nothing arrived in their inbox. Deliver a branded
+  // set-password email through the recovery flow instead — it works whether
+  // or not they ever chose a password.
+  let reinviteEmailFailed = false
+  if (delivery === "existing" && membershipStatus === "invited") {
+    delivery = "reinvited"
+
+    const headerStore = await headers()
+    const origin = resolveAppOriginFromHeaders(headerStore)
+    const supabase = await createClient()
+    const { error: reinviteError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${origin}/auth/callback?next=/set-password`,
+    })
+
+    if (reinviteError) {
+      reinviteEmailFailed = true
+      console.error("Failed to send Core re-invite email", {
+        status: reinviteError.status,
+        code: reinviteError.code,
+        bucket: classifyInviteFailure(reinviteError),
+      })
+    }
   }
 
   await logCoreAuditEvent({
@@ -289,7 +329,16 @@ export async function inviteMember(formData: FormData): Promise<never> {
   })
 
   revalidatePath("/members")
-  redirect(`/members?status=${delivery === "existing" ? "member-added" : "invited"}`)
+
+  if (reinviteEmailFailed) {
+    redirect("/members?status=reinvite-email-failed")
+  }
+
+  if (delivery === "existing") {
+    redirect("/members?status=member-added")
+  }
+
+  redirect(`/members?status=${delivery === "reinvited" ? "reinvited" : "invited"}`)
 }
 
 export async function activateMember(formData: FormData): Promise<never> {

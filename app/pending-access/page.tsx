@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation"
-import { Hexagon, LockKeyhole } from "lucide-react"
+import { LockKeyhole } from "lucide-react"
+import { BrandMark } from "@/components/app/brand-mark"
 import { Card } from "@/components/ui/card"
 import { ThemeToggle } from "@/components/app/theme-toggle"
 import { ensureCoreSession } from "@/core/auth/bootstrap"
+import { getCoreBrandTheme } from "@/core/branding/theme"
 
 export default async function PendingAccessPage() {
   const session = await ensureCoreSession()
+  const brand = await getCoreBrandTheme()
 
   if (session.status === "unauthenticated") {
     redirect("/sign-in")
@@ -19,10 +22,8 @@ export default async function PendingAccessPage() {
     <div className="flex min-h-screen flex-col bg-background">
       <header className="flex h-14 items-center justify-between px-5 lg:px-8">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Hexagon className="h-4 w-4" strokeWidth={2.5} />
-          </span>
-          <span className="text-sm font-semibold tracking-tight">WinningOS</span>
+          <BrandMark logoUrl={brand.logoUrl} />
+          <span className="text-sm font-semibold tracking-tight">{brand.brandName ?? "WinningOS"}</span>
           <span className="rounded border border-border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
             Core
           </span>

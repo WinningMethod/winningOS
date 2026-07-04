@@ -59,13 +59,14 @@ export async function getCoreMembers(): Promise<{
   members: CoreMember[]
   canManageMembers: boolean
   canAssignRoles: boolean
+  canAssignAdmins: boolean
   canInviteMembers: boolean
   canRemoveMembers: boolean
 }> {
   const session = await ensureCoreSession()
 
   if (!session.hasActiveMembership) {
-    return { members: [], canManageMembers: false, canAssignRoles: false, canInviteMembers: false, canRemoveMembers: false }
+    return { members: [], canManageMembers: false, canAssignRoles: false, canAssignAdmins: false, canInviteMembers: false, canRemoveMembers: false }
   }
 
   const supabase = await createClient()
@@ -85,10 +86,11 @@ export async function getCoreMembers(): Promise<{
 
   // Permission-driven gating from the live grant map (core_role_permissions),
   // so the buttons we render match what the RPCs will actually allow after an
-  // owner edits a role. disable and role-assignment are admin-tier and
-  // editable independently; invite + remove are owner-only and locked.
+  // owner edits a role. disable, invite, and role-assignment are admin-tier
+  // and independently editable; remove stays owner-only and locked.
   // disable/remove/role-assignment are re-enforced server-side by their RPCs;
-  // invite is currently app-layer-enforced only (see inviteAuthUser).
+  // invite's grant is DB-driven but the admin-tier restriction (no admin
+  // invites by non-owners) is app-layer-enforced only (see inviteAuthUser).
   const { grants } = await getRoleGrantMap()
   const roleKey = session.membership?.roleKey ?? null
   const roleGrants = CORE_ROLE_KEYS.includes(roleKey as CoreRoleKey)
@@ -99,6 +101,11 @@ export async function getCoreMembers(): Promise<{
     members,
     canManageMembers: roleGrants.has("members.disable"),
     canAssignRoles: roleGrants.has("roles.assign"),
+    // The admin tier itself is owner territory (#58/#60): only owners assign
+    // the admin role, change existing admins, or invite at the admin tier.
+    // This is a structural role rule, not an editable grant; the RPC and the
+    // invite action re-enforce it server-side.
+    canAssignAdmins: roleKey === "owner",
     canInviteMembers: roleGrants.has("members.invite"),
     canRemoveMembers: roleGrants.has("members.remove"),
   }

@@ -10,20 +10,33 @@ export type CoreBrandTheme = {
   primary: string | null
   secondary: string | null
   tertiary: string | null
+  /** Uploaded/linked workspace logo (https only), for the brand mark (#56). */
+  logoUrl: string | null
+  brandName: string | null
 }
 
-const EMPTY_THEME: CoreBrandTheme = { primary: null, secondary: null, tertiary: null }
+const EMPTY_THEME: CoreBrandTheme = {
+  primary: null,
+  secondary: null,
+  tertiary: null,
+  logoUrl: null,
+  brandName: null,
+}
 
 function safeColor(value: unknown): string | null {
   return typeof value === "string" && HEX_COLOR_PATTERN.test(value) ? value : null
 }
 
+function safeLogoUrl(value: unknown): string | null {
+  return typeof value === "string" && value.startsWith("https://") && value.length <= 2048 ? value : null
+}
+
 /**
- * Brand colors for the whole deployment (issue #50). Read with the service
- * role because the theme also styles unauthenticated surfaces (entry page,
- * sign-in); brand colors are not secrets. Wrapped in React cache() so a
- * request renders with one read, and degrades to no overrides on any failure
- * so a database hiccup can never blank the app.
+ * Brand identity for the whole deployment (issues #50/#56): theme colors plus
+ * the logo and brand name. Read with the service role because it also styles
+ * unauthenticated surfaces (entry page, sign-in); branding is not secret.
+ * Wrapped in React cache() so a request renders with one read, and degrades
+ * to defaults on any failure so a database hiccup can never blank the app.
  */
 export const getCoreBrandTheme = cache(async (): Promise<CoreBrandTheme> => {
   try {
@@ -43,7 +56,7 @@ export const getCoreBrandTheme = cache(async (): Promise<CoreBrandTheme> => {
 
     const { data: brand, error: brandError } = await supabase
       .from("core_brand_settings")
-      .select("theme_json")
+      .select("brand_name, logo_url, theme_json")
       .eq("workspace_id", workspace.id)
       .maybeSingle()
 
@@ -52,11 +65,16 @@ export const getCoreBrandTheme = cache(async (): Promise<CoreBrandTheme> => {
     }
 
     const theme = (brand?.theme_json ?? {}) as Record<string, unknown>
+    const brandName = typeof brand?.brand_name === "string" && brand.brand_name.trim()
+      ? brand.brand_name.trim()
+      : null
 
     return {
       primary: safeColor(theme.primary_color),
       secondary: safeColor(theme.secondary_color),
       tertiary: safeColor(theme.tertiary_color),
+      logoUrl: safeLogoUrl(brand?.logo_url),
+      brandName,
     }
   } catch {
     return EMPTY_THEME

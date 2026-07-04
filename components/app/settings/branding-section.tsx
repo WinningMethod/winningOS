@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ColorField } from "@/components/app/settings/color-field"
+import { LogoFileInput } from "@/components/app/settings/logo-file-input"
 import { updateBrandingSettings } from "@/core/settings/actions"
 import type { CoreBrandingOverview } from "@/core/settings/data"
 import { foregroundFor } from "@/core/branding/color"
@@ -71,15 +72,7 @@ export function BrandingSection({
                     )}
                   </span>
                   <div className="flex flex-1 flex-col gap-2">
-                    <Input
-                      id="brand-logo-file"
-                      name="logoFile"
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                      aria-describedby="brand-logo-hint"
-                      disabled={!canManage}
-                      className="h-auto py-1.5 file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-secondary-foreground"
-                    />
+                    <LogoFileInput disabled={!canManage} />
                     <Input
                       id="brand-logo"
                       name="logoUrl"

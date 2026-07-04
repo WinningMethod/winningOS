@@ -2,20 +2,26 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Hexagon } from "lucide-react"
+import { BrandMark } from "@/components/app/brand-mark"
 import { navItems } from "@/lib/navigation"
 import { cn } from "@/lib/utils"
 
-export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+export function SidebarContent({
+  brandLogoUrl = null,
+  brandName = null,
+  onNavigate,
+}: {
+  brandLogoUrl?: string | null
+  brandName?: string | null
+  onNavigate?: () => void
+}) {
   const pathname = usePathname()
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-5">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <Hexagon className="h-4 w-4" strokeWidth={2.5} />
-        </span>
-        <span className="text-sm font-semibold tracking-tight">WinningOS</span>
+        <BrandMark logoUrl={brandLogoUrl} />
+        <span className="truncate text-sm font-semibold tracking-tight">{brandName ?? "WinningOS"}</span>
         <span className="rounded border border-sidebar-border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
           Core
         </span>
@@ -74,7 +80,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="border-t border-sidebar-border p-3">
         <p className="rounded-md bg-muted px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-          Auth is live. Data screens still use calm Core mock content until the next slice.
+          WinningOS Core — auth, members, roles, and settings run on live workspace data.
         </p>
       </div>
     </div>

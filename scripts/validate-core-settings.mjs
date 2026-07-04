@@ -154,7 +154,7 @@ assert(rootLayout.includes("getCoreBrandTheme") && rootLayout.includes("brandThe
 
 const brandingSectionV2 = read("components/app/settings/branding-section.tsx")
 assert(brandingSectionV2.includes('name="secondaryColor"') && brandingSectionV2.includes('name="tertiaryColor"'), "branding section edits secondary and tertiary colors")
-assert(brandingSectionV2.includes('type="file"') && brandingSectionV2.includes('name="logoFile"'), "branding section offers logo upload")
+assert(brandingSectionV2.includes("LogoFileInput"), "branding section offers logo upload via the validated file input")
 assert(brandingSectionV2.includes('aria-label="Logo URL"'), "logo URL input keeps an accessible name once the file input takes the visible Logo label")
 assert(
   brandingSectionV2.includes("foregroundFor(tertiaryColor)") && brandingSectionV2.includes("foregroundFor(secondaryColor)"),
@@ -200,5 +200,31 @@ assert(colorField.includes(".focus()"), "reset restores focus to the text field 
 const brandingSectionPicker = read("components/app/settings/branding-section.tsx")
 assert(brandingSectionPicker.includes('from "@/components/app/settings/color-field"'), "branding section uses the shared picker color field")
 assert(!brandingSectionPicker.includes("function ColorField"), "branding section no longer defines a local picker-less color field")
+
+// ---------------------------------------------------------------------------
+// Brand mark surfacing + upload crash guard (issues #56/#57)
+// ---------------------------------------------------------------------------
+const brandMark = read("components/app/brand-mark.tsx")
+assert(brandMark.includes("logoUrl") && brandMark.includes("Hexagon"), "brand mark renders the uploaded logo with a hexagon fallback")
+
+const brandThemeModule = read("core/branding/theme.ts")
+assert(brandThemeModule.includes("logoUrl: safeLogoUrl"), "brand theme exposes the validated logo URL")
+assert(brandThemeModule.includes("brandName"), "brand theme exposes the brand name")
+assert(brandThemeModule.includes('value.startsWith("https://")'), "brand theme only surfaces https logo URLs")
+
+for (const surface of ["components/app/sidebar.tsx", "app/(auth)/layout.tsx", "app/page.tsx", "app/pending-access/page.tsx"]) {
+  assert(read(surface).includes("BrandMark"), `${surface} renders the workspace brand mark (issue #56)`)
+}
+assert(read("components/app/app-shell.tsx").includes("brandLogoUrl"), "app shell top bar shows the uploaded logo instead of the initial tile")
+assert(read("app/(app)/layout.tsx").includes("getCoreBrandTheme"), "app layout feeds brand identity into the shell")
+
+const nextConfig = read("next.config.mjs")
+assert(nextConfig.includes("bodySizeLimit"), "server-action body limit is raised so oversized uploads fail gracefully (issue #57)")
+
+const logoInput = read("components/app/settings/logo-file-input.tsx")
+assert(logoInput.startsWith('"use client"'), "logo file input validates client-side")
+assert(logoInput.includes("MAX_LOGO_BYTES") && logoInput.includes('input.value = ""'), "oversized/invalid logo selections are cleared before submit")
+assert(logoInput.includes('role="alert"'), "logo input announces validation errors")
+assert(read("components/app/settings/branding-section.tsx").includes("LogoFileInput"), "branding section uses the validated logo input")
 
 console.log("Core settings + audit validation passed.")
