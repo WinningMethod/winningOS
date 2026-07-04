@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { logCoreAuditEvent } from "@/core/audit/log"
+import { isRegisteredPluginPermission } from "@/core/plugins/registry"
 import { createClient } from "@/core/supabase/server"
 import { isPermissionKey, isEditableGrant, type CoreRoleKey } from "./catalog"
 import { roleHasLivePermission } from "./grants"
@@ -31,7 +32,15 @@ export async function setRolePermission(formData: FormData): Promise<never> {
   const permissionKey = readString(formData, "permissionKey")
   const granted = readString(formData, "granted") === "true"
 
-  if (!isEditableRoleKey(roleKey) || !isPermissionKey(permissionKey) || !isEditableGrant(roleKey as CoreRoleKey, permissionKey)) {
+  // Core keys must be catalog-editable; plugin keys must be registered by an
+  // installed manifest. The core_set_role_permission RPC re-enforces both the
+  // locked set and key existence (plugin migrations insert their keys into
+  // core_permissions, so unregistered plugin keys fail there too).
+  const isEditableKey = isPermissionKey(permissionKey)
+    ? isEditableGrant(roleKey as CoreRoleKey, permissionKey)
+    : isRegisteredPluginPermission(permissionKey)
+
+  if (!isEditableRoleKey(roleKey) || !isEditableKey) {
     redirect("/settings?tab=roles&status=role-permission-failed")
   }
 

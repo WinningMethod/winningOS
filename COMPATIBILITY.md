@@ -4,7 +4,7 @@
 
 This document is the specification that WinningOS build-time plugins are built against. The first plugin template repo is built to this contract, every future plugin is built from that template, and Core validates against these rules. When this document and reality disagree, fix one of them in a reviewed PR — never silently.
 
-Status: **Core v0.1 is code-complete.** The Phase 9 readiness gate (live migrations + the owner→viewer walkthrough in `TESTING.md`) is the last step before the plugin template repo is created. The sections below marked *Core ships in Phase 10* are the plugin-host primitives Core adds next; the template can be authored against this spec in parallel.
+Status: **Core v0.1 is code-complete and the Phase 10 plugin host is shipped** (manifest type, registry, `/p/{plugin_id}` host route, nav/settings integration, API barrel, `plugins:validate`). The Phase 9 readiness gate (live migrations + the owner→viewer walkthrough in `TESTING.md`) and the scratch-deployment integration proof are what remain before real plugins are approved.
 
 ## The three-repository model
 
@@ -37,7 +37,7 @@ core-v0
 - explicit permission strings resolved from the live `core_role_permissions` grant map
 - security-definer RPCs and RLS as the enforcement layer; UI is never the boundary
 - build-time inclusion only — no runtime loading, no marketplace, no install UI
-- plugins import Core code **only** through the `core/plugins/api` barrel (*Core ships in Phase 10*)
+- plugins import Core code **only** through the `core/plugins/api` barrel
 
 Breaking any rule in this document is a new compatibility level (`core-v1`), announced in this file with migration notes — never a silent change. Additive changes (new API exports, new optional manifest fields) stay within `core-v0`.
 
@@ -85,7 +85,7 @@ tests/ or scripts/        validation commands runnable in the plugin repo
 
 ## The manifest (the contract's load-bearing artifact)
 
-Core exports this type from `core/plugins/manifest.ts` (*Core ships in Phase 10*; the template mirrors it until then):
+Core exports this type from `core/plugins/manifest.ts` (the template repo mirrors it in its core-stub so plugin repos typecheck standalone):
 
 ```ts
 export type WinningOSPluginManifest = {
@@ -142,7 +142,8 @@ export type WinningOSPluginManifest = {
 Rules:
 
 - The manifest is the **single source of declarations**. Validators compare it against migrations and permission constants; drift fails review.
-- `routes` keys are plugin-relative (`""`, `"/new"`, `"/items/[id]"`). Core mounts them under `/p/{plugin_id}` — collisions with Core routes or other plugins are structurally impossible.
+- `routes` keys are plugin-relative (`""`, `"/new"`, `"/items/[id]"`). Core mounts them under `/p/{plugin_id}` — collisions with Core routes or other plugins are structurally impossible. Exact keys win over `[param]` keys; route components receive no props (client components read dynamic segments from `useParams().segments`).
+- Declare `tables`, `publicTables`, permission keys, and `dependsOn` pluginIds as **string literals** (not computed values) — the validators read them statically, and a value they cannot read fails the build.
 - Everything the plugin renders receives Core context via the Plugin API, not via props smuggled around the shell.
 
 ## Installation (exactly one blessed path)
@@ -150,7 +151,7 @@ Rules:
 Installation happens **in a deployment repo only** — a clone of Core owned by the deploying company (or a scratch clone for integration testing). Never into `WinningMethod/winningOS` or `WinningMethod/WinningTemplate` themselves.
 
 1. Bring the source: copy or `git subtree add` the plugin repo's installable source into the deployment's `plugins/{plugin_id}/`. (Submodules are discouraged: they complicate clones, CI, and review.)
-2. Register it: add one line to `config/plugins.ts` (*Core ships this file, default empty, in Phase 10*):
+2. Register it: add one line to `config/plugins.ts` (Core ships this file, default empty):
 
 ```ts
 import examplePlugin from "@/plugins/example_plugin/manifest"
@@ -167,7 +168,7 @@ Core must never auto-fetch plugin repos, install from the UI, or execute plugin 
 
 Plugin repos number migrations `001_…`, `002_…`. The **install date** provides the timestamp when they are copied into Core. This keeps ordering correct relative to each deployment's own history (two deployments can install the same plugin years apart), and prevents cross-repo timestamp collisions. Installed migration files are never edited afterward; plugin upgrades append new ordinals.
 
-## The Plugin API surface (*Core ships in Phase 10*)
+## The Plugin API surface
 
 Plugins import Core **only** from `@/core/plugins/api` — a reviewed barrel that re-exports, at minimum:
 
@@ -180,7 +181,9 @@ UI kit                       components/ui/* (Button, Card, Input, ...) + theme 
 PageContainer / PageHeader   so plugin pages match the shell
 ```
 
-Everything else under `core/` is internal and may change without notice inside `core-v0`. This is the single most important future-compatibility rule: Core refactors freely behind the barrel; plugins that import around the barrel are rejected in review.
+Everything else under `core/` is internal and may change without notice inside `core-v0`. This is the single most important future-compatibility rule: Core refactors freely behind the barrel; plugins that import around the barrel are rejected in review (and fail `npm run plugins:validate`).
+
+The barrel is **server-first**: it declares `server-only`, so plugin route components (server), server data modules, and server actions import it freely, but a `"use client"` module cannot. Client components in plugins receive data and UI from their server parents. If a plugin genuinely needs client-safe Core exports, that is a compatibility-level addition (a separate client barrel), not a workaround import.
 
 ## Permissions
 
@@ -193,8 +196,8 @@ Format and storage:
 Enforcement:
 
 - **Database:** plugin RLS policies and RPCs call `private.core_current_member_has_permission(workspace_id, 'plugin.{id}.{action}')` — this reads the live grant map and already works for plugin keys. Owner always holds every permission by construction.
-- **App:** the Phase 10 helpers expose the same check for UI gating. UI visibility is never the boundary.
-- Owners edit plugin grants in Settings → Roles exactly like Core's editable grants (the grid grows a "Plugins" group in Phase 10). Plugin permissions can never enter the structural locked set (`workspace.delete`, `members.remove`, `roles.manage`), and plugins cannot grant themselves Core permissions — their migrations may insert **only** `plugin.{their_id}.*` keys.
+- **App:** `roleHasPluginPermission` from the barrel exposes the same check for UI gating. UI visibility is never the boundary.
+- Owners edit plugin grants in Settings → Roles exactly like Core's editable grants (the grid grows a "Plugins" group when plugins are installed). Plugin permissions can never enter the structural locked set (`workspace.delete`, `members.remove`, `roles.manage`), and plugins cannot grant themselves Core permissions — their migrations may insert **only** `plugin.{their_id}.*` keys.
 
 ## Database rules
 
@@ -220,7 +223,7 @@ Plugins should not recreate each other's data. A Client Changelog plugin that tr
 **Ordering and lifecycle (this is where undeclared coupling bites):**
 
 - Dependencies are one-directional; cycles are forbidden.
-- Install order: dependencies first. `config/plugins.ts` is an ordered array; the Phase 10 validator checks that every `dependsOn` target appears earlier in it.
+- Install order: dependencies first. `config/plugins.ts` is an ordered array; `npm run plugins:validate` checks that every `dependsOn` target appears earlier in it.
 - Disable order: dependents first. You cannot remove the CRM's registry line while Client Changelog is still registered — the validator fails the build, which is exactly the guardrail you want.
 - Purge order: dependents' `db/uninstall.sql` run before the dependency's. The dependent chooses its FK behavior deliberately and documents it in `IMPLEMENTATION.md`: `on delete cascade` (changelog entries die with their client) or `on delete restrict` (the CRM cannot delete a client that has history — a product decision, stated out loud).
 - Versioning: the dependent pins `minVersion`; the owner treats `publicTables` schema as semver-stable — breaking changes to a public table are a major version, called out in its `IMPLEMENTATION.md`.
@@ -229,7 +232,7 @@ Plugins should not recreate each other's data. A Client Changelog plugin that tr
 
 ## Navigation and settings
 
-- Core owns the shell and final rendering. Plugin nav entries come from manifests, are permission-gated per entry, render in a "Plugins" sidebar group below Core items (*Core ships in Phase 10*), and disappear automatically when the registry entry is removed.
+- Core owns the shell and final rendering. Plugin nav entries come from manifests, are permission-gated per entry, render in a "Plugins" sidebar group below Core items, and disappear automatically when the registry entry is removed.
 - Plugins never: replace the shell; replace or reorder Home/Members/Settings; inject workspace switchers; add auth controls; render outside their `/p/{plugin_id}` subtree except via declared settings panels.
 - Plugin settings live under `Settings → Plugins → {name}` via the manifest's `settings` entry — never as new top-level Core settings tabs, and never provider/API-key fields inside Core's Workspace/Branding sections.
 
@@ -268,7 +271,7 @@ Future-pacing rule: because routes, nav, settings, and permissions all derive fr
 
 1. Core: pass the Phase 9 live gate (`TESTING.md` walkthrough).
 2. Template: build the `Example_Plugin` template repo to this spec (see `PLUGIN_TEMPLATE_HANDOVER.md`) — it can start now.
-3. Core: ship Phase 10 (plugin host: manifest type, registry, host route, nav/settings integration, API barrel, plugin validators).
+3. Core: ship Phase 10 (plugin host: manifest type, registry, host route, nav/settings integration, API barrel, plugin validators). — **done**
 4. Create a **scratch deployment repo** (third repo: clone of Core + the template's plugin source) and run the acceptance checklist there as the contract's proof; fix whichever framework repo is wrong. Neither `winningOS` nor `WinningTemplate` receives the install.
 5. Only then: real plugins (Agent, Meeting Notes remain the validation examples — Core still pre-builds none of their internals).
 

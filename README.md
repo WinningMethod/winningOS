@@ -8,7 +8,7 @@ It is not intended to be a generic SaaS product. Each deployment is meant to be 
 
 WinningOS Core v0.1 is code-complete; the plugin boundary is now the active work.
 
-The app is fully Supabase-backed: email + password auth (sign-up, invites, recovery), profile and first-owner bootstrap, member lifecycle management, an owner-editable live permission grant map, persisted workspace and branding settings (theme colors and logo restyle the whole shell), and an append-only audit trail — all enforced by security-definer RPCs and RLS. `COMPATIBILITY.md` is the buildable `core-v0` plugin contract, `PLUGIN_TEMPLATE_HANDOVER.md` briefs the agent building the `Example_Plugin` template repo, and Phase 10 of `IMPLEMENTATION_PLAN.md` defines the plugin-host slice Core ships next. `TESTING.md` is the live readiness walkthrough.
+The app is fully Supabase-backed: email + password auth (sign-up, invites, recovery), profile and first-owner bootstrap, member lifecycle management, an owner-editable live permission grant map, persisted workspace and branding settings (theme colors and logo restyle the whole shell), and an append-only audit trail — all enforced by security-definer RPCs and RLS. `COMPATIBILITY.md` is the buildable `core-v0` plugin contract, `PLUGIN_TEMPLATE_HANDOVER.md` briefs the agent building the `Example_Plugin` template repo, and the Phase 10 plugin host (manifest type, `config/plugins.ts` registry, `/p/{plugin_id}` host route, `@/core/plugins/api` barrel, `plugins:validate`) is shipped — the registry stays empty here; plugins install only into deployment repos (three-repository model). `TESTING.md` is the live readiness walkthrough.
 
 ## Core principles
 

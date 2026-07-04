@@ -15,15 +15,15 @@ Available now (usable while authoring the template):
 - DB-side permission checking that already works for plugin keys: `private.core_current_member_has_permission(workspace_id, 'plugin.example_plugin.view')` reads the live grant map with no catalog filter. Your RLS policies and RPCs can use it verbatim.
 - The four-role model, seeded permission idioms, audit table, and every SQL convention shown below.
 
-Lands with Core Phase 10 (the plugin host — being built in the Core repo in parallel; do not block on it, but design against it):
+Shipped with Core Phase 10 (the plugin host):
 
-- `core/plugins/manifest.ts` (`WinningOSPluginManifest` — mirror the interface from COMPATIBILITY.md verbatim in the template until you can import it),
+- `core/plugins/manifest.ts` (`WinningOSPluginManifest` — the template mirrors this interface in its core-stub),
 - `config/plugins.ts` registry + the `/p/[plugin]` host route + nav/settings integration,
-- `@/core/plugins/api` barrel (the only sanctioned Core import path),
+- `@/core/plugins/api` barrel (the only sanctioned Core import path; server-first — client components receive data/UI from their server parents),
 - app-side plugin permission helpers and the Roles-grid "Plugins" group,
-- Core validators that check installed plugins against manifests.
+- `npm run plugins:validate` — checks installed plugins against their manifests (barrel-only imports, key/table namespacing, RLS in creating migrations, dependsOn registry order, publicTables FK targets).
 
-Until Phase 10 merges, the template's integration test is documentation-level (install steps written and reviewed); after it merges, do one real install into a **scratch deployment repo** — a third repo created by cloning Core; never into `WinningMethod/winningOS` or the template repo themselves — and fix whichever framework side is wrong. That integration run is the contract's proof (three-repository model in `COMPATIBILITY.md`).
+With Phase 10 shipped, the remaining proof is one real install into a **scratch deployment repo** — a third repo created by cloning Core; never into `WinningMethod/winningOS` or the template repo themselves — fixing whichever framework side is wrong. That integration run is the contract's proof (three-repository model in `COMPATIBILITY.md`).
 
 ## Template repo requirements
 
@@ -94,7 +94,7 @@ create policy "Members with create can insert their own example notes"
 -- update/delete: author-or-manage pattern, same helpers.
 ```
 
-Note: `private.core_current_member_has_permission` and `private.core_is_active_member` are already EXECUTE-granted to `authenticated` (Core learned this the hard way — RLS policy expressions run as the querying role). `private.core_current_profile_id` is **not** currently granted to authenticated; if your policies need it (the insert policy above does), your `IMPLEMENTATION.md` must list that grant as a required Core-side line item for Phase 10 — do not grant it yourself in a plugin migration. Alternatively gate inserts on permission only and set `author_profile_id` server-side from `ensureCoreSession`.
+Note: `private.core_current_member_has_permission`, `private.core_is_active_member`, and `private.core_current_profile_id` are all EXECUTE-granted to `authenticated` (Core learned this the hard way — RLS policy expressions run as the querying role; the profile-id grant shipped with Phase 10 in migration `20260704210000` exactly because the insert policy above needs it). Use these three helpers verbatim; never grant additional `private.*` helpers from a plugin migration — that is a Core-side decision enforced by Core's `db:validate` allowlist.
 
 ### Uninstall script (`db/uninstall.sql`, operator-run only)
 

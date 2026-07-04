@@ -1,6 +1,7 @@
 import "server-only"
 
 import { ensureCoreSession } from "@/core/auth/bootstrap"
+import { getPluginPermissionNamespaces } from "@/core/plugins/permissions"
 import { createClient } from "@/core/supabase/server"
 import {
   coreRoles,
@@ -98,6 +99,9 @@ async function getActiveMemberCounts(): Promise<{ counts: Record<CoreRoleKey, nu
 export async function getCoreRolesOverview(): Promise<CoreRolesOverview> {
   const { counts, available } = await getActiveMemberCounts()
   const { grants: grantMap, live: grantsLive } = await getRoleGrantMap()
+  // Installed plugins contribute a "Plugins" group of editable grants (empty
+  // registry — the framework-repo state — contributes nothing and no query).
+  const pluginOverview = await getPluginPermissionNamespaces()
 
   // Only owners (who hold the owner-only roles.manage grant) may edit the grid.
   const session = await ensureCoreSession()
@@ -140,5 +144,11 @@ export async function getCoreRolesOverview(): Promise<CoreRolesOverview> {
     })),
   }))
 
-  return { roles, namespaces, countsAvailable: available, canManageRoles, grantsLive }
+  return {
+    roles,
+    namespaces: [...namespaces, ...pluginOverview.namespaces],
+    countsAvailable: available,
+    canManageRoles,
+    grantsLive: grantsLive && pluginOverview.live,
+  }
 }

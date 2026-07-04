@@ -3,16 +3,19 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { BrandMark } from "@/components/app/brand-mark"
-import { navItems } from "@/lib/navigation"
+import { navItems, type PluginNavItem } from "@/lib/navigation"
+import { resolvePluginNavIcon } from "@/lib/plugin-icons"
 import { cn } from "@/lib/utils"
 
 export function SidebarContent({
   brandLogoUrl = null,
   brandName = null,
+  pluginNavItems = [],
   onNavigate,
 }: {
   brandLogoUrl?: string | null
   brandName?: string | null
+  pluginNavItems?: PluginNavItem[]
   onNavigate?: () => void
 }) {
   const pathname = usePathname()
@@ -76,6 +79,40 @@ export function SidebarContent({
             )
           })}
         </ul>
+
+        {pluginNavItems.length > 0 && (
+          <>
+            <p className="px-3 pb-2 pt-5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Plugins
+            </p>
+            <ul className="flex flex-col gap-0.5">
+              {pluginNavItems.map((item) => {
+                const active = pathname === item.href || pathname.startsWith(item.href + "/")
+                const Icon = resolvePluginNavIcon(item.iconName)
+
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      onClick={onNavigate}
+                      className={cn(
+                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
+                        active
+                          ? "bg-primary/10 font-medium text-primary"
+                          : "text-sidebar-foreground hover:bg-accent hover:text-accent-foreground",
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        )}
       </nav>
 
       <div className="border-t border-sidebar-border p-3">

@@ -155,11 +155,14 @@ for (const helperSignature of [
 // authenticated role must hold USAGE on the private schema and EXECUTE on
 // exactly the helpers that policies reference (issues #46/#47). Everything
 // else in the private schema stays revoked, and anon/public get nothing.
+// core_current_profile_id joined the list with the Phase 10 plugin host:
+// the core-v0 plugin RLS templates gate inserts on it (20260704210000).
 const POLICY_HELPER_SIGNATURES = [
   "private.core_is_active_member(uuid)",
   "private.core_is_active_member_of_any_workspace()",
   "private.core_profiles_share_active_workspace(uuid)",
   "private.core_current_member_has_permission(uuid, text)",
+  "private.core_current_profile_id()",
 ]
 
 assertIncludes(

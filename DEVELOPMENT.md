@@ -224,7 +224,7 @@ See `ROUTE_MAP.md` for the auth/data/permission boundary of each route.
 
 ## Supabase migration safety notes
 
-The RLS helper functions live in the `private` schema, which is not in PostgREST's exposed schemas — that is what keeps them off the public RPC surface. Postgres evaluates RLS policy expressions **as the querying role**, so `authenticated` must hold `USAGE` on the private schema and `EXECUTE` on exactly the helpers that policies reference (see `20260703210000_fix_rls_helper_grants.sql`, which fixed issues #46/#47 where settings reads failed with `permission denied for schema private`). The rules going forward: never grant anything in `private` to `anon` or `public`; grant `EXECUTE` to `authenticated` only for helpers an RLS policy actually references; helpers called only from inside security-definer functions stay revoked. `npm run db:validate` enforces this allowlist.
+The RLS helper functions live in the `private` schema, which is not in PostgREST's exposed schemas — that is what keeps them off the public RPC surface. Postgres evaluates RLS policy expressions **as the querying role**, so `authenticated` must hold `USAGE` on the private schema and `EXECUTE` on exactly the helpers that policies reference (see `20260703210000_fix_rls_helper_grants.sql`, which fixed issues #46/#47 where settings reads failed with `permission denied for schema private`, and `20260704210000_grant_plugin_rls_profile_helper.sql`, which added `core_current_profile_id` for the plugin RLS templates). The rules going forward: never grant anything in `private` to `anon` or `public`; grant `EXECUTE` to `authenticated` only for helpers an RLS policy actually references; helpers called only from inside security-definer functions stay revoked. `npm run db:validate` enforces this allowlist.
 
 The seed migration must revive/update the deterministic default workspace row by clearing `deleted_at` rather than silently no-oping or leaving a soft-deleted slug invisible to RLS. Role and branding seeds should resolve the active default workspace by slug and preserve any existing `logo_url` during branding reset behavior. Seed comments should document that deterministic IDs are guaranteed on clean databases while non-fresh development/restored databases preserve surviving primary keys. Future seed changes should remain idempotent and should not assume a hidden workspace-switching feature.
 
@@ -238,9 +238,10 @@ npm run auth:validate
 npm run members:validate
 npm run permissions:validate
 npm run settings:validate
+npm run plugins:validate
 ```
 
-These check that the expected Core migrations, tables, seed records, RLS enables, helper functions, and app wiring are present. They are not a replacement for applying migrations to a real Supabase project.
+These check that the expected Core migrations, tables, seed records, RLS enables, helper functions, and app wiring are present (`plugins:validate` additionally checks any installed plugins against the `core-v0` contract in deployment repos). They are not a replacement for applying migrations to a real Supabase project.
 
 ## Apply migrations to the remote Supabase project
 

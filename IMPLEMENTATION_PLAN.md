@@ -182,38 +182,53 @@ Exit criteria for starting plugin work:
 - an owner can: sign in with a password, invite a member, edit a role grant, rename the workspace, update branding, and see each action in the audit trail (`TESTING.md` is the script)
 - `Example_Plugin` explicitly approved as the next validation step
 
-### Phase 10: Plugin host primitives — NEXT Core slice (parallel to the template repo)
+### Phase 10: Plugin host primitives — SHIPPED (integration proof pending)
 
 Goal: give Core the minimal machinery that makes the `core-v0` contract real, so the
 `Example_Plugin` template (built in its own repo from `PLUGIN_TEMPLATE_HANDOVER.md`)
 can be installed as the contract's proof.
 
-Groundwork already merged: migration `20260704200000` widened the permission/audit
+Groundwork merged earlier: migration `20260704200000` widened the permission/audit
 key constraints so `plugin.{plugin_id}.{action}` keys and `plugin.{id}.{event}`
 audit actions are storable, and DB-side checks (`core_current_member_has_permission`)
 already resolve plugin keys from the live grant map.
 
-Tasks (each one is specified in `COMPATIBILITY.md`):
+Shipped (each piece is specified in `COMPATIBILITY.md`):
 
-1. `core/plugins/manifest.ts` — the `WinningOSPluginManifest` type.
+1. `core/plugins/manifest.ts` — the `WinningOSPluginManifest` type + the
+   `plugin.{id}.{action}` key guard (mirrors the `20260704200000` constraint).
 2. `config/plugins.ts` — the empty-by-default install registry; the ONLY file a
-   deployment edits to install a plugin.
-3. `/p/[plugin]` host route — mounts manifest routes; 404s for unregistered ids.
-4. Navigation: render a permission-gated "Plugins" sidebar group from manifests.
-5. Settings → Plugins: list installed plugins; mount manifest settings panels.
-6. `core/plugins/api.ts` — the sanctioned import barrel (session, permission
-   helpers incl. plugin keys, Supabase clients, audit logger, UI kit).
-7. App-side plugin permission helper (live grant map without the Core-catalog
-   filter) + Roles grid grows a "Plugins" group of editable grants.
-8. Grant `private.core_current_profile_id()` EXECUTE to authenticated if plugin
-   RLS templates need it (decide with the template's first real policy set).
-9. `plugins:validate` — Core-side validator: registered manifests match declared
-   tables/permissions; plugin migrations touch only the allowed surface; every
-   `dependsOn` target is registered earlier in `config/plugins.ts` (install
-   order) and cross-plugin FKs hit declared `publicTables` only.
+   deployment edits to install a plugin. Stays `[]` in the framework repos.
+3. `/p/[plugin]/[[...segments]]` host route — resolves manifest route tables
+   (exact keys win over `[param]` keys); 404s for unregistered ids and
+   unmatched paths; inherits the (app) layout's auth/membership guard.
+4. Navigation: `core/plugins/navigation.ts` computes the permission-gated
+   "Plugins" sidebar group server-side from the live grant map; the client
+   sidebar receives serializable items and resolves icon names via the curated
+   `lib/plugin-icons.ts` map (unknown names fall back to Puzzle).
+5. Settings → Plugins tab: lists installed plugins; mounts manifest settings
+   panels (permission-gated, rendered server-side and passed as a ReactNode).
+6. `core/plugins/api.ts` — the sanctioned import barrel: session, plugin
+   permission helper, Supabase clients, audit logger, UI kit. Server-first
+   (`server-only`) and type-compatible with the template's core-stub (the
+   Button wrapper accepts the stub's `"default"` size as an alias for `"md"`).
+7. `roleHasPluginPermission` + `getPluginPermissionNamespaces` (live grant map
+   without the Core-catalog filter; owner always allowed, errors deny); the
+   Roles grid grows a "Plugins" group of editable grants and
+   `setRolePermission` accepts registered plugin keys (the RPC re-enforces).
+8. Migration `20260704210000` grants `private.core_current_profile_id()`
+   EXECUTE to authenticated — the template's insert policy
+   (`author_profile_id = private.core_current_profile_id()`) needs it;
+   `db:validate`'s policy-helper allowlist grew accordingly.
+9. `npm run plugins:validate` — host invariants (barrel surface parity with the
+   core-stub, registry/host-route/nav/settings wiring) plus per-installed-plugin
+   contract checks that activate in deployment repos: barrel-only imports,
+   permission/table namespace ownership, RLS in creating migrations, no `core_`
+   DDL, no slug resolution, `dependsOn` targets registered earlier, cross-plugin
+   FKs limited to declared `publicTables`.
 
-Validation: create a scratch deployment repo (a third repo cloned from Core —
-plugins never install into this repo or the template repo; see the
+Remaining validation: create a scratch deployment repo (a third repo cloned from
+Core — plugins never install into this repo or the template repo; see the
 three-repository model in `COMPATIBILITY.md`), install the template plugin
 there, run the acceptance checklist, verify disable-level removal, then
 approve real plugins.
