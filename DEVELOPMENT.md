@@ -2,26 +2,9 @@
 
 ## Purpose
 
-This guide explains how to run WinningOS Core locally during the Supabase environment-contract phase.
+This guide covers developing WinningOS Core locally: environment variables, Supabase client boundaries, validators, and migration workflow.
 
-This is not the full backend implementation guide yet. This PR adds the environment contract and Supabase client helper skeletons only.
-
-Current scope:
-
-- document required environment variables
-- document public vs server-only Supabase boundaries
-- add reusable Supabase client helper skeletons
-- keep the current UI mock-data based
-
-Out of scope for this phase:
-
-- schema migrations
-- Supabase Auth UI replacement
-- profile bootstrap
-- RLS policies
-- real database reads/writes
-- plugin code
-- agent/chat functionality
+**Taking an instance live** (Supabase project creation, hosted auth setup, Vercel) is a separate, complete runbook: `DEPLOYMENT.md`. A third-party developer goes zero-to-live from that file alone; this one is for working on the code.
 
 ## Prerequisites
 
@@ -261,15 +244,9 @@ npm run db:verify:remote
 
 The remote verification script reads `.env.local`, does not print secret values, and fails if the JWKS URL origin does not match `SUPABASE_URL`.
 
-## Next implementation steps
+## Going live
 
-The Core v0.1 implementation slices (auth bootstrap, member management, live permissions, persisted settings, audit events) are complete. What remains before plugin work:
-
-1. apply pending migrations to the live Supabase project (`npx supabase db push`)
-2. push the hosted Auth config (password policy + email templates)
-3. run the Phase 9 readiness checklist in `IMPLEMENTATION_PLAN.md`
-
-Do not start plugin work until the Phase 9 gate in `IMPLEMENTATION_PLAN.md` passes.
+Applying migrations to a live project, pushing the hosted Auth config, and deploying to Vercel are covered end-to-end in `DEPLOYMENT.md`. The live readiness walkthrough is `TESTING.md` (Phase 9 gate in `IMPLEMENTATION_PLAN.md`).
 
 ## Supabase Auth local URLs
 
