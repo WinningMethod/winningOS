@@ -185,4 +185,18 @@ assert(workspaceSectionSlug.includes("nothing in Core resolves by it"), "workspa
 const remoteVerify = read("scripts/verify-supabase-remote.mjs")
 assert(!remoteVerify.includes("slug = 'winningos'"), "remote verification does not depend on the editable slug value")
 
+// ---------------------------------------------------------------------------
+// Branding color picker (issue #54)
+// ---------------------------------------------------------------------------
+const colorField = read("components/app/settings/color-field.tsx")
+assert(colorField.startsWith('"use client"'), "color field is an explicit client component")
+assert(colorField.includes('type="color"'), "color field renders a native color picker")
+assert(colorField.includes("useState") && colorField.includes("useEffect"), "picker and hex text field stay in sync, including after save round-trips")
+assert(colorField.includes("Reset to default"), "color field can clear back to the default token (pickers cannot represent unset)")
+assert(colorField.includes('pattern="#[0-9a-fA-F]{6}"'), "hex text field keeps client-side format validation")
+
+const brandingSectionPicker = read("components/app/settings/branding-section.tsx")
+assert(brandingSectionPicker.includes('from "@/components/app/settings/color-field"'), "branding section uses the shared picker color field")
+assert(!brandingSectionPicker.includes("function ColorField"), "branding section no longer defines a local picker-less color field")
+
 console.log("Core settings + audit validation passed.")
