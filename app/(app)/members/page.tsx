@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ConfirmForm } from "@/components/app/confirm-form"
 import { EmptyState } from "@/components/app/states"
 import { cn } from "@/lib/utils"
 import { inviteMember, activateMember, disableMember, removeMember } from "@/core/members/actions"
@@ -24,6 +25,13 @@ const assignableRoles: { key: Exclude<CoreMemberRoleKey, "owner">; label: string
   { key: "viewer", label: "Viewer" },
 ]
 
+// The admin tier is owner territory (#58/#60): non-owners only see the
+// member/viewer options. The invite action and core_set_member_role enforce
+// the same rule server-side.
+function roleOptions(canAssignAdmins: boolean) {
+  return canAssignAdmins ? assignableRoles : assignableRoles.filter((role) => role.key !== "admin")
+}
+
 const statusMeta: Record<CoreMemberStatus, { label: string; tone: "success" | "warning" | "muted" }> = {
   active: { label: "Active", tone: "success" },
   invited: { label: "Invited", tone: "warning" },
@@ -39,6 +47,18 @@ const STATUS_NOTICE_META: Record<string, { message: string; isFailure: boolean }
     isFailure: false,
   },
   invited: { message: "Member invite sent. They will appear as active after signing in.", isFailure: false },
+  reinvited: {
+    message: "Re-invite sent. They'll get an email to set their password and rejoin the workspace.",
+    isFailure: false,
+  },
+  "reinvite-email-failed": {
+    message: "The member was staged, but the re-invite email could not be sent right now. They can also use \u201CForgot password\u201D on the sign-in page to get a link.",
+    isFailure: true,
+  },
+  "invite-admin-owner-only": {
+    message: "Only the owner can invite someone as an Admin. Choose Member or Viewer, or ask the owner.",
+    isFailure: true,
+  },
   "invite-rate-limited": {
     message: "Invite email rate limit reached. Invite email was not sent and the user was not added. Wait a minute, then try again.",
     isFailure: true,
@@ -79,8 +99,17 @@ function filterMembers(members: CoreMember[], filter: CoreMemberStatus | "all", 
   })
 }
 
-function UpdateRoleForm({ member, canAssignRoles }: { member: CoreMember; canAssignRoles: boolean }) {
-  if (!canAssignRoles || member.roleKey === "owner") {
+function UpdateRoleForm({
+  member,
+  canAssignRoles,
+  canAssignAdmins,
+}: {
+  member: CoreMember
+  canAssignRoles: boolean
+  canAssignAdmins: boolean
+}) {
+  // Owners are untouchable; admins are only manageable by the owner (#58).
+  if (!canAssignRoles || member.roleKey === "owner" || (member.roleKey === "admin" && !canAssignAdmins)) {
     return null
   }
 
@@ -94,7 +123,7 @@ function UpdateRoleForm({ member, canAssignRoles }: { member: CoreMember; canAss
         defaultValue={member.roleKey ?? "member"}
         className="h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        {assignableRoles.map((role) => (
+        {roleOptions(canAssignAdmins).map((role) => (
           <option key={role.key} value={role.key}>{role.label}</option>
         ))}
       </select>
@@ -112,25 +141,27 @@ function MemberActionForm({
   icon: Icon,
   label,
   ariaLabel,
+  confirmMessage,
 }: {
   member: CoreMember
   action: (formData: FormData) => Promise<never>
   icon: typeof UserMinus
   label: string
   ariaLabel: string
+  confirmMessage: string
 }) {
   if (!member.membershipId) {
     return null
   }
 
   return (
-    <form action={action}>
+    <ConfirmForm action={action} confirmMessage={confirmMessage}>
       <input type="hidden" name="membershipId" value={member.membershipId} />
       <Button size="sm" type="submit" variant="destructive" aria-label={ariaLabel}>
         <Icon className="h-3.5 w-3.5" />
         {label}
       </Button>
-    </form>
+    </ConfirmForm>
   )
 }
 
@@ -146,6 +177,7 @@ function DisableMemberForm({ member, canManageMembers }: { member: CoreMember; c
       icon={UserMinus}
       label="Disable"
       ariaLabel={`Disable ${member.displayName}`}
+      confirmMessage={`Are you sure you want to disable ${member.displayName}? They will lose workspace access until re-activated.`}
     />
   )
 }
@@ -164,6 +196,7 @@ function RemoveMemberForm({ member, canRemoveMembers }: { member: CoreMember; ca
       icon={UserX}
       label={label}
       ariaLabel={`${label} for ${member.displayName}`}
+      confirmMessage={`Are you sure you want to remove ${member.displayName} from this workspace? They will disappear from this list and need a new invite to return.`}
     />
   )
 }
@@ -179,7 +212,7 @@ export default async function MembersPage({
   const filter = filters.some((item) => item.key === requestedFilter)
     ? requestedFilter as CoreMemberStatus | "all"
     : "all"
-  const { members, canManageMembers, canAssignRoles, canInviteMembers, canRemoveMembers } = await getCoreMembers()
+  const { members, canManageMembers, canAssignRoles, canAssignAdmins, canInviteMembers, canRemoveMembers } = await getCoreMembers()
   const visible = filterMembers(members, filter, query)
   const statusNotice = STATUS_NOTICE_META[params?.status ?? ""] ?? null
   const statusMessage = statusNotice?.message ?? null
@@ -191,7 +224,7 @@ export default async function MembersPage({
         title="Members"
         description="Profiles that belong to this workspace. Owners and admins can activate pending profiles and manage basic roles."
         actions={
-          <Button form="core-invite-member-form" type="submit" disabled={!canInviteMembers} title={canInviteMembers ? undefined : "Owner only"}>
+          <Button form="core-invite-member-form" type="submit" disabled={!canInviteMembers} title={canInviteMembers ? undefined : "Requires the members.invite permission"}>
             <UserPlus className="h-4 w-4" />
             Invite member
           </Button>
@@ -245,7 +278,7 @@ export default async function MembersPage({
               disabled={!canInviteMembers}
               className="mt-1 h-9 w-full rounded-md border border-border bg-background px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
-              {assignableRoles.map((role) => (
+              {roleOptions(canAssignAdmins).map((role) => (
                 <option key={role.key} value={role.key}>{role.label}</option>
               ))}
             </select>
@@ -256,7 +289,7 @@ export default async function MembersPage({
           </Button>
         </form>
         <p className="mt-3 text-xs text-muted-foreground">
-          Invite member sends a Supabase invite email, then stages the selected Core role only after the email is accepted by Supabase.
+          Invites send a branded email that lands on the set-password page. Re-inviting a previously removed member sends a fresh set-password email. Only the owner can invite Admins.
         </p>
       </Card>
 
@@ -343,7 +376,7 @@ export default async function MembersPage({
                       <td className="px-4 py-3">
                         {canManageMembers || canAssignRoles || canRemoveMembers ? (
                           <div className="flex flex-wrap gap-2">
-                            <UpdateRoleForm member={member} canAssignRoles={canAssignRoles} />
+                            <UpdateRoleForm member={member} canAssignRoles={canAssignRoles} canAssignAdmins={canAssignAdmins} />
                             <DisableMemberForm member={member} canManageMembers={canManageMembers} />
                             <RemoveMemberForm member={member} canRemoveMembers={canRemoveMembers} />
                             {member.roleKey === "owner" ? <span className="text-xs text-muted-foreground">Owner protected</span> : null}

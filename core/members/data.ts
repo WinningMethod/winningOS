@@ -59,13 +59,14 @@ export async function getCoreMembers(): Promise<{
   members: CoreMember[]
   canManageMembers: boolean
   canAssignRoles: boolean
+  canAssignAdmins: boolean
   canInviteMembers: boolean
   canRemoveMembers: boolean
 }> {
   const session = await ensureCoreSession()
 
   if (!session.hasActiveMembership) {
-    return { members: [], canManageMembers: false, canAssignRoles: false, canInviteMembers: false, canRemoveMembers: false }
+    return { members: [], canManageMembers: false, canAssignRoles: false, canAssignAdmins: false, canInviteMembers: false, canRemoveMembers: false }
   }
 
   const supabase = await createClient()
@@ -99,6 +100,11 @@ export async function getCoreMembers(): Promise<{
     members,
     canManageMembers: roleGrants.has("members.disable"),
     canAssignRoles: roleGrants.has("roles.assign"),
+    // The admin tier itself is owner territory (#58/#60): only owners assign
+    // the admin role, change existing admins, or invite at the admin tier.
+    // This is a structural role rule, not an editable grant; the RPC and the
+    // invite action re-enforce it server-side.
+    canAssignAdmins: roleKey === "owner",
     canInviteMembers: roleGrants.has("members.invite"),
     canRemoveMembers: roleGrants.has("members.remove"),
   }

@@ -36,8 +36,11 @@ const PERMISSION_KEYS = [
 ]
 
 // Permissions that must be owner-only — these are the boundaries the Members bug
-// (issue #40) and the owner-only hardening depend on.
-const OWNER_ONLY_KEYS = ["workspace.delete", "members.invite", "members.remove", "roles.manage"]
+// (issue #40) and the owner-only hardening depend on. members.invite left this
+// set in issue #60: it is admin-tier by default (owner-editable), and the
+// admin-tier restriction (no admin invites by admins) is enforced in the
+// invite action plus core_set_member_role.
+const OWNER_ONLY_KEYS = ["workspace.delete", "members.remove", "roles.manage"]
 
 // ---------------------------------------------------------------------------
 // Code catalog: core/permissions/catalog.ts
@@ -66,6 +69,7 @@ for (const key of OWNER_ONLY_KEYS) {
 }
 
 assert(/key: "members\.disable",[^\n]*roles: ADMIN_UP/.test(catalog), "catalog grants members.disable to owner/admin")
+assert(/key: "members\.invite",[^\n]*roles: ADMIN_UP/.test(catalog), "catalog grants members.invite to owner/admin (issue #60)")
 
 // ---------------------------------------------------------------------------
 // Permission tables migration: 20260627194000_add_core_permissions.sql
@@ -92,6 +96,15 @@ for (const key of OWNER_ONLY_KEYS) {
 }
 
 assert(permissionsMigration.includes("('members.disable', array['owner', 'admin'])"), "migration grants members.disable to owner/admin")
+
+const tiersMigrationFile = migrationFiles.find((file) => file.endsWith("_admin_member_management_tiers.sql"))
+assert(Boolean(tiersMigrationFile), "adds admin member-management tiers migration (issues #58/#60)")
+const tiersMigration = read(join(migrationsDir, tiersMigrationFile))
+assert(tiersMigration.includes("values ('admin', 'members.invite')"), "tiers migration seeds the admin members.invite default grant")
+assert(tiersMigration.includes("('workspace.delete', 'members.remove', 'roles.manage')"), "tiers migration shrinks the locked set to the structural owner-only permissions")
+assert(tiersMigration.includes("only owners can assign the admin role"), "set_member_role blocks non-owners from assigning admin")
+assert(tiersMigration.includes("only owners can change an admin member"), "set_member_role blocks non-owners from changing an admin")
+assert(tiersMigration.includes("actor_role_key := private.core_current_member_role_key(target_workspace_id)"), "set_member_role resolves the acting role server-side")
 
 // ---------------------------------------------------------------------------
 // Bug fix migration: 20260627193000_fix_member_action_status_ambiguity.sql

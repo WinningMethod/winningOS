@@ -31,17 +31,18 @@ Accounts used below:
 
 ### 1.4 Settings → Branding
 - [ ] Set primary, secondary, and tertiary colors → save → **the app restyles**: buttons/focus take primary, subtle surfaces take secondary, hovers take tertiary. Works in light and dark mode. Sign out once to confirm the sign-in page is themed too.
-- [ ] Upload a PNG or SVG logo (≤ 2 MB) → save → logo renders in the section; a 3 MB or non-image file → distinct upload error, nothing saved.
+- [ ] Upload a PNG or SVG logo (≤ 2 MB) → save → logo renders in the section AND replaces the brand mark in the sidebar, top bar, and (after sign-out) the sign-in page (#56).
+- [ ] Pick a 3 MB or non-image file → inline message appears immediately and the file is cleared — no crash, nothing submitted (#57).
 - [ ] Bad color (`#12345`, `red`) → validation notice, nothing saved.
 - [ ] Each successful save adds one `branding.updated` audit entry; saving with no changes adds none.
 
 ### 1.5 Settings → Roles
-- [ ] Grid shows live grants; owner column and the four structural rows (workspace.delete, members.invite, members.remove, roles.manage) are locked.
+- [ ] Grid shows live grants; owner column and the three structural rows (workspace.delete, members.remove, roles.manage) are locked. members.invite is editable and granted to Admin by default (#60).
 - [ ] **Grant** something (e.g. `branding.manage` → Member) → "Role permission updated" (this was issue #49 — verify the *grant* direction specifically).
 - [ ] **Revoke** the same grant → also succeeds. Both changes appear in Recent activity.
 
 ### 1.6 Members
-- [ ] Invite ADMIN (role: Admin), MEMBER (role: Member), VIEWER (role: Viewer) → each shows as **Invited**; three `member.invited` audit entries.
+- [ ] Invite ADMIN (role: Admin — only the owner sees this option), MEMBER (role: Member), VIEWER (role: Viewer) → each shows as **Invited**; three `member.invited` audit entries.
 - [ ] Invite a nonsense address twice quickly → rate-limit message says the invite was NOT sent, list is not polluted.
 
 ---
@@ -52,14 +53,15 @@ Accounts used below:
 - [ ] Open the branded invite email → lands on **Set password** → choose password → lands in the app as an **active** Admin (owner sees status flip Invited → Active).
 
 ### 2.2 What an admin CAN do
-- [ ] Members: change MEMBER's role (e.g. Member → Viewer and back) — `roles.assign`.
+- [ ] Members: invite a new person as **Member or Viewer** (#60) — the Admin option is absent from the role dropdown.
+- [ ] Members: change MEMBER's role between Member ↔ Viewer (#58) — `roles.assign`.
 - [ ] Members: disable VIEWER, then re-activate via role assignment — `members.disable`.
 - [ ] Settings → Workspace: edit name/slug (workspace.manage) — succeeds.
 - [ ] Settings → Branding: edit colors (branding.manage) — succeeds.
 - [ ] Home: Recent activity card is visible (workspace.manage).
 
 ### 2.3 What an admin CANNOT do
-- [ ] Members: "Invite member" button disabled (owner-only); no Remove buttons.
+- [ ] Members: cannot invite or promote anyone **as Admin** (#58/#60) — no Admin option in either dropdown, and role controls are absent on admin rows; no Remove buttons (`members.remove` stays owner-only).
 - [ ] Settings → Roles: grid is **read-only** (no toggles).
 - [ ] Cannot change or disable the OWNER row, and cannot change their own role.
 
@@ -87,9 +89,9 @@ Accounts used below:
 
 ## 5. Lifecycle edge cases (as Owner)
 
-- [ ] Disable ADMIN → they get pending/blocked on next navigation; re-activate via role assignment → access returns.
-- [ ] Remove VIEWER's membership → they disappear from the Members list entirely (issue #43); their next sign-in lands on Pending access.
-- [ ] Re-invite the removed VIEWER → normal invite flow works; audit shows the sequence.
+- [ ] Disable ADMIN (confirm dialog appears — #61) → they get pending/blocked on next navigation; re-activate via role assignment → access returns.
+- [ ] Remove VIEWER's membership (confirm dialog appears — #61) → they disappear from the Members list entirely (issue #43); their next sign-in lands on Pending access.
+- [ ] Re-invite the removed VIEWER → they receive a **set-password email** (#62) that lands on Set password, and they re-enter as an active member; audit shows the sequence.
 - [ ] Sign up a brand-new 5th account via `/sign-up` (not invited) → confirmation email → lands on **Pending access**, sees no workspace data; owner sees them as Pending access and can activate with a role.
 - [ ] Sign-out works from the app shell menu and returns to sign-in.
 

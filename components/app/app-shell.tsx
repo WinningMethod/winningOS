@@ -13,19 +13,21 @@ import { cn } from "@/lib/utils"
 type AppShellProps = {
   children: React.ReactNode
   workspaceName: string
+  brandLogoUrl: string | null
+  brandName: string | null
   profileName: string
   profileEmail: string | null
   roleKey: string
 }
 
-export function AppShell({ children, workspaceName, profileName, profileEmail, roleKey }: AppShellProps) {
+export function AppShell({ children, workspaceName, brandLogoUrl, brandName, profileName, profileEmail, roleKey }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar lg:block">
         <div className="sticky top-0 h-screen">
-          <SidebarContent />
+          <SidebarContent brandLogoUrl={brandLogoUrl} brandName={brandName} />
         </div>
       </aside>
 
@@ -42,7 +44,7 @@ export function AppShell({ children, workspaceName, profileName, profileEmail, r
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <SidebarContent onNavigate={() => setMobileOpen(false)} />
+            <SidebarContent brandLogoUrl={brandLogoUrl} brandName={brandName} onNavigate={() => setMobileOpen(false)} />
           </div>
         </div>
       )}
@@ -60,9 +62,16 @@ export function AppShell({ children, workspaceName, profileName, profileEmail, r
           </Button>
 
           <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm">
-            <span className="flex h-6 w-6 items-center justify-center rounded bg-primary text-[11px] font-semibold text-primary-foreground">
-              {workspaceName.slice(0, 1)}
-            </span>
+            {brandLogoUrl ? (
+              <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded border border-border bg-background">
+                {/* eslint-disable-next-line @next/next/no-img-element -- remote logo host is workspace-configured, not build-time known */}
+                <img src={brandLogoUrl} alt="" aria-hidden="true" className="h-full w-full object-contain" />
+              </span>
+            ) : (
+              <span className="flex h-6 w-6 items-center justify-center rounded bg-primary text-[11px] font-semibold text-primary-foreground">
+                {workspaceName.slice(0, 1)}
+              </span>
+            )}
             <span className="hidden font-medium sm:inline">{workspaceName}</span>
           </div>
 

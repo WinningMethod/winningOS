@@ -85,7 +85,7 @@ export const permissionCatalog: PermissionNamespace[] = [
     description: "Membership lifecycle inside the workspace.",
     permissions: [
       { key: "members.view", name: "View members", description: "See the workspace member and pending-access list.", roles: MEMBER_UP },
-      { key: "members.invite", name: "Invite members", description: "Send invitations and add members to the workspace.", roles: OWNER_ONLY },
+      { key: "members.invite", name: "Invite members", description: "Send invitations at the Member/Viewer tier. Only owners can invite Admins.", roles: ADMIN_UP },
       { key: "members.disable", name: "Disable members", description: "Disable an active member's access without removing them.", roles: ADMIN_UP },
       { key: "members.remove", name: "Remove members", description: "Revoke invites and remove non-owner memberships.", roles: OWNER_ONLY },
     ],
@@ -130,12 +130,14 @@ export const permissionCatalog: PermissionNamespace[] = [
 ]
 
 // Structural owner-only permissions. These stay locked to owner and are never
-// editable from the Roles UI — they back the member-removal, invite, and
-// workspace-deletion boundaries (kept in lockstep with the OWNER_ONLY set in
+// editable from the Roles UI — they back the member-removal and workspace-
+// deletion boundaries (kept in lockstep with the OWNER_ONLY set in
 // scripts/validate-permissions.mjs and the core_set_role_permission guard).
+// members.invite left this list in issue #60: it is admin-tier by default and
+// owner-editable; the admin tier restriction (no admin invites) is enforced in
+// the invite action and core_set_member_role.
 export const LOCKED_PERMISSION_KEYS: readonly PermissionKey[] = [
   "workspace.delete",
-  "members.invite",
   "members.remove",
   "roles.manage",
 ] as const
