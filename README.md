@@ -6,9 +6,9 @@ It is not intended to be a generic SaaS product. Each deployment is meant to be 
 
 ## Current status
 
-WinningOS Core v0.1 implementation is code-complete and awaiting the Phase 9 readiness gate.
+WinningOS Core v0.1 is code-complete; the plugin boundary is now the active work.
 
-The app is fully Supabase-backed: email + password auth (sign-up, invites, recovery), profile and first-owner bootstrap, member lifecycle management, an owner-editable live permission grant map, persisted workspace and branding settings, and an append-only audit trail — all enforced by security-definer RPCs and RLS. Before plugin work starts, the pending migrations and hosted auth config must be applied to the live Supabase project and the readiness checklist in `IMPLEMENTATION_PLAN.md` must pass.
+The app is fully Supabase-backed: email + password auth (sign-up, invites, recovery), profile and first-owner bootstrap, member lifecycle management, an owner-editable live permission grant map, persisted workspace and branding settings (theme colors and logo restyle the whole shell), and an append-only audit trail — all enforced by security-definer RPCs and RLS. `COMPATIBILITY.md` is the buildable `core-v0` plugin contract, `PLUGIN_TEMPLATE_HANDOVER.md` briefs the agent building the `Example_Plugin` template repo, and Phase 10 of `IMPLEMENTATION_PLAN.md` defines the plugin-host slice Core ships next. `TESTING.md` is the live readiness walkthrough.
 
 ## Core principles
 
