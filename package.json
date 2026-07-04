@@ -13,7 +13,8 @@
     "auth:validate": "node scripts/validate-auth-bootstrap.mjs",
     "members:validate": "node scripts/validate-member-management.mjs",
     "permissions:validate": "node scripts/validate-permissions.mjs",
-    "settings:validate": "node scripts/validate-core-settings.mjs"
+    "settings:validate": "node scripts/validate-core-settings.mjs",
+    "plugins:validate": "node scripts/validate-plugin-host.mjs"
   },
   "dependencies": {
     "@supabase/server": "^1.2.0",

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Palette, ShieldCheck, SlidersHorizontal } from "lucide-react"
+import { Palette, Puzzle, ShieldCheck, SlidersHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { WorkspaceSection } from "@/components/app/settings/workspace-section"
 import { RolesSection } from "@/components/app/settings/roles-section"
@@ -13,6 +13,7 @@ const tabs = [
   { key: "workspace", label: "Workspace", icon: SlidersHorizontal },
   { key: "roles", label: "Roles", icon: ShieldCheck },
   { key: "branding", label: "Branding", icon: Palette },
+  { key: "plugins", label: "Plugins", icon: Puzzle },
 ] as const
 
 type TabKey = (typeof tabs)[number]["key"]
@@ -24,10 +25,14 @@ function isTabKey(value: string | undefined): value is TabKey {
 export function SettingsTabs({
   rolesOverview,
   settingsOverview,
+  pluginsPanel,
   initialTab,
 }: {
   rolesOverview: CoreRolesOverview
   settingsOverview: CoreSettingsOverview
+  // Server-rendered Settings → Plugins content (plugins-section.tsx). Passed
+  // as a ReactNode because manifest settings panels may be server components.
+  pluginsPanel: React.ReactNode
   initialTab?: string
 }) {
   const [active, setActive] = useState<TabKey>(isTabKey(initialTab) ? initialTab : "workspace")
@@ -91,6 +96,7 @@ export function SettingsTabs({
             canManage={settingsOverview.canManageBranding}
           />
         )}
+        {active === "plugins" && pluginsPanel}
       </div>
     </>
   )

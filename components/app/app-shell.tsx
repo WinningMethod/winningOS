@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/app/theme-toggle"
 import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/dropdown"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import type { PluginNavItem } from "@/lib/navigation"
 import { cn } from "@/lib/utils"
 
 type AppShellProps = {
@@ -18,16 +19,17 @@ type AppShellProps = {
   profileName: string
   profileEmail: string | null
   roleKey: string
+  pluginNavItems?: PluginNavItem[]
 }
 
-export function AppShell({ children, workspaceName, brandLogoUrl, brandName, profileName, profileEmail, roleKey }: AppShellProps) {
+export function AppShell({ children, workspaceName, brandLogoUrl, brandName, profileName, profileEmail, roleKey, pluginNavItems = [] }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar lg:block">
         <div className="sticky top-0 h-screen">
-          <SidebarContent brandLogoUrl={brandLogoUrl} brandName={brandName} />
+          <SidebarContent brandLogoUrl={brandLogoUrl} brandName={brandName} pluginNavItems={pluginNavItems} />
         </div>
       </aside>
 
@@ -44,7 +46,12 @@ export function AppShell({ children, workspaceName, brandLogoUrl, brandName, pro
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <SidebarContent brandLogoUrl={brandLogoUrl} brandName={brandName} onNavigate={() => setMobileOpen(false)} />
+            <SidebarContent
+              brandLogoUrl={brandLogoUrl}
+              brandName={brandName}
+              pluginNavItems={pluginNavItems}
+              onNavigate={() => setMobileOpen(false)}
+            />
           </div>
         </div>
       )}

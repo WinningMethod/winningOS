@@ -1,4 +1,5 @@
 import { PageContainer, PageHeader } from "@/components/app/page-header"
+import { PluginsSection } from "@/components/app/settings/plugins-section"
 import { SettingsTabs } from "@/components/app/settings/settings-tabs"
 import { getCoreRolesOverview } from "@/core/permissions/data"
 import { getCoreSettingsOverview } from "@/core/settings/data"
@@ -70,6 +71,7 @@ export default async function SettingsPage({
       <SettingsTabs
         rolesOverview={rolesOverview}
         settingsOverview={settingsOverview}
+        pluginsPanel={<PluginsSection />}
         initialTab={params?.tab}
       />
     </PageContainer>

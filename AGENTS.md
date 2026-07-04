@@ -23,7 +23,7 @@ As the repo matures, additional source-of-truth documents may be added, such as:
 
 WinningOS Core v0.1 is code-complete: Supabase-backed auth (email + password), members, live editable permissions, persisted workspace/branding settings, and an audit trail, all enforced by security-definer RPCs and RLS.
 
-The current focus is the plugin boundary. `COMPATIBILITY.md` is the buildable `core-v0` contract; the `Example_Plugin` template is being built in a separate repo from `PLUGIN_TEMPLATE_HANDOVER.md`; Core's next slice is Phase 10 (plugin host primitives) in `IMPLEMENTATION_PLAN.md`.
+The current focus is the plugin boundary. `COMPATIBILITY.md` is the buildable `core-v0` contract; the `Example_Plugin` template lives in a separate repo built from `PLUGIN_TEMPLATE_HANDOVER.md`; the Phase 10 plugin host primitives (`core/plugins/`, `config/plugins.ts`, the `/p/[plugin]` host route, `plugins:validate`) are shipped. What remains is the scratch-deployment integration proof (`IMPLEMENTATION_PLAN.md` Phase 10).
 
 Inside this repo, plugin work means Phase 10 host primitives only. Business-specific features and real plugin implementations still do not belong here.
 
@@ -77,7 +77,7 @@ When permission implementation begins, permission checks must be designed for bo
 
 Plugins are build-time source modules governed by `COMPATIBILITY.md` (`core-v0`). Plugin repos live outside Core and are built from the `Example_Plugin` template.
 
-Three-repository rule: this repo and the template repo are pristine framework repos. Plugins are installed only into separate deployment repos (clones of Core, one per company OS or scratch integration test). Never install a plugin into this repo: `plugins/` stays absent/empty and the future `config/plugins.ts` default stays `[]`. Integration proofs happen in a throwaway deployment repo.
+Three-repository rule: this repo and the template repo are pristine framework repos. Plugins are installed only into separate deployment repos (clones of Core, one per company OS or scratch integration test). Never install a plugin into this repo: `plugins/` stays absent/empty and the `config/plugins.ts` default stays `[]`. Integration proofs happen in a throwaway deployment repo.
 
 Inside Core, plugin work is limited to the Phase 10 host primitives (`core/plugins/`, `config/plugins.ts`, the `/p/[plugin]` host route, plugin validators). Do not implement plugin features, business workflows, or agent/chat functionality in Core folders.
 

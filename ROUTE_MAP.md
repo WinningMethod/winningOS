@@ -28,7 +28,8 @@ The route map prevents backend work from drifting away from the product surface 
 /pending-access      authenticated, waiting for membership
 /home                workspace home (protected)
 /members             member management (protected)
-/settings            workspace / roles / branding tabs (protected)
+/settings            workspace / roles / branding / plugins tabs (protected)
+/p/{plugin_id}/…     plugin host (protected; 404 unless the id is registered)
 ```
 
 Shared boundaries: `app/(auth)/layout.tsx` wraps the public auth pages; `app/(app)/layout.tsx` requires an active membership via `ensureCoreSession()` and redirects to `/sign-in` or `/pending-access`.
@@ -73,13 +74,18 @@ Data: `core_profiles`, `core_memberships`, `core_roles` via `core_list_workspace
 
 ### `/settings`
 
-Single settings surface with three tabs (deep-linkable via `?tab=`):
+Single settings surface with four tabs (deep-linkable via `?tab=`):
 
 - **Workspace** — name/slug read from `core_workspaces`; writes via `core_update_workspace_settings` (requires live `workspace.manage`).
-- **Roles** — live permission catalog from `core_permissions` / `core_role_permissions`; owners toggle grants via `core_set_role_permission` (owner immutable, structural permissions locked).
+- **Roles** — live permission catalog from `core_permissions` / `core_role_permissions`; owners toggle grants via `core_set_role_permission` (owner immutable, structural permissions locked). Installed plugins contribute an editable "Plugins" grant group.
 - **Branding** — brand name, logo URL, and primary color read from `core_brand_settings`; writes via `core_update_brand_settings` (requires live `branding.manage`).
+- **Plugins** — installed plugin list from `config/plugins.ts` manifests plus each manifest's permission-gated settings panel. Empty (with install guidance) in a pristine Core instance.
 
-Core settings must not include: Agent, Chat, provider configuration, single sign-on, plugin installation UI.
+Core settings must not include: Agent, Chat, provider configuration, single sign-on, plugin installation UI (installs are source-level, per `COMPATIBILITY.md`).
+
+### `/p/{plugin_id}` and below
+
+The plugin host route (`app/(app)/p/[plugin]/[[...segments]]`). Resolves the id against `config/plugins.ts` and the path against the manifest's route table; both misses 404. Registered plugin pages render inside the Core shell behind the same active-membership guard as every app route; per-feature permission gating happens in the plugin's server code and RLS (`plugin.{plugin_id}.*` keys in the live grant map). Deleting the plugin's registry line is disable-level removal: routes 404, nav and settings entries disappear. In the framework repos the registry is always empty, so every `/p/*` URL 404s by design.
 
 ## Deferred routes
 
@@ -115,6 +121,8 @@ Future plugin routes live behind the compatibility contract, not ad hoc route ad
 /settings?tab=workspace   workspace.view / workspace.manage
 /settings?tab=roles       roles.view / roles.assign / roles.manage
 /settings?tab=branding    branding.view / branding.manage
+/settings?tab=plugins     settings.view (panels gated per manifest permission)
+/p/{plugin_id}/…          active membership; plugin.{plugin_id}.* inside the plugin
 audit feed on /home       workspace.manage
 ```
 
