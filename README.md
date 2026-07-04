@@ -25,6 +25,7 @@ The app is fully Supabase-backed: email + password auth (sign-up, invites, recov
 - `ARCHITECTURE.md`, `DATA_MODEL.md`, and `SECURITY.md` define the current Core contract.
 - `COMPATIBILITY.md` defines the future build-time plugin contract and explicitly defers plugin work until Core is operational and tested.
 - `IMPLEMENTATION_PLAN.md`, `SUPABASE_CONTRACT.md`, and `ROUTE_MAP.md` define the implementation runway.
+- `DEPLOYMENT.md` is the zero-to-live runbook (Supabase project, migrations, hosted auth, Vercel); `DEVELOPMENT.md` covers local development; `TESTING.md` is the live acceptance walkthrough.
 - `FRONTEND_BRIEF.md` and `V0_WIREFRAME_PROMPT.md` describe the static wireframe scope.
 
 Additional implementation work should land in small, reviewable PRs.
