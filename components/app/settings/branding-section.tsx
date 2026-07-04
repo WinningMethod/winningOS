@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ColorField } from "@/components/app/settings/color-field"
 import { updateBrandingSettings } from "@/core/settings/actions"
 import type { CoreBrandingOverview } from "@/core/settings/data"
 import { foregroundFor } from "@/core/branding/color"
@@ -111,7 +112,7 @@ export function BrandingSection({
                   label="Primary color"
                   token="--primary"
                   value={branding.primaryColor}
-                  swatch={primaryColor}
+                  fallback={primaryColor}
                   placeholder={DEFAULT_PRIMARY_COLOR}
                   disabled={!canManage}
                 />
@@ -121,7 +122,7 @@ export function BrandingSection({
                   label="Secondary color"
                   token="--secondary"
                   value={branding.secondaryColor}
-                  swatch={secondaryColor}
+                  fallback={secondaryColor}
                   placeholder={DEFAULT_SECONDARY_COLOR}
                   disabled={!canManage}
                 />
@@ -131,7 +132,7 @@ export function BrandingSection({
                   label="Tertiary color"
                   token="--accent"
                   value={branding.tertiaryColor}
-                  swatch={tertiaryColor}
+                  fallback={tertiaryColor}
                   placeholder={DEFAULT_TERTIARY_COLOR}
                   disabled={!canManage}
                 />
@@ -193,51 +194,6 @@ export function BrandingSection({
             </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
-  )
-}
-
-function ColorField({
-  id,
-  name,
-  label,
-  token,
-  value,
-  swatch,
-  placeholder,
-  disabled,
-}: {
-  id: string
-  name: string
-  label: string
-  token: string
-  value: string | null
-  swatch: string
-  placeholder: string
-  disabled: boolean
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <div className="flex items-center gap-3">
-        <span
-          className="h-9 w-9 shrink-0 rounded-md border border-border"
-          style={{ backgroundColor: swatch }}
-          aria-hidden="true"
-        />
-        <Input
-          id={id}
-          name={name}
-          defaultValue={value ?? ""}
-          placeholder={placeholder}
-          pattern="#[0-9a-fA-F]{6}"
-          title="#rrggbb hex value"
-          aria-describedby="brand-colors-hint"
-          className="w-32 font-mono text-xs"
-          disabled={disabled}
-        />
-        <code className="font-mono text-xs text-muted-foreground">{token}</code>
       </div>
     </div>
   )
