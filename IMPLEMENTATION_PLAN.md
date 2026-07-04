@@ -212,9 +212,11 @@ Tasks (each one is specified in `COMPATIBILITY.md`):
    `dependsOn` target is registered earlier in `config/plugins.ts` (install
    order) and cross-plugin FKs hit declared `publicTables` only.
 
-Validation: install the template plugin into a deployment, run the acceptance
-checklist in `COMPATIBILITY.md`, verify disable-level removal, then approve real
-plugins.
+Validation: create a scratch deployment repo (a third repo cloned from Core —
+plugins never install into this repo or the template repo; see the
+three-repository model in `COMPATIBILITY.md`), install the template plugin
+there, run the acceptance checklist, verify disable-level removal, then
+approve real plugins.
 
 ## Known deferred items (post-Core backlog)
 

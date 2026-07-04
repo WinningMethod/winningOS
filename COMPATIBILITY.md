@@ -6,9 +6,23 @@ This document is the specification that WinningOS build-time plugins are built a
 
 Status: **Core v0.1 is code-complete.** The Phase 9 readiness gate (live migrations + the owner→viewer walkthrough in `TESTING.md`) is the last step before the plugin template repo is created. The sections below marked *Core ships in Phase 10* are the plugin-host primitives Core adds next; the template can be authored against this spec in parallel.
 
-## The one-paragraph model
+## The three-repository model
 
-A WinningOS plugin is a folder of reviewed source code (`plugins/{plugin_id}/`) plus SQL migrations, included in a deployment **before build**. A deployment installs a plugin by adding its source and registering its manifest in exactly **one file** (`config/plugins.ts`). Core owns the shell, auth, membership, permissions, theme, and navigation; the plugin contributes routes under `/p/{plugin_id}/…`, permission strings under `plugin.{plugin_id}.*`, tables named `plugin_{plugin_id}_*`, and optional navigation/settings entries — all declared in its manifest, all enforceable without trusting the plugin's UI. Removing the registry line makes the plugin disappear from the product; deleting its data is a separate, explicit operator decision.
+WinningOS separates framework from deployment. Three kinds of repositories exist, and the boundary between them is a hard rule:
+
+1. **`WinningMethod/winningOS` — the Core framework.** Versioned, pristine, improved only through reviewed PRs. It never contains an installed plugin: no real plugin source under `plugins/`, no populated registry, no plugin migrations in its history.
+2. **`WinningMethod/WinningTemplate` — the plugin template** (and every plugin repo forked from it). Also pristine framework artifacts: a plugin repo holds one plugin's source and is never deployed by itself, and the template never contains Core.
+3. **Deployment repos — one per company OS (e.g. `acme-os`).** Created by cloning `winningOS`, attached to that company's own Supabase project and hosting. **This is the only place plugins are ever installed**: plugin source is copied into `plugins/{plugin_id}/`, the registry line is added, migrations are installed, and the whole thing deploys as one reviewed system.
+
+Consequences of the rule:
+
+- Framework improvements flow **up** (PRs to `winningOS` / `WinningTemplate`); deployments pull Core updates **down**; plugin installs happen **only in deployments**. Nothing ever installs into the two framework repos.
+- Integration testing follows the same rule: proving a plugin against Core happens in a **scratch deployment repo** (a throwaway clone of Core), never by adding plugin code to `winningOS` itself.
+- `plugins/` in Core stays empty (plus the registry default of `[]`) forever; a populated `plugins/` folder is the marker of a deployment repo.
+
+## The one-paragraph plugin model
+
+A WinningOS plugin is a folder of reviewed source code (`plugins/{plugin_id}/`) plus SQL migrations, included in a **deployment repo** before build. A deployment installs a plugin by adding its source and registering its manifest in exactly **one file** (`config/plugins.ts`). Core owns the shell, auth, membership, permissions, theme, and navigation; the plugin contributes routes under `/p/{plugin_id}/…`, permission strings under `plugin.{plugin_id}.*`, tables named `plugin_{plugin_id}_*`, and optional navigation/settings entries — all declared in its manifest, all enforceable without trusting the plugin's UI. Removing the registry line makes the plugin disappear from the product; deleting its data is a separate, explicit operator decision.
 
 ## Compatibility level
 
@@ -133,7 +147,9 @@ Rules:
 
 ## Installation (exactly one blessed path)
 
-1. Bring the source: copy or `git subtree add` the plugin repo into `plugins/{plugin_id}/`. (Submodules are discouraged: they complicate clones, CI, and review.)
+Installation happens **in a deployment repo only** — a clone of Core owned by the deploying company (or a scratch clone for integration testing). Never into `WinningMethod/winningOS` or `WinningMethod/WinningTemplate` themselves.
+
+1. Bring the source: copy or `git subtree add` the plugin repo's installable source into the deployment's `plugins/{plugin_id}/`. (Submodules are discouraged: they complicate clones, CI, and review.)
 2. Register it: add one line to `config/plugins.ts` (*Core ships this file, default empty, in Phase 10*):
 
 ```ts
@@ -253,7 +269,7 @@ Future-pacing rule: because routes, nav, settings, and permissions all derive fr
 1. Core: pass the Phase 9 live gate (`TESTING.md` walkthrough).
 2. Template: build the `Example_Plugin` template repo to this spec (see `PLUGIN_TEMPLATE_HANDOVER.md`) — it can start now.
 3. Core: ship Phase 10 (plugin host: manifest type, registry, host route, nav/settings integration, API barrel, plugin validators).
-4. Integrate the template into a Core deployment as the contract's proof; fix whichever side is wrong.
+4. Create a **scratch deployment repo** (third repo: clone of Core + the template's plugin source) and run the acceptance checklist there as the contract's proof; fix whichever framework repo is wrong. Neither `winningOS` nor `WinningTemplate` receives the install.
 5. Only then: real plugins (Agent, Meeting Notes remain the validation examples — Core still pre-builds none of their internals).
 
 ## Core owns forever
