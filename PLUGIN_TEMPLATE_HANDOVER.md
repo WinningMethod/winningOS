@@ -23,7 +23,7 @@ Shipped with Core Phase 10 (the plugin host):
 - app-side plugin permission helpers and the Roles-grid "Plugins" group,
 - `npm run plugins:validate` — checks installed plugins against their manifests (barrel-only imports, key/table namespacing, RLS in creating migrations, dependsOn registry order, publicTables FK targets).
 
-With Phase 10 shipped, the remaining proof is one real install into a **scratch deployment repo** — a third repo created by cloning Core; never into `WinningMethod/winningOS` or the template repo themselves — fixing whichever framework side is wrong. That integration run is the contract's proof (three-repository model in `COMPATIBILITY.md`).
+With Phase 10 shipped, the remaining proof is one real install into a **scratch deployment repo** — a third repo created by cloning Core and attached to its own fresh Supabase project; never into `WinningMethod/winningOS`, the template repo, or either repo's database — fixing whichever framework side is wrong. That integration run is the contract's proof (three-repository model in `COMPATIBILITY.md`).
 
 ## Template repo requirements
 
@@ -91,7 +91,9 @@ create policy "Members with create can insert their own example notes"
     private.core_current_member_has_permission(workspace_id, 'plugin.example_plugin.create')
     and author_profile_id = private.core_current_profile_id()
   );
--- update/delete: author-or-manage pattern, same helpers.
+-- update: author-or-manage pattern, same helpers.
+-- delete: manage-only — the permission named for an action gates it at EVERY
+-- layer; RLS must never be wider than the app-layer check (template issue #6).
 ```
 
 Note: `private.core_current_member_has_permission`, `private.core_is_active_member`, and `private.core_current_profile_id` are all EXECUTE-granted to `authenticated` (Core learned this the hard way — RLS policy expressions run as the querying role; the profile-id grant shipped with Phase 10 in migration `20260704210000` exactly because the insert policy above needs it). Use these three helpers verbatim; never grant additional `private.*` helpers from a plugin migration — that is a Core-side decision enforced by Core's `db:validate` allowlist.
@@ -127,13 +129,14 @@ Plugins reuse data instead of recreating it, through **declared dependencies** (
 8. **Error surfacing**: follow Core's pattern — safe kebab-case codes in query params, human messages in the page, raw errors only in server logs. No vendor names, no user input reflected.
 9. **Live grants, not constants**: permission checks must read the live grant map (owners edit grants at runtime). Never bake "admin can X" into plugin logic; ask the map.
 10. **Additive migrations only**: never edit a shipped migration file; upgrades append new ordinals. Uninstall is a separate script, never a migration.
+11. **RLS wider than the app gate is a hole, not a convenience**: the first live acceptance run (template issue #6) shipped an author-or-manage delete policy while manifest, UI, and server action all treated `manage` as the delete permission — a member deleted rows straight through RLS with the anon client. Gate every action on the SAME permission at UI, server, and RLS; the widest layer is the real boundary.
 
 ## Ordering and definition of done
 
 1. Scaffold the template repo to the contract shape; mirror the manifest type.
 2. Build the example feature end-to-end (routes/components/server/db) against the SQL templates above.
 3. Write the plugin-repo validators and `CREATING_A_PLUGIN.md`.
-4. When Core Phase 10 merges: create a scratch deployment repo (clone Core into a new third repo), install the template's plugin source there (copy source, one registry line, install migrations, db push), and run Core's acceptance checklist. Never install into the Core or template framework repos. File issues against whichever framework repo violates the contract — the contract wins arguments; PRs change the contract.
+4. When Core Phase 10 merges: create a scratch deployment repo (clone Core into a new third repo), create a fresh Supabase project for that repo, install the template's plugin source there (copy source, one registry line, install migrations, db push), and run Core's acceptance checklist. Never install into the Core or template framework repos, and never point the scratch repo at a framework/deployment database. File issues against whichever framework repo violates the contract — the contract wins arguments; PRs change the contract.
 5. Done when: the acceptance checklist passes on a live deployment, disable-level removal is verified (delete the registry line → Core builds, `/p/example_plugin` 404s, nav entry gone), and a second agent can produce a new working plugin from the template by following `CREATING_A_PLUGIN.md` without asking questions.
 
 ## House style, briefly

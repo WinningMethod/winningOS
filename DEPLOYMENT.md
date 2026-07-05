@@ -27,11 +27,37 @@ the plugin-specific parts.
 
 ## 1. Create the Supabase project
 
-Supabase Dashboard → New project. Pick any name/region; set a strong
-**database password** and save it — you need it for migrations.
+Hard isolation rule: **one WinningOS deployment = one fresh Supabase project =
+one database = one workspace**. Never point two deployment repos at the same
+Supabase project, and never copy `.env.local` from `winningOS`, another company
+deployment, or a scratch integration repo. Reusing a project mixes migration
+history, users, plugin tables, permissions, storage buckets, and audit events.
 
-One WinningOS deployment = one Supabase project = one workspace. Never point
-two deployments at the same project.
+Dashboard path:
+
+1. Supabase Dashboard → **New project**.
+2. Organization: the owning company/org.
+3. Name: the deployment name, e.g. `AcmeCo`.
+4. Region: usually the same region you plan to host from.
+5. Set a strong **database password** and save it — you need it for migrations.
+
+CLI path, if your Supabase account has project capacity:
+
+```bash
+export SUPABASE_ORG_ID="<org-id>"
+export SUPABASE_REGION="us-east-2"
+export SUPABASE_DB_PASSWORD="<new strong database password>"
+
+npx supabase projects create "AcmeCo" \
+  --org-id "$SUPABASE_ORG_ID" \
+  --region "$SUPABASE_REGION" \
+  --db-password "$SUPABASE_DB_PASSWORD"
+```
+
+If the CLI says the organization has reached its active free-project limit,
+stop and resolve that in Supabase first: pause/delete an unused project, upgrade
+the org, or explicitly create a paid-size project. Do **not** reuse an existing
+WinningOS/Core project as a shortcut.
 
 Collect these values (all under **Project Settings**):
 
@@ -52,6 +78,10 @@ npm install
 cp .env.example .env.local   # fill in the values from step 1
 ```
 
+Before filling values, confirm this is a project created for **this repo**. The
+variable names match every WinningOS deployment, but the values must be unique
+per deployment.
+
 `.env.local` minimum for a working app:
 
 ```text
@@ -59,6 +89,9 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 NEXT_PUBLIC_SUPABASE_URL="https://{ref}.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="{anon key}"
 SUPABASE_SERVICE_ROLE_KEY="{service_role key}"
+SUPABASE_PROJECT_REF="{ref}"
+SUPABASE_DB_PASSWORD="{database password}"
+SUPABASE_DB_URL="postgresql://postgres:{percent-encoded-db-password}@db.{ref}.supabase.co:5432/postgres"
 ```
 
 The `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY` trio in
@@ -82,7 +115,20 @@ bucket. There are **no manual dashboard steps** for the database or storage.
 ```bash
 # Direct connection string: Dashboard → Connect → "Direct connection".
 # Percent-encode special characters in the password.
-export SUPABASE_DB_URL="postgresql://postgres:{db-password}@db.{ref}.supabase.co:5432/postgres"
+export SUPABASE_DB_URL="postgresql://postgres:{percent-encoded-db-password}@db.{ref}.supabase.co:5432/postgres"
+
+# Safety check: these refs must all be the new deployment project, not Core.
+# The `|| exit 1` is load-bearing — without it a ref mismatch only prints,
+# it does not stop the push below.
+node - <<'NODE' || exit 1
+const env = process.env
+const publicRef = (env.NEXT_PUBLIC_SUPABASE_URL || '').match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+const dbRef = (env.SUPABASE_DB_URL || '').match(/@db\.([^.]+)\.supabase\.co/)?.[1]
+console.log({ publicRef, projectRef: env.SUPABASE_PROJECT_REF, dbRef })
+if (!publicRef || !dbRef || publicRef !== dbRef || publicRef !== env.SUPABASE_PROJECT_REF) {
+  process.exitCode = 1
+}
+NODE
 
 npx supabase db push --db-url "$SUPABASE_DB_URL" --yes
 ```
