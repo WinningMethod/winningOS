@@ -1,6 +1,9 @@
 import { PageContainer, PageHeader } from "@/components/app/page-header"
+import { BrandingSection } from "@/components/app/settings/branding-section"
 import { PluginsSection } from "@/components/app/settings/plugins-section"
+import { RolesSection } from "@/components/app/settings/roles-section"
 import { SettingsTabs } from "@/components/app/settings/settings-tabs"
+import { WorkspaceSection } from "@/components/app/settings/workspace-section"
 import { getCoreRolesOverview } from "@/core/permissions/data"
 import { getCoreSettingsOverview } from "@/core/settings/data"
 import { cn } from "@/lib/utils"
@@ -69,8 +72,19 @@ export default async function SettingsPage({
       ) : null}
 
       <SettingsTabs
-        rolesOverview={rolesOverview}
-        settingsOverview={settingsOverview}
+        workspacePanel={(
+          <WorkspaceSection
+            workspace={settingsOverview.workspace}
+            canManage={settingsOverview.canManageWorkspace}
+          />
+        )}
+        rolesPanel={<RolesSection overview={rolesOverview} />}
+        brandingPanel={(
+          <BrandingSection
+            branding={settingsOverview.branding}
+            canManage={settingsOverview.canManageBranding}
+          />
+        )}
         pluginsPanel={<PluginsSection />}
         initialTab={params?.tab}
       />

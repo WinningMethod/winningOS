@@ -3,11 +3,6 @@
 import { useEffect, useState } from "react"
 import { Palette, Puzzle, ShieldCheck, SlidersHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { WorkspaceSection } from "@/components/app/settings/workspace-section"
-import { RolesSection } from "@/components/app/settings/roles-section"
-import { BrandingSection } from "@/components/app/settings/branding-section"
-import type { CoreRolesOverview } from "@/core/permissions/data"
-import type { CoreSettingsOverview } from "@/core/settings/data"
 
 const tabs = [
   { key: "workspace", label: "Workspace", icon: SlidersHorizontal },
@@ -23,15 +18,18 @@ function isTabKey(value: string | undefined): value is TabKey {
 }
 
 export function SettingsTabs({
-  rolesOverview,
-  settingsOverview,
+  workspacePanel,
+  rolesPanel,
+  brandingPanel,
   pluginsPanel,
   initialTab,
 }: {
-  rolesOverview: CoreRolesOverview
-  settingsOverview: CoreSettingsOverview
+  workspacePanel: React.ReactNode
+  rolesPanel: React.ReactNode
+  brandingPanel: React.ReactNode
   // Server-rendered Settings → Plugins content (plugins-section.tsx). Passed
-  // as a ReactNode because manifest settings panels may be server components.
+  // as ReactNodes so forms with server actions stay on the server side of this
+  // client-only tab switcher instead of hydrating through a client import.
   pluginsPanel: React.ReactNode
   initialTab?: string
 }) {
@@ -83,19 +81,9 @@ export function SettingsTabs({
         aria-labelledby={`tab-${active}`}
         className="mt-6"
       >
-        {active === "workspace" && (
-          <WorkspaceSection
-            workspace={settingsOverview.workspace}
-            canManage={settingsOverview.canManageWorkspace}
-          />
-        )}
-        {active === "roles" && <RolesSection overview={rolesOverview} />}
-        {active === "branding" && (
-          <BrandingSection
-            branding={settingsOverview.branding}
-            canManage={settingsOverview.canManageBranding}
-          />
-        )}
+        {active === "workspace" && workspacePanel}
+        {active === "roles" && rolesPanel}
+        {active === "branding" && brandingPanel}
         {active === "plugins" && pluginsPanel}
       </div>
     </>

@@ -91,7 +91,9 @@ create policy "Members with create can insert their own example notes"
     private.core_current_member_has_permission(workspace_id, 'plugin.example_plugin.create')
     and author_profile_id = private.core_current_profile_id()
   );
--- update/delete: author-or-manage pattern, same helpers.
+-- update: author-or-manage pattern, same helpers.
+-- delete: manage-only — the permission named for an action gates it at EVERY
+-- layer; RLS must never be wider than the app-layer check (template issue #6).
 ```
 
 Note: `private.core_current_member_has_permission`, `private.core_is_active_member`, and `private.core_current_profile_id` are all EXECUTE-granted to `authenticated` (Core learned this the hard way — RLS policy expressions run as the querying role; the profile-id grant shipped with Phase 10 in migration `20260704210000` exactly because the insert policy above needs it). Use these three helpers verbatim; never grant additional `private.*` helpers from a plugin migration — that is a Core-side decision enforced by Core's `db:validate` allowlist.
@@ -127,6 +129,7 @@ Plugins reuse data instead of recreating it, through **declared dependencies** (
 8. **Error surfacing**: follow Core's pattern — safe kebab-case codes in query params, human messages in the page, raw errors only in server logs. No vendor names, no user input reflected.
 9. **Live grants, not constants**: permission checks must read the live grant map (owners edit grants at runtime). Never bake "admin can X" into plugin logic; ask the map.
 10. **Additive migrations only**: never edit a shipped migration file; upgrades append new ordinals. Uninstall is a separate script, never a migration.
+11. **RLS wider than the app gate is a hole, not a convenience**: the first live acceptance run (template issue #6) shipped an author-or-manage delete policy while manifest, UI, and server action all treated `manage` as the delete permission — a member deleted rows straight through RLS with the anon client. Gate every action on the SAME permission at UI, server, and RLS; the widest layer is the real boundary.
 
 ## Ordering and definition of done
 

@@ -174,11 +174,18 @@ export default async function HomePage() {
 }
 
 function AuditRow({ event }: { event: CoreAuditEventOverview }) {
+  const label = AUDIT_ACTION_LABELS[event.action]
+
   return (
     <li className="flex items-center justify-between gap-3 py-2.5 text-sm">
       <span>
         <span className="font-medium">{event.actorName ?? "System"}</span>{" "}
-        <span className="text-muted-foreground">{AUDIT_ACTION_LABELS[event.action] ?? event.action}</span>
+        <span className="text-muted-foreground">{label ?? event.action}</span>
+        {label ? (
+          <code className="ml-2 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+            {event.action}
+          </code>
+        ) : null}
       </span>
       <span className="shrink-0 text-xs text-muted-foreground">{formatRelativeTime(event.createdAt)}</span>
     </li>

@@ -218,6 +218,11 @@ Run TypeScript validation without emitting files:
 npm run typecheck
 ```
 
+There is intentionally no `lint` script: Next 16 removed `next lint`, and this
+repo's gates are `typecheck`, the validator suite, and `build`. If a dedicated
+linter is added later it must be wired explicitly (ESLint CLI + config), not
+assumed.
+
 ## Current expected app behavior
 
 The app is fully Supabase-backed: auth, members, roles, permissions, workspace/branding settings, and the audit feed all read and write live data. There is no mock data left in the app.
