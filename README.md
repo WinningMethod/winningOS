@@ -14,9 +14,22 @@ The app is fully Supabase-backed: email + password auth (sign-up, invites, recov
 
 - Agent agnostic: Hermes, Claude Code, Codex, Cursor, OpenCode, human developers, and future agents should all be able to contribute by reading the same repo-native rules.
 - Supabase-backed: Supabase is the default foundation for auth, Postgres data, and future storage/realtime needs.
+- Deployment-isolated: every clone/company OS uses a fresh Supabase project and database. Do not reuse the framework/Core Supabase project or copy another repo's `.env.local` into a deployment clone.
 - Build-time modularity: plugins are source-level modules included at build/deploy time, not runtime marketplace extensions.
 - Company-owned deployments: WinningOS is a framework for building custom operating systems, not a centralized SaaS.
 - Core first: plugin work waits until WinningOS Core is defined, reviewed, and stable. Agent/chat functionality belongs in plugin territory, not Core v0.1.
+
+## Deployment isolation
+
+When cloning WinningOS for a company OS or scratch integration test, create a
+new Supabase project first and fill that clone's `.env.local` from the new
+project. The variable names are the same across deployments, but the values must
+not be. Sharing the framework project's Supabase URL/keys/database with a clone
+mixes migration history, users, plugin tables, permissions, storage, and audit
+events across products.
+
+Use `DEPLOYMENT.md` for the full runbook, including dashboard and CLI commands
+for creating the project and applying migrations.
 
 ## Foundational documents
 

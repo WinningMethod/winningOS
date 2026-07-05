@@ -58,6 +58,15 @@ Supabase is the intended foundation for auth and data.
 
 Do not add a different auth/database provider unless explicitly approved.
 
+Deployment isolation is mandatory: every clone of WinningOS and every scratch
+integration proof gets its own fresh Supabase project and database before any
+migrations are pushed. Never copy `.env.local` from `winningOS`, another
+deployment repo, or a prior scratch run into a new deployment. Reusing a
+Supabase project cross-contaminates users, migration history, plugin tables,
+permissions, audit events, and storage buckets. Before running `npx supabase db
+push`, verify that `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_PROJECT_REF`, and
+`SUPABASE_DB_URL` all point to the intended project for this repo.
+
 When Supabase implementation begins, changes must document:
 
 - required environment variables
