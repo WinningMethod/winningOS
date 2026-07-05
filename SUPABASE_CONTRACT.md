@@ -11,6 +11,7 @@ The first schema/seed migrations now implement this contract. This document rema
 - Supabase Auth owns authenticated user identity.
 - WinningOS Core owns profiles, workspace membership, roles, permissions, branding, and settings.
 - One deployed WinningOS Core instance equals one workspace for v0.1.
+- One deployed WinningOS Core instance also equals one fresh Supabase project/database. Deployment clones and scratch integration repos must not reuse the framework/Core Supabase project or another deployment's `.env.local`.
 - There is no workspace switcher, workspace creation UI, or multi-workspace admin in Core v0.1.
 - Workspace-scoped data must be protected with Row Level Security.
 - UI hiding is not security.
@@ -31,6 +32,15 @@ Server-only variables for admin helper paths:
 
 ```text
 SUPABASE_SERVICE_ROLE_KEY
+```
+
+Deployment/migration variables for the repo's own Supabase project:
+
+```text
+SUPABASE_PROJECT_REF
+SUPABASE_DB_PASSWORD
+SUPABASE_DB_URL
+SUPABASE_ACCESS_TOKEN   # only for hosted Auth config pushes
 ```
 
 Direct `@supabase/server` request-handler variables:
@@ -56,6 +66,7 @@ Rules:
 - Service-role/secret-key usage must be rare, named, and documented.
 - `.env.local` must not be committed.
 - `.env.example` should include placeholder values only.
+- `.env.local` values must be created from the Supabase project dedicated to this deployment. Do not copy values from `winningOS`, another deployment repo, or a prior scratch run.
 
 ## Direct request-handler boundary
 

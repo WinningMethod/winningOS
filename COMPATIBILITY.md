@@ -12,13 +12,14 @@ WinningOS separates framework from deployment. Three kinds of repositories exist
 
 1. **`WinningMethod/winningOS` — the Core framework.** Versioned, pristine, improved only through reviewed PRs. It never contains an installed plugin: no real plugin source under `plugins/`, no populated registry, no plugin migrations in its history.
 2. **`WinningMethod/WinningTemplate` — the plugin template** (and every plugin repo forked from it). Also pristine framework artifacts: a plugin repo holds one plugin's source and is never deployed by itself, and the template never contains Core.
-3. **Deployment repos — one per company OS (e.g. `acme-os`).** Created by cloning `winningOS`, attached to that company's own Supabase project and hosting. **This is the only place plugins are ever installed**: plugin source is copied into `plugins/{plugin_id}/`, the registry line is added, migrations are installed, and the whole thing deploys as one reviewed system.
+3. **Deployment repos — one per company OS (e.g. `acme-os`).** Created by cloning `winningOS`, attached to that company's own fresh Supabase project/database and hosting. **This is the only place plugins are ever installed**: plugin source is copied into `plugins/{plugin_id}/`, the registry line is added, migrations are installed, and the whole thing deploys as one reviewed system.
 
 Consequences of the rule:
 
 - Framework improvements flow **up** (PRs to `winningOS` / `WinningTemplate`); deployments pull Core updates **down**; plugin installs happen **only in deployments**. Nothing ever installs into the two framework repos.
 - Integration testing follows the same rule: proving a plugin against Core happens in a **scratch deployment repo** (a throwaway clone of Core), never by adding plugin code to `winningOS` itself.
 - `plugins/` in Core stays empty (plus the registry default of `[]`) forever; a populated `plugins/` folder is the marker of a deployment repo.
+- Supabase follows the same separation: every deployment repo and scratch proof gets a fresh Supabase project. Never reuse the Core/framework project or another deployment's `.env.local`; otherwise migrations, plugin tables, permissions, users, storage, and audit events are no longer isolated.
 
 ## The one-paragraph plugin model
 
@@ -148,7 +149,7 @@ Rules:
 
 ## Installation (exactly one blessed path)
 
-Installation happens **in a deployment repo only** — a clone of Core owned by the deploying company (or a scratch clone for integration testing). Never into `WinningMethod/winningOS` or `WinningMethod/WinningTemplate` themselves.
+Installation happens **in a deployment repo only** — a clone of Core owned by the deploying company (or a scratch clone for integration testing) and connected to that repo's own fresh Supabase project. Never into `WinningMethod/winningOS` or `WinningMethod/WinningTemplate` themselves, and never into a database shared with either framework repo.
 
 1. Bring the source: copy or `git subtree add` the plugin repo's installable source into the deployment's `plugins/{plugin_id}/`. (Submodules are discouraged: they complicate clones, CI, and review.)
 2. Register it: add one line to `config/plugins.ts` (Core ships this file, default empty):
@@ -159,7 +160,7 @@ import examplePlugin from "@/plugins/example_plugin/manifest"
 export const installedPlugins = [examplePlugin]
 ```
 
-3. Install migrations: copy each `db/migrations/NNN_*.sql` into `supabase/migrations/` as `{today}_plugin_{plugin_id}_{NNN}_{name}.sql`, then `npx supabase db push`.
+3. Install migrations: copy each `db/migrations/NNN_*.sql` into `supabase/migrations/` as `{today}_plugin_{plugin_id}_{NNN}_{name}.sql`, verify `.env.local` points at the deployment's own Supabase project ref, then `npx supabase db push --db-url "$SUPABASE_DB_URL" --yes`.
 4. `npm run typecheck && npm run build` plus Core validators — a compatibility mismatch is a **type error** (the manifest's `compatibility` literal must match Core's current level).
 
 Core must never auto-fetch plugin repos, install from the UI, or execute plugin code that was not included and reviewed as deployment source.

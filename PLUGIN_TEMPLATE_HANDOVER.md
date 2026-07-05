@@ -23,7 +23,7 @@ Shipped with Core Phase 10 (the plugin host):
 - app-side plugin permission helpers and the Roles-grid "Plugins" group,
 - `npm run plugins:validate` — checks installed plugins against their manifests (barrel-only imports, key/table namespacing, RLS in creating migrations, dependsOn registry order, publicTables FK targets).
 
-With Phase 10 shipped, the remaining proof is one real install into a **scratch deployment repo** — a third repo created by cloning Core; never into `WinningMethod/winningOS` or the template repo themselves — fixing whichever framework side is wrong. That integration run is the contract's proof (three-repository model in `COMPATIBILITY.md`).
+With Phase 10 shipped, the remaining proof is one real install into a **scratch deployment repo** — a third repo created by cloning Core and attached to its own fresh Supabase project; never into `WinningMethod/winningOS`, the template repo, or either repo's database — fixing whichever framework side is wrong. That integration run is the contract's proof (three-repository model in `COMPATIBILITY.md`).
 
 ## Template repo requirements
 
@@ -133,7 +133,7 @@ Plugins reuse data instead of recreating it, through **declared dependencies** (
 1. Scaffold the template repo to the contract shape; mirror the manifest type.
 2. Build the example feature end-to-end (routes/components/server/db) against the SQL templates above.
 3. Write the plugin-repo validators and `CREATING_A_PLUGIN.md`.
-4. When Core Phase 10 merges: create a scratch deployment repo (clone Core into a new third repo), install the template's plugin source there (copy source, one registry line, install migrations, db push), and run Core's acceptance checklist. Never install into the Core or template framework repos. File issues against whichever framework repo violates the contract — the contract wins arguments; PRs change the contract.
+4. When Core Phase 10 merges: create a scratch deployment repo (clone Core into a new third repo), create a fresh Supabase project for that repo, install the template's plugin source there (copy source, one registry line, install migrations, db push), and run Core's acceptance checklist. Never install into the Core or template framework repos, and never point the scratch repo at a framework/deployment database. File issues against whichever framework repo violates the contract — the contract wins arguments; PRs change the contract.
 5. Done when: the acceptance checklist passes on a live deployment, disable-level removal is verified (delete the registry line → Core builds, `/p/example_plugin` 404s, nav entry gone), and a second agent can produce a new working plugin from the template by following `CREATING_A_PLUGIN.md` without asking questions.
 
 ## House style, briefly

@@ -30,6 +30,28 @@ cp .env.example .env.local
 ```
 
 Then fill in values from the Supabase project that will back the Core deployment.
+For a cloned deployment repo or scratch integration test, create a **fresh**
+Supabase project first. Never copy `.env.local` from `winningOS`, another
+deployment, or a previous scratch run; sharing the project shares migration
+history, users, plugin tables, permissions, storage, and audit data.
+
+Create the project in the Supabase dashboard, or with the CLI when the org has
+project capacity:
+
+```bash
+export SUPABASE_ORG_ID="<org-id>"
+export SUPABASE_REGION="us-east-2"
+export SUPABASE_DB_PASSWORD="<new strong database password>"
+
+npx supabase projects create "<deployment-name>" \
+  --org-id "$SUPABASE_ORG_ID" \
+  --region "$SUPABASE_REGION" \
+  --db-password "$SUPABASE_DB_PASSWORD"
+```
+
+If Supabase reports that the active free-project limit has been reached, stop
+and resolve capacity (pause/delete/upgrade, or explicitly create a paid project)
+instead of reusing an existing WinningOS project.
 
 Required browser-safe variables for Next.js / `@supabase/ssr` helpers:
 
@@ -43,6 +65,15 @@ Required server-only variable for admin helper paths:
 
 ```text
 SUPABASE_SERVICE_ROLE_KEY
+```
+
+Required for remote migrations and hosted config pushes:
+
+```text
+SUPABASE_PROJECT_REF
+SUPABASE_DB_PASSWORD
+SUPABASE_DB_URL
+SUPABASE_ACCESS_TOKEN  # only when running supabase config push
 ```
 
 Required direct `@supabase/server` request-handler variables:
@@ -228,9 +259,21 @@ These check that the expected Core migrations, tables, seed records, RLS enables
 
 ## Apply migrations to the remote Supabase project
 
-After `.env.local` contains the real project values, apply pending migrations with the Supabase CLI using the percent-encoded database URL derived from the project ref and database password:
+After `.env.local` contains this repo's own project values, apply pending migrations with the Supabase CLI using the percent-encoded database URL derived from the project ref and database password.
+
+Before pushing, verify all refs point at the same fresh project — the
+`|| exit 1` is load-bearing, since without it a ref mismatch only prints and
+does not stop the push:
 
 ```bash
+node - <<'NODE' || exit 1
+const env = process.env
+const publicRef = (env.NEXT_PUBLIC_SUPABASE_URL || '').match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+const dbRef = (env.SUPABASE_DB_URL || '').match(/@db\.([^.]+)\.supabase\.co/)?.[1]
+console.log({ publicRef, projectRef: env.SUPABASE_PROJECT_REF, dbRef })
+if (!publicRef || !dbRef || publicRef !== dbRef || publicRef !== env.SUPABASE_PROJECT_REF) process.exit(1)
+NODE
+
 npx supabase db push --db-url "$SUPABASE_DB_URL" --yes
 ```
 
