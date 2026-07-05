@@ -113,7 +113,31 @@ After changing `supabase/config.toml` or auth email templates, push the hosted A
 SUPABASE_ACCESS_TOKEN=<token> npx supabase config push --project-ref <project-ref> --yes
 ```
 
-Do not rely on local `config.toml` alone for hosted Auth behavior; hosted auth link URLs, password policy, and email branding come from the Supabase project Auth configuration.
+Do not rely on local `config.toml` alone for hosted Auth behavior; hosted auth link URLs, password policy, and email branding come from the Supabase project Auth configuration. If confirmation, invite, or recovery emails link to localhost/Core/the wrong domain, edit `site_url` and `additional_redirect_urls`, push the config again, and send a fresh email — old emails keep the old link.
+
+If `supabase config push` fails with `Email template modification is not available for free tier projects using the default email provider`, the URL settings can still be patched without touching templates:
+
+```bash
+export APP_ORIGIN="https://your-production-domain.example"
+export URI_ALLOW_LIST="http://localhost:3000,http://127.0.0.1:3000,${APP_ORIGIN},https://*-your-vercel-scope.vercel.app"
+export SUPABASE_AUTH_BEARER="$SUPABASE_ACCESS_TOKEN"
+
+curl -fsS -X PATCH \
+  -H "Authorization: Bearer ${SUPABASE_AUTH_BEARER}" \
+  -H "Content-Type: application/json" \
+  --data "{\"site_url\":\"${APP_ORIGIN}\",\"uri_allow_list\":\"${URI_ALLOW_LIST}\"}" \
+  "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth"
+```
+
+Configure custom SMTP or upgrade the Supabase project before relying on hosted branded email template pushes for production traffic.
+
+For Vercel, also verify the Production environment variables are present before testing hosted auth:
+
+```bash
+vercel env ls production --format json
+```
+
+`/sign-in` and `/sign-up` server-render Supabase-backed session state. If the landing page loads but those auth pages crash with a masked server error, check that `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `NEXT_PUBLIC_APP_URL` are set for **Production** (not just Preview), are not quote-wrapped, and that the deployment was rebuilt after changing any `NEXT_PUBLIC_*` value.
 
 ## Environment variable rules
 

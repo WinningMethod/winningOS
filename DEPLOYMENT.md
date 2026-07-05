@@ -146,8 +146,9 @@ configured from this repo — `supabase/config.toml` + `supabase/templates/` —
 and pushed with the CLI. The dashboard defaults are **not** correct on their
 own.
 
-First, **edit `supabase/config.toml` for your domain** (the committed values
-belong to the reference deployment):
+First, **edit `supabase/config.toml` for your domain** before pushing it. The
+file is committed because hosted Auth config is part of the deployment contract;
+do not leave it pointing at Core, localhost-only, or a previous deployment:
 
 - `site_url` — your production origin, e.g. `https://acme-os.vercel.app`
   (use `http://localhost:3000` until you have one, then re-push after step 5)
@@ -161,6 +162,33 @@ Then push it:
 SUPABASE_ACCESS_TOKEN={personal access token} \
   npx supabase config push --project-ref {ref} --yes
 ```
+
+If the project is still using Supabase's default free-tier mailer, this command
+can fail with `Email template modification is not available for free tier
+projects using the default email provider`. That means the URL settings still
+need to be pushed, but hosted template branding requires custom SMTP or an
+upgraded project. Patch just the URL fields with the Management API:
+
+```bash
+export APP_ORIGIN="https://your-production-domain.example"
+export URI_ALLOW_LIST="http://localhost:3000,http://127.0.0.1:3000,${APP_ORIGIN},https://*-your-vercel-scope.vercel.app"
+export SUPABASE_AUTH_BEARER="$SUPABASE_ACCESS_TOKEN"
+
+curl -fsS -X PATCH \
+  -H "Authorization: Bearer ${SUPABASE_AUTH_BEARER}" \
+  -H "Content-Type: application/json" \
+  --data "{\"site_url\":\"${APP_ORIGIN}\",\"uri_allow_list\":\"${URI_ALLOW_LIST}\"}" \
+  "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth"
+
+curl -fsS \
+  -H "Authorization: Bearer ${SUPABASE_AUTH_BEARER}" \
+  "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth" \
+  | python3 -m json.tool
+```
+
+Confirm the response shows `site_url` as the production origin and
+`uri_allow_list` with the production, preview, and local URLs. Then send a fresh
+confirmation/invite/recovery email; old emails keep the old localhost link.
 
 What this configures: email + password auth with minimum length 8, the branded
 invite / confirmation / recovery templates (invite and recovery links land on
@@ -185,11 +213,24 @@ Postmark) — no code changes required.
    | `SUPABASE_SERVICE_ROLE_KEY` | service_role key (secret) |
    | `NEXT_PUBLIC_APP_URL` | your production origin (set after the first deploy if you don't know it yet) |
 
-3. Deploy. If you set or changed `NEXT_PUBLIC_APP_URL` after deploying,
-   redeploy — `NEXT_PUBLIC_*` values are baked at build time.
-4. Go back to step 4 and re-push the auth config with the real `site_url` and
+3. Verify the variables exist in the environment you are using. This catches a
+   common failure mode where the landing page loads, but `/sign-in` and
+   `/sign-up` crash with a masked server error because Vercel has no Production
+   Supabase env vars:
+
+   ```bash
+   vercel env ls production --format json
+   ```
+
+   The list must include all four variables above. If any are missing, add them
+   to **Production** and **Preview** before deploying. Paste raw values in the
+   dashboard/CLI — dotenv quotes from `.env.local` are syntax, not part of the
+   value.
+4. Deploy. If you set or changed any `NEXT_PUBLIC_*` value after deploying,
+   redeploy — those values are baked at build time.
+5. Go back to step 4 and re-push the auth config with the real `site_url` and
    redirect URLs if you used placeholders. Auth emails link to whatever
-   `site_url` was at push time; this is the most commonly missed step.
+   `site_url` was at config-push time; this is the most commonly missed step.
 
 ## 6. First sign-in and acceptance
 
@@ -222,7 +263,8 @@ Only for deployment repos (clones of Core with plugins installed):
 | Symptom | Cause / fix |
 |---|---|
 | Pages 500 with `permission denied for schema private` | Migrations not (fully) applied — re-run step 3 and `npm run db:verify:remote` |
-| Auth emails link to localhost or the wrong domain | `site_url` / redirect list not pushed for your domain — redo step 4 |
+| `/sign-in` or `/sign-up` says “A server error occurred” on Vercel while the landing page loads | Vercel Production env vars are missing, quote-wrapped, or only set for Preview. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `NEXT_PUBLIC_APP_URL` to Production, then redeploy so `NEXT_PUBLIC_*` values are baked into the build. |
+| Auth emails link to localhost, Core, or the wrong domain | `supabase/config.toml` was not edited/pushed for this deployment's domain. Set `[auth].site_url` to the production URL, include production + preview + localhost in `additional_redirect_urls`, then run `SUPABASE_ACCESS_TOKEN=... npx supabase config push --project-ref ... --yes`. If free-tier default email blocks template updates, use the URL-only Management API fallback in step 4. |
 | Invite/recovery emails never arrive | Built-in mailer rate limit — configure custom SMTP (step 4 warning) |
 | "Session bootstrap failed" on every page | Wrong `NEXT_PUBLIC_SUPABASE_*` values, or migrations missing (the bootstrap RPC doesn't exist yet) |
 | Sign-up works but user is stuck on `/pending-access` | Expected for every account after the first — an owner/admin must invite them or they wait for membership |
