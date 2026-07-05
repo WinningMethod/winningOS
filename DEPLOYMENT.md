@@ -118,7 +118,9 @@ bucket. There are **no manual dashboard steps** for the database or storage.
 export SUPABASE_DB_URL="postgresql://postgres:{percent-encoded-db-password}@db.{ref}.supabase.co:5432/postgres"
 
 # Safety check: these refs must all be the new deployment project, not Core.
-node - <<'NODE'
+# The `|| exit 1` is load-bearing — without it a ref mismatch only prints,
+# it does not stop the push below.
+node - <<'NODE' || exit 1
 const env = process.env
 const publicRef = (env.NEXT_PUBLIC_SUPABASE_URL || '').match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
 const dbRef = (env.SUPABASE_DB_URL || '').match(/@db\.([^.]+)\.supabase\.co/)?.[1]

@@ -261,19 +261,19 @@ These check that the expected Core migrations, tables, seed records, RLS enables
 
 After `.env.local` contains this repo's own project values, apply pending migrations with the Supabase CLI using the percent-encoded database URL derived from the project ref and database password.
 
-Before pushing, verify all refs point at the same fresh project:
+Before pushing, verify all refs point at the same fresh project — the
+`|| exit 1` is load-bearing, since without it a ref mismatch only prints and
+does not stop the push:
 
 ```bash
-node - <<'NODE'
+node - <<'NODE' || exit 1
 const env = process.env
 const publicRef = (env.NEXT_PUBLIC_SUPABASE_URL || '').match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
 const dbRef = (env.SUPABASE_DB_URL || '').match(/@db\.([^.]+)\.supabase\.co/)?.[1]
 console.log({ publicRef, projectRef: env.SUPABASE_PROJECT_REF, dbRef })
 if (!publicRef || !dbRef || publicRef !== dbRef || publicRef !== env.SUPABASE_PROJECT_REF) process.exit(1)
 NODE
-```
 
-```bash
 npx supabase db push --db-url "$SUPABASE_DB_URL" --yes
 ```
 
