@@ -8,7 +8,7 @@
 export default function AuthError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
-      <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center shadow-sm">
+      <div role="alert" aria-live="assertive" className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center shadow-sm">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">WinningOS Core</p>
         <h1 className="mt-3 text-xl font-semibold tracking-tight">Sign-in couldn&apos;t load</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">

@@ -142,6 +142,23 @@ const authNotice = read("components/app/auth-notice.tsx")
 assert(authNotice.includes('role="alert"') && authNotice.includes('aria-live="assertive"'), "auth error notice alerts on initial render")
 assert(authNotice.includes('role="status"') && authNotice.includes('aria-live="polite"'), "auth status notice is exposed politely")
 
+// ---------------------------------------------------------------------------
+// Deployment setup notice (AcmeCo issue #3): auth surfaces explain a
+// misconfigured deployment instead of crashing into the masked production
+// error page.
+// ---------------------------------------------------------------------------
+const envPublicModule = read("core/supabase/env.public.ts")
+assert(envPublicModule.includes("publicSupabaseEnvProblems"), "env module exposes a non-throwing preflight for public Supabase vars")
+assert(envPublicModule.includes("wrapped in quotes"), "preflight detects quote-wrapped values")
+assert(envPublicModule.includes("must be the project URL starting with https://"), "preflight detects non-https Supabase URLs")
+
+const authLayout = read("app/(auth)/layout.tsx")
+assert(authLayout.includes("publicSupabaseEnvProblems"), "auth layout renders a setup notice from the env preflight")
+assert(authLayout.includes('role="alert"') && authLayout.includes('aria-live="assertive"'), "auth setup notice alerts screen readers")
+
+const authErrorBoundary = read("app/(auth)/error.tsx")
+assert(authErrorBoundary.includes('role="alert"') && authErrorBoundary.includes('aria-live="assertive"'), "auth error boundary alerts screen readers")
+
 const signUpPage = read("app/(auth)/sign-up/page.tsx")
 assert(signUpPage.includes("signUpWithPassword"), "sign-up page submits the password sign-up action")
 assert(signUpPage.includes("confirmPassword"), "sign-up page confirms the password")

@@ -9,7 +9,7 @@ import { publicSupabaseEnvProblems } from "@/core/supabase/env.public"
 // render; values never are.
 function SetupNotice({ problems }: { problems: string[] }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+    <div role="alert" aria-live="assertive" className="rounded-lg border border-border bg-card p-6 shadow-sm">
       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Deployment setup</p>
       <h1 className="mt-3 text-xl font-semibold tracking-tight">Not connected to Supabase yet</h1>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
