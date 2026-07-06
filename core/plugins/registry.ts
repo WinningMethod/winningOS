@@ -1,7 +1,12 @@
 import "server-only"
 
 import { installedPlugins } from "@/config/plugins"
-import { isPluginPermissionKey, type WinningOSPluginManifest } from "./manifest"
+import {
+  isPluginPermissionKey,
+  type PluginModuleProps,
+  type PluginPermissionKey,
+  type WinningOSPluginManifest,
+} from "./manifest"
 
 /** Installed plugins in registry (= install) order. Empty in the framework repos. */
 export function getInstalledPlugins(): readonly WinningOSPluginManifest[] {
@@ -64,6 +69,32 @@ export function matchPluginRoute(
   }
 
   return null
+}
+
+export type PluginSlotModule = {
+  /** The contributing plugin's id. */
+  pluginId: string
+  title: string
+  component: React.ComponentType<PluginModuleProps>
+  permission: PluginPermissionKey
+}
+
+/**
+ * Installed modules targeting `{hostPluginId}:{slotId}`, in registry order.
+ * NOT permission-filtered — hosts render through `resolveSlotModules`, which
+ * filters against the live grant map for the current member.
+ */
+export function getModulesForSlot(slotId: string): PluginSlotModule[] {
+  return installedPlugins.flatMap((plugin) =>
+    (plugin.modules ?? [])
+      .filter((module) => module.slot === slotId)
+      .map((module) => ({
+        pluginId: plugin.id,
+        title: module.title,
+        component: module.component,
+        permission: module.permission,
+      })),
+  )
 }
 
 /**

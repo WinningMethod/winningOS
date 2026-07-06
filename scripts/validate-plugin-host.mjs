@@ -78,7 +78,7 @@ const manifestSource = read("core/plugins/manifest.ts")
 assertIncludes(manifestSource, "export type WinningOSPluginManifest", "manifest module exports the core-v0 manifest type")
 assertIncludes(manifestSource, 'compatibility: "core-v0"', "manifest type pins the core-v0 compatibility literal")
 
-for (const field of ["permissions:", "navigation:", "routes: Record<string, React.ComponentType>", "tables:", "publicTables?:", "dependsOn?:"]) {
+for (const field of ["permissions:", "navigation:", "routes: Record<string, React.ComponentType>", "tables:", "publicTables?:", "dependsOn?:", "slots?:", "modules?:"]) {
   assertIncludes(manifestSource, field, `manifest type declares ${field.replace(/[:?].*$/, "")}`)
 }
 
@@ -125,6 +125,9 @@ for (const exportedName of [
   "createClient",
   "createServiceRoleClient",
   "logCoreAuditEvent",
+  "resolveSlotModules",
+  "PluginModuleProps",
+  "PluginSlotModule",
   "Button",
   "Card",
   "CardHeader",
@@ -314,6 +317,53 @@ for (const pluginId of registeredIds) {
 
   if (foreignTables.length > 0 && dependsOnIds.length === 0) {
     fail(`plugin ${pluginId} references foreign plugin tables (${foreignTables.join(", ")}) without any dependsOn declaration`)
+  }
+
+  // Slots and modules (ECOSYSTEM.md "Modules"). Slot ids are lowercase
+  // snake_case; module targets are `{host_plugin_id}:{slot_id}`. A module may
+  // target an UNINSTALLED host (it stays dormant), but if the host is
+  // registered it must actually declare the slot — that catches typos.
+  const cleanManifest = stripLineComments(manifestText)
+  const slotsBlock = cleanManifest.match(/slots\s*:\s*\[([\s\S]*?)\]/)?.[1] ?? ""
+  const declaredSlotIds = [...slotsBlock.matchAll(/id:\s*"([^"]*)"/g)].map((match) => match[1])
+
+  for (const slotId of declaredSlotIds) {
+    if (!/^[a-z][a-z0-9_]*$/.test(slotId)) {
+      fail(`plugin ${pluginId} slot id "${slotId}" is not lowercase snake_case`)
+    } else {
+      pass(`plugin ${pluginId} declares slot ${pluginId}:${slotId}`)
+    }
+  }
+
+  const modulesBlock = cleanManifest.match(/modules\s*:\s*\[([\s\S]*?)\]/)?.[1] ?? ""
+  const moduleSlotRefs = [...modulesBlock.matchAll(/slot:\s*"([^"]*)"/g)].map((match) => match[1])
+
+  for (const slotRef of moduleSlotRefs) {
+    if (!/^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$/.test(slotRef)) {
+      fail(`plugin ${pluginId} module targets malformed slot "${slotRef}" (expected {host_plugin_id}:{slot_id})`)
+      continue
+    }
+
+    const [hostId, slotName] = slotRef.split(":")
+
+    if (hostId === pluginId) {
+      fail(`plugin ${pluginId} module targets its own slot ${slotRef} — render your own UI directly`)
+      continue
+    }
+
+    if (!registeredIds.includes(hostId)) {
+      pass(`plugin ${pluginId} module for ${slotRef} is dormant (host ${hostId} not installed)`)
+      continue
+    }
+
+    const hostManifest = stripLineComments(readFileSync(join(root, "plugins", hostId, "manifest.ts"), "utf8"))
+    const hostSlotsBlock = hostManifest.match(/slots\s*:\s*\[([\s\S]*?)\]/)?.[1] ?? ""
+
+    if (new RegExp(`id:\\s*"${slotName}"`).test(hostSlotsBlock)) {
+      pass(`plugin ${pluginId} module targets declared slot ${slotRef}`)
+    } else {
+      fail(`plugin ${pluginId} module targets ${slotRef}, but ${hostId} declares no such slot`)
+    }
   }
 }
 
