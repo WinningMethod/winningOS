@@ -2,7 +2,7 @@ import "server-only"
 
 import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { getModulesForSlot, type PluginSlotModule } from "./registry"
-import { roleHasPluginPermission } from "./permissions"
+import { getPluginGrantsForRole } from "./permissions"
 
 /**
  * Modules the CURRENT member may see in a slot: every installed contribution
@@ -32,10 +32,7 @@ export async function resolveSlotModules(slotId: string): Promise<PluginSlotModu
     return []
   }
 
-  const roleKey = session.membership?.roleKey
-  const allowed = await Promise.all(
-    modules.map((module) => roleHasPluginPermission(roleKey, module.permission)),
-  )
+  const grants = await getPluginGrantsForRole(session.membership?.roleKey ?? null)
 
-  return modules.filter((_, index) => allowed[index])
+  return modules.filter((module) => grants.has(module.permission))
 }
