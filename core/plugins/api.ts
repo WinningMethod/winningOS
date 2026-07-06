@@ -26,7 +26,8 @@ import { Button as CoreButton, type ButtonProps as CoreButtonProps } from "@/com
 // ---------------------------------------------------------------------------
 
 export type { CoreRoleKey } from "@/core/permissions/catalog"
-export type { PluginPermissionKey, WinningOSPluginManifest } from "@/core/plugins/manifest"
+export type { PluginModuleProps, PluginPermissionKey, WinningOSPluginManifest } from "@/core/plugins/manifest"
+export type { PluginSlotModule } from "@/core/plugins/registry"
 export type { CoreSession, CoreSessionStatus } from "@/core/auth/bootstrap"
 
 // ---------------------------------------------------------------------------
@@ -35,6 +36,13 @@ export type { CoreSession, CoreSessionStatus } from "@/core/auth/bootstrap"
 
 export { ensureCoreSession } from "@/core/auth/bootstrap"
 export { roleHasPluginPermission } from "@/core/plugins/permissions"
+
+// ---------------------------------------------------------------------------
+// Slot modules (ECOSYSTEM.md "Modules"): hosts render other plugins'
+// contributions into their declared slots, permission-filtered per member.
+// ---------------------------------------------------------------------------
+
+export { resolveSlotModules } from "@/core/plugins/slots"
 
 // ---------------------------------------------------------------------------
 // Data access (Core Supabase conventions)

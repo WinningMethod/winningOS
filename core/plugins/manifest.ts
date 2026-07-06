@@ -16,6 +16,15 @@ import type { CoreRoleKey } from "@/core/permissions/catalog"
 
 export type PluginPermissionKey = `plugin.${string}.${string}`
 
+/**
+ * Props every slot module receives from its host (ECOSYSTEM.md "Modules").
+ * The host documents each slot's context shape in its IMPLEMENTATION.md
+ * (e.g. `{ companyId: string }` for a CRM company-page slot).
+ */
+export type PluginModuleProps = {
+  context?: Record<string, unknown>
+}
+
 export type WinningOSPluginManifest = {
   /** Stable snake_case id. Never changes after first release. */
   id: string
@@ -64,6 +73,34 @@ export type WinningOSPluginManifest = {
    * uninstalled after, and expose what this plugin uses via publicTables.
    */
   dependsOn?: { pluginId: string; minVersion: string }[]
+  /**
+   * Named extension points this plugin's UI offers to other plugins
+   * (ECOSYSTEM.md "Modules"). Contributors target `{this_plugin_id}:{slot id}`.
+   * The host renders contributions via `resolveSlotModules` and documents each
+   * slot's context shape in its IMPLEMENTATION.md.
+   */
+  slots?: {
+    /** Slot name, lowercase snake_case, unique within this plugin. */
+    id: string
+    /** Where it renders and what context the host passes. */
+    description: string
+  }[]
+  /**
+   * Components this plugin mounts into other plugins' declared slots
+   * (`{host_plugin_id}:{slot_id}`). A module renders only when the host is
+   * installed, declares the slot, and the member holds `permission`. This is
+   * how a Bridge surfaces joined data inside a host App/Viewer without either
+   * side knowing the other's code.
+   */
+  modules?: {
+    /** Target slot: `{host_plugin_id}:{slot_id}`. */
+    slot: string
+    /** Short heading the host may render above the module. */
+    title: string
+    component: React.ComponentType<PluginModuleProps>
+    /** Permission gating the module — owned by THIS plugin, not the host. */
+    permission: PluginPermissionKey
+  }[]
 }
 
 // Mirrors the database constraint from migration 20260704200000: the only

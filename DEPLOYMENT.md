@@ -226,8 +226,9 @@ Postmark) — no code changes required.
    to **Production** and **Preview** before deploying. Paste raw values in the
    dashboard/CLI — dotenv quotes from `.env.local` are syntax, not part of the
    value.
-4. Deploy. If you set or changed any `NEXT_PUBLIC_*` value after deploying,
-   redeploy — those values are baked at build time.
+4. Deploy. If you set or changed any variable after deploying, redeploy —
+   env changes never apply to an existing deployment, and `NEXT_PUBLIC_*`
+   values are baked at build time.
 5. Go back to step 4 and re-push the auth config with the real `site_url` and
    redirect URLs if you used placeholders. Auth emails link to whatever
    `site_url` was at config-push time; this is the most commonly missed step.
@@ -262,8 +263,8 @@ Only for deployment repos (clones of Core with plugins installed):
 
 | Symptom | Cause / fix |
 |---|---|
+| `/sign-in` or `/sign-up` crash or say "A server error occurred" while the landing page loads (which proves nothing — it's static) | Runtime Supabase env problem on the host: `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` missing for that environment, added without a redeploy, pasted **with quotes**, or pointing at a paused/wrong project. When those two vars are missing or visibly malformed the auth pages render a setup notice naming the problem; a crash with them present usually means bad values, an unreachable project, or unapplied migrations. Add the full set (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_APP_URL`) to Production, then redeploy so `NEXT_PUBLIC_*` values are baked into the build |
 | Pages 500 with `permission denied for schema private` | Migrations not (fully) applied — re-run step 3 and `npm run db:verify:remote` |
-| `/sign-in` or `/sign-up` says “A server error occurred” on Vercel while the landing page loads | Vercel Production env vars are missing, quote-wrapped, or only set for Preview. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `NEXT_PUBLIC_APP_URL` to Production, then redeploy so `NEXT_PUBLIC_*` values are baked into the build. |
 | Auth emails link to localhost, Core, or the wrong domain | `supabase/config.toml` was not edited/pushed for this deployment's domain. Set `[auth].site_url` to the production URL, include production + preview + localhost in `additional_redirect_urls`, then run `SUPABASE_ACCESS_TOKEN=... npx supabase config push --project-ref ... --yes`. If free-tier default email blocks template updates, use the URL-only Management API fallback in step 4. |
 | Invite/recovery emails never arrive | Built-in mailer rate limit — configure custom SMTP (step 4 warning) |
 | "Session bootstrap failed" on every page | Wrong `NEXT_PUBLIC_SUPABASE_*` values, or migrations missing (the bootstrap RPC doesn't exist yet) |

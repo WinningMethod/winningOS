@@ -73,7 +73,7 @@ tests/ or scripts/        validation commands runnable in the plugin repo
 
 ### `IMPLEMENTATION.md` must state
 
-1. What the plugin does.
+1. What the plugin does, and its ecosystem role (`ECOSYSTEM.md`: Tables owner / App / Viewer / Bridge).
 2. `compatibility: core-v0` (and the Core commit/tag it was last verified against).
 3. Exact install steps (copy/subtree command + the one-line registry edit + migration install command).
 4. Required environment variables (server-only names; never `NEXT_PUBLIC_*` secrets).
@@ -137,6 +137,26 @@ export type WinningOSPluginManifest = {
    * uninstalled after, and expose what this plugin uses via publicTables.
    */
   dependsOn?: { pluginId: string; minVersion: string }[]
+  /**
+   * Named extension points this plugin's UI offers to other plugins
+   * (ECOSYSTEM.md "Modules"). Contributors target `{this_plugin_id}:{slot id}`;
+   * the host renders contributions via `resolveSlotModules` and documents each
+   * slot's context shape in its IMPLEMENTATION.md.
+   */
+  slots?: { id: string; description: string }[]
+  /**
+   * Components this plugin mounts into other plugins' declared slots
+   * (`{host_plugin_id}:{slot_id}`). A module renders only when the host is
+   * installed, declares the slot, and the member holds `permission` (owned by
+   * the CONTRIBUTING plugin). How a Bridge surfaces joined data inside a host
+   * App/Viewer without either side knowing the other's code.
+   */
+  modules?: {
+    slot: string
+    title: string
+    component: React.ComponentType<PluginModuleProps>
+    permission: `plugin.${string}.${string}`
+  }[]
 }
 ```
 
@@ -144,7 +164,8 @@ Rules:
 
 - The manifest is the **single source of declarations**. Validators compare it against migrations and permission constants; drift fails review.
 - `routes` keys are plugin-relative (`""`, `"/new"`, `"/items/[id]"`). Core mounts them under `/p/{plugin_id}` — collisions with Core routes or other plugins are structurally impossible. Exact keys win over `[param]` keys. Route components may optionally accept the Next-style page props Core's host forwards: `params` (a Promise resolving to the `[name]` bindings from the matched route key) and `searchParams` (Next's promise, untouched); prop-less components simply ignore them.
-- Declare `tables`, `publicTables`, permission keys, and `dependsOn` pluginIds as **string literals** (not computed values) — the validators read them statically, and a value they cannot read fails the build.
+- Declare `tables`, `publicTables`, permission keys, `dependsOn` pluginIds, slot ids, and module slot targets as **string literals** (not computed values) — the validators read them statically, and a value they cannot read fails the build.
+- A module may target a slot whose host plugin is **not installed** — it stays dormant and renders nowhere. But if the host IS registered, the slot must exist in its manifest (`plugins:validate` catches the typo). Modules never target the contributing plugin's own slots.
 - Everything the plugin renders receives Core context via the Plugin API, not via props smuggled around the shell.
 
 ## Installation (exactly one blessed path)
@@ -178,6 +199,7 @@ ensureCoreSession            profile / membership / workspace context
 pluginPermission helpers     has(sessionRole, "plugin.{id}.{action}") via live grants
 createClient / service-role  Supabase access under Core conventions
 logCoreAuditEvent            best-effort audit append (plugin.{id}.{event} actions)
+resolveSlotModules           permission-filtered module contributions for a host slot
 UI kit                       components/ui/* (Button, Card, Input, ...) + theme tokens
 PageContainer / PageHeader   so plugin pages match the shell
 ```
@@ -210,6 +232,10 @@ Enforcement:
 
 ## Sharing data across plugins (dependencies)
 
+This section defines the mechanics; `ECOSYSTEM.md` defines the repository
+**roles** built on them (Tables owners, Apps, Viewers, Bridges), the
+slot/module extension system, and how to pick a role for a new plugin repo.
+
 Plugins should not recreate each other's data. A Client Changelog plugin that tracks changes to a CRM plugin's clients should reference `plugin_crm_clients` — not maintain a second client list. But undeclared cross-plugin coupling is how ecosystems rot, so reuse is allowed **only** through declared dependencies:
 
 **Reading:**
@@ -219,7 +245,9 @@ Plugins should not recreate each other's data. A Client Changelog plugin that tr
 
 **Writing:**
 
-- Never directly. A plugin writes another plugin's tables only through server functions/RPCs the owning plugin deliberately exposes — the same rule plugins already follow for Core tables.
+- Only when the owner is built for it. A Tables owner that intends other plugins to write its domain (Apps — `ECOSYSTEM.md`) says so in its `IMPLEMENTATION.md`, keeps authenticated RLS write policies as the boundary, and — the load-bearing rule — **enforces its semantic invariants in the database itself** (checks, FKs, triggers), never only in its own UI code. Writers then use the user client under the owner's RLS write policies, gated by the owner's own edit/manage grants — exactly the path the owner's built-in UI takes. With invariants in the schema, N writers (the owner's UI, Apps, ingestion endpoints) cannot drift apart.
+- An owner without authenticated write policies (synced-data owners like a Meta mirror, whose writes are engine/service-role only) is not writable by other plugins, period.
+- Plugins never write **Core** tables directly — Core writes go through Core's exposed server functions/RPCs, unchanged.
 
 **Ordering and lifecycle (this is where undeclared coupling bites):**
 
