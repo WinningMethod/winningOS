@@ -73,7 +73,7 @@ tests/ or scripts/        validation commands runnable in the plugin repo
 
 ### `IMPLEMENTATION.md` must state
 
-1. What the plugin does.
+1. What the plugin does, and its ecosystem role (`ECOSYSTEM.md`: Tables owner / Viewer / Bridge).
 2. `compatibility: core-v0` (and the Core commit/tag it was last verified against).
 3. Exact install steps (copy/subtree command + the one-line registry edit + migration install command).
 4. Required environment variables (server-only names; never `NEXT_PUBLIC_*` secrets).
@@ -209,6 +209,10 @@ Enforcement:
 - SQL sharp edges the template encodes (all hit in Core's own history): policy helper functions run as the querying role; `ON CONFLICT` must use the named-constraint form inside PL/pgSQL when output columns shadow column names; qualify columns when output parameters could collide; resolve the workspace structurally (`deleted_at is null`, oldest first) — **never by slug**.
 
 ## Sharing data across plugins (dependencies)
+
+This section defines the mechanics; `ECOSYSTEM.md` defines the repository
+**roles** built on them (Tables owners, Viewers, Bridges) and how to pick one
+for a new plugin repo.
 
 Plugins should not recreate each other's data. A Client Changelog plugin that tracks changes to a CRM plugin's clients should reference `plugin_crm_clients` — not maintain a second client list. But undeclared cross-plugin coupling is how ecosystems rot, so reuse is allowed **only** through declared dependencies:
 
