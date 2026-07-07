@@ -211,21 +211,33 @@ for (const pluginId of registeredIds) {
 
   pass(`plugin ${pluginId} imports Core only via @/core/plugins/api`)
 
+  const manifestText = readFileSync(join(pluginDir, "manifest.ts"), "utf8")
+
+  // Parsed early because the namespace-ownership check below consults it.
+  // Code lines only — the template ships a commented dependsOn example.
+  const dependsOnIds = [...stripLineComments(manifestText).matchAll(/pluginId:\s*"([a-z][a-z0-9_]*)"/g)]
+    .map((match) => match[1])
+    .filter((id, index, all) => all.indexOf(id) === index)
+
   // Namespace ownership: every plugin permission/table literal in the source
-  // belongs to this plugin. (Literals are the contract: tables, publicTables,
-  // dependsOn, and permission keys must be written as string literals so
-  // validators can read them.) Code lines only — comments may cite examples.
+  // belongs to this plugin — EXCEPT keys of declared dependsOn owners, which
+  // an App/Viewer may reference read-only (capability checks against the
+  // owner's grants; ECOSYSTEM.md write model). Registration stays own-only:
+  // the migration check below rejects foreign keys unconditionally.
+  // (Literals are the contract: tables, publicTables, dependsOn, and
+  // permission keys must be written as string literals so validators can
+  // read them.) Code lines only — comments may cite examples.
   const permissionLiterals = new Set(
     stripLineComments(sourceText).match(/plugin\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*/g) ?? [],
   )
 
   for (const key of permissionLiterals) {
-    if (!key.startsWith(`plugin.${pluginId}.`)) {
-      fail(`plugin ${pluginId} references foreign permission key ${key}`)
+    const keyOwner = key.split(".")[1]
+
+    if (keyOwner !== pluginId && !dependsOnIds.includes(keyOwner)) {
+      fail(`plugin ${pluginId} references permission key ${key} of a plugin it does not depend on`)
     }
   }
-
-  const manifestText = readFileSync(join(pluginDir, "manifest.ts"), "utf8")
   const declaredTables = new Set(stripLineComments(manifestText).match(/plugin_[a-z][a-z0-9_]*/g) ?? [])
   const foreignTables = [...declaredTables].filter((table) => !table.startsWith(`plugin_${pluginId}_`))
 
@@ -264,6 +276,19 @@ for (const pluginId of registeredIds) {
     pass(`plugin ${pluginId} migrations leave core_ tables alone`)
   }
 
+  // Referencing a dependsOn owner's keys in code is sanctioned; REGISTERING
+  // (or granting) a foreign key in migrations never is.
+  const migrationPermissionKeys = pluginMigrationText.match(/plugin\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*/g) ?? []
+  const foreignMigrationKeys = [...new Set(migrationPermissionKeys)].filter(
+    (key) => key.split(".")[1] !== pluginId,
+  )
+
+  if (foreignMigrationKeys.length > 0) {
+    fail(`plugin ${pluginId} migrations touch foreign permission keys (${foreignMigrationKeys.join(", ")}) — registration is own-namespace only`)
+  } else {
+    pass(`plugin ${pluginId} migrations register only own-namespace permission keys`)
+  }
+
   if (/slug\s*=\s*'/.test(pluginMigrationText)) {
     fail(`plugin ${pluginId} migrations resolve the workspace by slug — resolve structurally (deleted_at is null, oldest)`)
   } else {
@@ -271,12 +296,7 @@ for (const pluginId of registeredIds) {
   }
 
   // Dependencies: every dependsOn target is registered EARLIER (install order),
-  // and cross-plugin FKs hit the owner's declared publicTables only. Parse code
-  // lines only — the template ships a commented dependsOn example by design.
-  const dependsOnIds = [...stripLineComments(manifestText).matchAll(/pluginId:\s*"([a-z][a-z0-9_]*)"/g)]
-    .map((match) => match[1])
-    .filter((id, index, all) => all.indexOf(id) === index)
-
+  // and cross-plugin FKs hit the owner's declared publicTables only.
   for (const dependencyId of dependsOnIds) {
     const dependencyIndex = registeredIds.indexOf(dependencyId)
 

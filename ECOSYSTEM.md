@@ -64,6 +64,12 @@ declares `dependsOn` its owner and both **reads and writes** the owner's
 - Writes go through the **user client under the owner's RLS write
   policies**, gated by the owner's own edit/manage grants — exactly the
   path the owner's built-in CRUD takes. No service role, no side channel.
+- Because write capability is the owner's grant, an App may **reference**
+  its declared owner's permission keys read-only (capability checks that
+  decide whether to render edit affordances). Registering or granting a
+  foreign key stays forbidden — `plugins:validate` allows the reference
+  only for `dependsOn` owners and rejects foreign keys in migrations
+  unconditionally.
 - An App can only exist on a **user-content owner** (authenticated write
   policies are the write path). Synced-data owners have none, so a
   "Meta App" is structurally impossible — by design.

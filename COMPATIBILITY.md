@@ -246,6 +246,7 @@ Plugins should not recreate each other's data. A Client Changelog plugin that tr
 **Writing:**
 
 - Only when the owner is built for it. A Tables owner that intends other plugins to write its domain (Apps — `ECOSYSTEM.md`) says so in its `IMPLEMENTATION.md`, keeps authenticated RLS write policies as the boundary, and — the load-bearing rule — **enforces its semantic invariants in the database itself** (checks, FKs, triggers), never only in its own UI code. Writers then use the user client under the owner's RLS write policies, gated by the owner's own edit/manage grants — exactly the path the owner's built-in UI takes. With invariants in the schema, N writers (the owner's UI, Apps, ingestion endpoints) cannot drift apart.
+- A writer may therefore **reference** its declared owner's permission keys read-only (e.g. `roleHasPluginPermission(role, "plugin.crm_b2b.edit")` to decide whether to render edit affordances). `plugins:validate` permits foreign permission literals only for `dependsOn` owners, and never in migrations — registration and granting stay own-namespace only.
 - An owner without authenticated write policies (synced-data owners like a Meta mirror, whose writes are engine/service-role only) is not writable by other plugins, period.
 - Plugins never write **Core** tables directly — Core writes go through Core's exposed server functions/RPCs, unchanged.
 
