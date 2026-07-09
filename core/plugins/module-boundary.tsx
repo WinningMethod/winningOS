@@ -1,6 +1,6 @@
 "use client"
 
-import { Component, type ReactNode } from "react"
+import { Component, type ErrorInfo, type ReactNode } from "react"
 
 type SlotModuleBoundaryProps = {
   /** The contributing plugin's id, shown in the failure note. */
@@ -30,10 +30,14 @@ export class SlotModuleBoundary extends Component<SlotModuleBoundaryProps, SlotM
     return { failed: true }
   }
 
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error(`Slot module for ${this.props.pluginId} failed to render`, { error, info })
+  }
+
   render() {
     if (this.state.failed) {
       return (
-        <p className="text-sm text-muted-foreground">
+        <p role="alert" className="text-sm text-muted-foreground">
           The {this.props.pluginId} module failed to render.
         </p>
       )
