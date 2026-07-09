@@ -233,7 +233,7 @@ Enforcement:
 ## Sharing data across plugins (dependencies)
 
 This section defines the mechanics; `ECOSYSTEM.md` defines the repository
-**roles** built on them (Tables owners, Apps, Viewers, Bridges), the
+**roles** built on them (Tables owners, Apps, Viewers, Bridges, Connectors), the
 slot/module extension system, and how to pick a role for a new plugin repo.
 
 Plugins should not recreate each other's data. A Client Changelog plugin that tracks changes to a CRM plugin's clients should reference `plugin_crm_clients` — not maintain a second client list. But undeclared cross-plugin coupling is how ecosystems rot, so reuse is allowed **only** through declared dependencies:
