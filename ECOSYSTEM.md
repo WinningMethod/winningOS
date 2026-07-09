@@ -42,7 +42,7 @@ Two flavors, distinguished by where the data comes from:
   UI to admins (or de-grant it).
 
 A user-content owner may additionally be **connector-fed** (e.g.
-`meeting_tables`): its public tables carry provenance columns (`provider`,
+`recordings_tables`): its public tables carry provenance columns (`provider`,
 `external_id` with a dedupe unique) so Connector plugins can ingest external
 rows via service role alongside user CRUD. The flavors describe the write
 paths, and they compose — what never changes is that all paths obey the
@@ -188,8 +188,8 @@ Connector rules:
   registers, grants, or rides the owner's permission keys — its writes are
   service-role, so the only keys it needs are its own.
 
-Naming: `Winning{Domain}{Tool}` (e.g. `WinningMeetingGMeet`,
-`WinningMeetingFathom`); plugin ids `{domain}_{tool}` (`meeting_gmeet`).
+Naming: `Winning{Domain}{Tool}` (e.g. `WinningRecordingsGMeet`,
+`WinningRecordingsFathom`); plugin ids `{domain}_{tool}` (`recordings_gmeet`).
 
 ## Modules — how a Bridge shows up inside an App or Viewer
 
@@ -318,11 +318,11 @@ repo against that role's column above.
 | `WinningCRMApp` (`crm_app`) | App — GoHighLevel-style working surface on `crm_b2b` |
 | `WinningPMTables` (`pm_tables`) | Tables — user-content owner (projects → lists → statuses → tasks) |
 | `WinningPMApp` (`pm_app`) | App — ClickUp-style task surface on `pm_tables`; hosts the bridge slots |
-| `WinningMeetingTables` (`meeting_tables`) | Tables — user-content owner, **connector-fed** (manual logging + provider ingestion) |
-| Future `WinningMeetingGMeet` (`meeting_gmeet`) | Connector — Google Meet recordings → `meeting_tables` |
-| Future `WinningMeetingFathom` (`meeting_fathom`) | Connector — Fathom recordings → `meeting_tables` |
+| `WinningRecordingsTables` (`recordings_tables`) | Tables — user-content owner, **connector-fed** (manual logging + provider ingestion) |
+| Future `WinningRecordingsGMeet` (`recordings_gmeet`) | Connector — Google Meet recordings → `recordings_tables` |
+| Future `WinningRecordingsFathom` (`recordings_fathom`) | Connector — Fathom recordings → `recordings_tables` |
 | Future `WinningPMCRMBridge` (`pm_crm`) | Bridge — tasks ↔ CRM companies/locations/contacts/deals; modules into `pm_app`/CRM slots |
 | Future `WinningPMMetaBridge` (`pm_meta`) | Bridge — tasks ↔ Meta accounts/campaigns |
 | Future `WinningMetaCRMBridge` | Bridge — attaches Meta campaigns to CRM companies/locations; ships modules into CRM App/Viewer slots |
-| Future `WinningMeetingCRMBridge` | Bridge — recordings ↔ CRM contacts/companies; modules into CRM and Meeting pages |
-| Future `WinningMeetingAnalyzer` | Tables (derived) — call analysis over `meeting_tables` transcripts, own result tables |
+| Future `WinningRecordingsCRMBridge` | Bridge — recordings ↔ CRM contacts/companies; modules into CRM and Recordings pages |
+| Future `WinningRecordingsAnalyzer` | Tables (derived) — call analysis over `recordings_tables` transcripts, own result tables |
