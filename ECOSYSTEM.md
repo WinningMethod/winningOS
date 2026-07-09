@@ -195,6 +195,12 @@ Rules:
   a domain its plugin couldn't otherwise write.
 - Hosts render nothing (not an empty frame) when a slot has no modules —
   slots are invisible until something fills them.
+- Core wraps every module resolved through `resolveSlotModules` in an error
+  boundary: a module that throws while rendering on the client degrades to a
+  one-line failure note instead of crashing the host page. Boundaries only
+  catch client-side errors — a module whose server-component render throws
+  still fails the host route, so modules must degrade gracefully on their
+  own (missing context, empty data, upstream fetch failures).
 - `plugins:validate` checks slot-id format, module target format, that a
   module never targets its own plugin, and that a registered host actually
   declares any slot a module targets.

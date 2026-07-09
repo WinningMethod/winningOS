@@ -158,6 +158,16 @@ assertIncludes(read("core/permissions/data.ts"), "getPluginPermissionNamespaces"
 assertIncludes(read("core/permissions/actions.ts"), "isRegisteredPluginPermission", "grant editor accepts only registered plugin keys")
 assertIncludes(read("core/plugins/permissions.ts"), 'roleKey === "owner"', "plugin permission checks keep owner always-allowed")
 
+// Slot module containment: resolveSlotModules wraps every module in the
+// client error boundary, which must log the failure (not swallow it) and
+// announce the degraded note to assistive tech.
+const slotsSource = read("core/plugins/slots.ts")
+assertIncludes(slotsSource, "SlotModuleBoundary", "resolveSlotModules wraps modules in the slot module error boundary")
+
+const moduleBoundarySource = read("core/plugins/module-boundary.tsx")
+assertIncludes(moduleBoundarySource, "componentDidCatch", "slot module boundary logs the error it catches")
+assertIncludes(moduleBoundarySource, 'role="alert"', "slot module boundary announces its failure note to assistive tech")
+
 // ---------------------------------------------------------------------------
 // Installed plugins (deployment repos; vacuous while the registry is empty)
 // ---------------------------------------------------------------------------
