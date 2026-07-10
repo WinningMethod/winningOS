@@ -314,15 +314,15 @@ repo against that role's column above.
 |---|---|
 | `WinningMetaTables` (`meta_tables`) | Tables — synced-data owner (Meta Graph API) |
 | `WinningMetaViewer` (`meta_viewer`) | Viewer — skin #1 over `meta_tables` |
-| `WinningCRMTablesB2B` (`crm_b2b`) | Tables — user-content owner (reference CRUD, DB-enforced invariants, App-writable) |
+| `WinningCRMTablesB2B` (`crm_b2b`) | Tables — user-content owner (reference CRUD, DB-enforced invariants, App-writable); hosts `company_detail_panels` since 0.3.0 |
 | `WinningCRMApp` (`crm_app`) | App — GoHighLevel-style working surface on `crm_b2b` |
 | `WinningPMTables` (`pm_tables`) | Tables — user-content owner (projects → lists → statuses → tasks) |
 | `WinningPMApp` (`pm_app`) | App — ClickUp-style task surface on `pm_tables`; hosts the bridge slots |
 | `WinningRecordingsTables` (`recordings_tables`) | Tables — user-content owner, **connector-fed** (manual logging + provider ingestion) |
-| Future `WinningRecordingsGMeet` (`recordings_gmeet`) | Connector — Google Meet recordings → `recordings_tables` |
+| `WinningRecordingsGMeet` (`recordings_gmeet`) | Connector — Google Meet → `recordings_tables` (the first Connector) |
 | Future `WinningRecordingsFathom` (`recordings_fathom`) | Connector — Fathom recordings → `recordings_tables` |
 | Future `WinningPMCRMBridge` (`pm_crm`) | Bridge — tasks ↔ CRM companies/locations/contacts/deals; modules into `pm_app`/CRM slots |
 | Future `WinningPMMetaBridge` (`pm_meta`) | Bridge — tasks ↔ Meta accounts/campaigns |
 | Future `WinningMetaCRMBridge` | Bridge — attaches Meta campaigns to CRM companies/locations; ships modules into CRM App/Viewer slots |
-| Future `WinningRecordingsCRMBridge` | Bridge — recordings ↔ CRM contacts/companies; modules into CRM and Recordings pages |
-| Future `WinningRecordingsAnalyzer` | Tables (derived) — call analysis over `recordings_tables` transcripts, own result tables |
+| `WinningRecordingsCRMBridge` (`recordings_crm`) | Bridge — recordings ↔ CRM companies/contacts; the first live Modules (recording pages + CRM company pages) |
+| `WinningRecordingsAnalyzer` (`recordings_analyzer`) | Tables (derived) — call analysis over `recordings_tables` transcripts; module on recording pages |
