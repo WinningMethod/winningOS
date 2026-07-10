@@ -151,7 +151,8 @@ assertIncludes(barrelSource, '"default" ? "md" : size', "API barrel Button accep
 
 // Host integration points: nav group, settings tab, Roles-grid group, grant editor.
 assertIncludes(read("app/(app)/layout.tsx"), "getPluginNavItems", "app layout computes the plugin nav group server-side")
-assertIncludes(read("components/app/sidebar.tsx"), "pluginNavItems", "sidebar renders the plugin nav group")
+assertIncludes(read("components/app/sidebar.tsx"), "buildSidebarNav", "sidebar renders plugin nav entries through the per-user layout model")
+assertIncludes(read("lib/navigation.ts"), "toSidebarNavItems", "plugin nav entries merge into the unified sidebar item model")
 assertIncludes(read("lib/plugin-icons.ts"), "?? Puzzle", "unknown manifest icon names fall back to the Puzzle icon")
 assertIncludes(read("components/app/settings/settings-tabs.tsx"), '"plugins"', "settings has a Plugins tab")
 assertIncludes(read("core/permissions/data.ts"), "getPluginPermissionNamespaces", "Roles grid includes installed plugin permissions")

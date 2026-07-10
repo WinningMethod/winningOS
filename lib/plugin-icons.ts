@@ -14,16 +14,21 @@ import {
   Database,
   FileText,
   FolderOpen,
+  Home,
   ListChecks,
   MessageSquare,
   NotebookText,
   Puzzle,
+  Settings,
   StickyNote,
   Users,
   Wrench,
   type LucideIcon,
 } from "lucide-react"
 
+// Home and Settings exist for Core's own nav entries (lib/navigation.ts),
+// which share this resolver now that core and plugin items travel through the
+// same serializable sidebar model.
 const pluginIcons: Record<string, LucideIcon> = {
   BarChart3,
   Boxes,
@@ -34,10 +39,12 @@ const pluginIcons: Record<string, LucideIcon> = {
   Database,
   FileText,
   FolderOpen,
+  Home,
   ListChecks,
   MessageSquare,
   NotebookText,
   Puzzle,
+  Settings,
   StickyNote,
   Users,
   Wrench,

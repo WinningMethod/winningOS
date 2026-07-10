@@ -262,7 +262,8 @@ Plugins should not recreate each other's data. A Client Changelog plugin that tr
 
 ## Navigation and settings
 
-- Core owns the shell and final rendering. Plugin nav entries come from manifests, are permission-gated per entry, render in a "Plugins" sidebar group below Core items, and disappear automatically when the registry entry is removed.
+- Core owns the shell and final rendering. Plugin nav entries come from manifests, are permission-gated per entry, render by default in a "Plugins" sidebar group below Core items, and disappear automatically when the registry entry is removed.
+- Members may personally rearrange the sidebar (reorder, group under custom categories, nest as dropdown children, hide into the collapsed bottom section) via `core_nav_preferences`. This is per-user presentation state owned by Core (`lib/nav-layout.ts`): it never changes what a member is permitted to see, plugins cannot read or write it, and entries a layout references reappear in their saved position when the plugin or permission returns.
 - Plugins never: replace the shell; replace or reorder Home/Members/Settings; inject workspace switchers; add auth controls; render outside their `/p/{plugin_id}` subtree except via declared settings panels.
 - Plugin settings live under `Settings → Plugins → {name}` via the manifest's `settings` entry — never as new top-level Core settings tabs, and never provider/API-key fields inside Core's Workspace/Branding sections.
 
