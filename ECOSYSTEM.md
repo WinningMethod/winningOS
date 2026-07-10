@@ -314,8 +314,8 @@ repo against that role's column above.
 |---|---|
 | `WinningMetaTables` (`meta_tables`) | Tables — synced-data owner (Meta Graph API) |
 | `WinningMetaViewer` (`meta_viewer`) | Viewer — skin #1 over `meta_tables` |
-| `WinningCRMTablesB2B` (`crm_b2b`) | Tables — user-content owner (reference CRUD, DB-enforced invariants, App-writable); hosts `company_detail_panels` since 0.3.0 |
-| `WinningCRMApp` (`crm_app`) | App — GoHighLevel-style working surface on `crm_b2b` |
+| `WinningCRMTablesB2B` (`crm_b2b`) | Tables — user-content owner (reference CRUD, DB-enforced invariants, App-writable) |
+| `WinningCRMApp` (`crm_app`) | App — GoHighLevel-style working surface on `crm_b2b`; hosts `company_detail_panels` since 0.3.0 |
 | `WinningPMTables` (`pm_tables`) | Tables — user-content owner (projects → lists → statuses → tasks) |
 | `WinningPMApp` (`pm_app`) | App — ClickUp-style task surface on `pm_tables`; hosts the bridge slots |
 | `WinningRecordingsTables` (`recordings_tables`) | Tables — user-content owner, **connector-fed** (manual logging + provider ingestion) |
