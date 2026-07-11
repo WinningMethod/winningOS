@@ -325,4 +325,4 @@ repo against that role's column above.
 | Future `WinningPMMetaBridge` (`pm_meta`) | Bridge — tasks ↔ Meta accounts/campaigns |
 | Future `WinningMetaCRMBridge` | Bridge — attaches Meta campaigns to CRM companies/locations; ships modules into CRM App/Viewer slots |
 | `WinningRecordingsCRMBridge` (`recordings_crm`) | Bridge — recordings ↔ CRM companies/contacts; the first live Modules (recording pages + CRM company pages) |
-| `WinningRecordingsAnalyzer` (`recordings_analyzer`) | Tables (derived) — call analysis over `recordings_tables` transcripts; module on recording pages |
+| Future `WinningRecordingsAnalyzer` (`recordings_analyzer`) | Tables (derived) — call analysis over `recordings_tables` transcripts; module on recording pages |
