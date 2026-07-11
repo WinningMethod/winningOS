@@ -73,7 +73,7 @@ tests/ or scripts/        validation commands runnable in the plugin repo
 
 ### `IMPLEMENTATION.md` must state
 
-1. What the plugin does, and its ecosystem role (`ECOSYSTEM.md`: Tables owner / App / Viewer / Bridge).
+1. What the plugin does, and its ecosystem role (`ECOSYSTEM.md`: Tables owner / App / Viewer / Bridge / Connector).
 2. `compatibility: core-v0` (and the Core commit/tag it was last verified against).
 3. Exact install steps (copy/subtree command + the one-line registry edit + migration install command).
 4. Required environment variables (server-only names; never `NEXT_PUBLIC_*` secrets).
@@ -247,6 +247,7 @@ Plugins should not recreate each other's data. A Client Changelog plugin that tr
 
 - Only when the owner is built for it. A Tables owner that intends other plugins to write its domain (Apps — `ECOSYSTEM.md`) says so in its `IMPLEMENTATION.md`, keeps authenticated RLS write policies as the boundary, and — the load-bearing rule — **enforces its semantic invariants in the database itself** (checks, FKs, triggers), never only in its own UI code. Writers then use the user client under the owner's RLS write policies, gated by the owner's own edit/manage grants — exactly the path the owner's built-in UI takes. With invariants in the schema, N writers (the owner's UI, Apps, ingestion endpoints) cannot drift apart.
 - A writer may therefore **reference** its declared owner's permission keys read-only (e.g. `roleHasPluginPermission(role, "plugin.crm_b2b.edit")` to decide whether to render edit affordances). `plugins:validate` permits foreign permission literals only for `dependsOn` owners, and never in migrations — registration and granting stay own-namespace only.
+- Connectors are the service-role ingestion exception defined in `ECOSYSTEM.md`: they declare `dependsOn` their target owner and write only that owner's `publicTables` plus their own sync-state tables, behind their own sync/manage grants and cron secret. They do not use user sessions, owner permission keys, or owner DDL; the owner's provenance columns, dedupe unique, and database-enforced invariants are the safety boundary.
 - An owner without authenticated write policies (synced-data owners like a Meta mirror, whose writes are engine/service-role only) is not writable by other plugins, period.
 - Plugins never write **Core** tables directly — Core writes go through Core's exposed server functions/RPCs, unchanged.
 
