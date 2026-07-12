@@ -31,7 +31,7 @@ Follow the repository shape in COMPATIBILITY.md exactly. The example plugin itse
 
 Beyond the shape, the template must include:
 
-1. **A `CREATING_A_PLUGIN.md`** — step-by-step "fork this template" guide: rename checklist (plugin_id appears in folder name, manifest, permissions.ts, every migration, uninstall.sql, env var prefix), then the acceptance checklist from COMPATIBILITY.md copied in as the PR gate.
+1. **A `CREATING_A_PLUGIN.md`** — step-by-step "fork this template" guide: rename checklist (plugin_id appears in folder name, manifest, permissions.ts, every migration, uninstall.sql, env var prefix), then the acceptance checklist from COMPATIBILITY.md copied in as the PR gate. The guide's manifest walkthrough must cover the sidebar rule: a satellite plugin (Viewer, Bridge, Connector — anything orbiting a domain owner) declares `navRollup: { into: "{host_id}" }` so its nav entries roll up under the host's primary entry instead of adding top-level sidebar noise; only the domain's primary plugin (its Tables owner or App) hosts a top-level entry.
 2. **Validation scripts** in the plugin repo (`npm run plugin:validate` style, mirroring Core's string-assertion validator pattern) that assert: manifest/permissions/migrations/uninstall stay in lockstep; every table in the manifest appears in a migration with `enable row level security`; no `NEXT_PUBLIC_` secret names; no `core_` table DDL; no slug-based workspace resolution; ON CONFLICT uses named constraints inside plpgsql.
 3. **`IMPLEMENTATION.md`** filled in for the example plugin itself — all ten required points, so template users have a worked example, not a blank form.
 

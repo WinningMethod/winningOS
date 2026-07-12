@@ -110,6 +110,12 @@ Row visibility inside a viewer is governed by the **owner's** view grant
 (RLS on the owner's tables); the viewer's own `view` permission gates its
 UI. A viewer can never show more than its owner allows.
 
+**Sidebar rule:** a Viewer declares `navRollup: { into: "{owner_id}" }` in
+its manifest. The domain keeps ONE sidebar entry — the owner's (or primary
+App's) — and the viewer's entries appear as its dropdown children. A
+top-level sidebar entry per skin is exactly the noise the rollup contract
+exists to prevent (see COMPATIBILITY.md "Navigation and settings").
+
 Naming: `Winning{Domain}Viewer`, `Winning{Domain}Viewer2`, … — the number
 is a different skin, not a version.
 
@@ -136,6 +142,11 @@ Bridge rules:
   them (the validator enforces the ordering).
 - Its own UI stays minimal: the surfaces needed to create/inspect
   attachments. Its real presentation payload ships as **Modules** (below).
+- **Sidebar rule:** a Bridge that declares nav entries at all rolls them up
+  with `navRollup: { into: ... }` targeting the owner it primarily extends
+  (usually the one whose App/Viewer hosts its modules). Most Bridges need
+  no nav entries of their own — Modules render inside their hosts. A
+  top-level sidebar entry for a Bridge is a review flag.
 - A bridge MAY declare its join tables as `publicTables` — that is how a
   blended viewer ("Meta performance by CRM company") gets built: it
   `dependsOn` both owners **and** the bridge, and reads all three. The
@@ -240,6 +251,7 @@ owner ships its own reference CRUD.
 | `publicTables` | the stable interface | none | none | join tables (optional) |
 | `slots` / `modules` | may host slots | hosts slots | hosts slots | ships modules |
 | UI | synced: raw browser + settings · user-content: reference CRUD | full product UX | presentation | attach/inspect + modules |
+| Sidebar nav | hosts the domain's entry (or rolls up under its App) | hosts the domain's entry | `navRollup` into owner/App | none, or `navRollup` into primary host |
 | External APIs / ingestion | yes (it is the sync point) | never | never | never |
 | Per domain | exactly one | few (usually one) | any number | one per relationship |
 
