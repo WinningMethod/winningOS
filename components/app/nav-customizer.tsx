@@ -136,6 +136,34 @@ function ItemLabel({ item }: { item: SidebarNavItem }) {
   )
 }
 
+// Entries rolled up from satellite plugins (manifest navRollup). They travel
+// with their parent and are not individually editable here, so they render as
+// informational rows without controls.
+function RollupChildren({ item, indentClass = "pl-7" }: { item: SidebarNavItem; indentClass?: string }) {
+  if (!item.children?.length) {
+    return null
+  }
+
+  return (
+    <ul className="flex flex-col">
+      {item.children.map((child) => {
+        const Icon = resolvePluginNavIcon(child.iconName)
+
+        return (
+          <li
+            key={child.key}
+            title="Grouped by plugin — moves with its parent"
+            className={cn("flex items-center gap-2 py-1 pr-1 text-sm text-muted-foreground", indentClass)}
+          >
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="truncate">{child.label}</span>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 export function NavCustomizer({
   items,
   layout,
@@ -165,11 +193,19 @@ export function NavCustomizer({
 
   // Nest a childless top-level item under the node directly above it — a
   // group gains a member, a plain item becomes a parent with a dropdown.
+  // Rollup clusters may join groups but not another item's dropdown (their
+  // own children would end up at an unreachable depth).
   const nestUnderPrevious = (index: number) =>
     setState((current) => {
       const node = current.nodes[index]
 
       if (index === 0 || node.kind !== "item" || node.children.length > 0) {
+        return current
+      }
+
+      const isCluster = (itemsByKey.get(node.key)?.children?.length ?? 0) > 0
+
+      if (isCluster && current.nodes[index - 1].kind !== "group") {
         return current
       }
 
@@ -273,24 +309,27 @@ export function NavCustomizer({
     }
 
     return (
-      <li key={key} className="flex items-center gap-1 rounded-md py-1 pl-7 pr-1 hover:bg-accent/50">
-        <ItemLabel item={item} />
-        <ControlButton label={`Move ${item.label} up`} onClick={() => moveChild(nodeIndex, childIndex, -1)} disabled={childIndex === 0}>
-          <ArrowUp className="h-3.5 w-3.5" />
-        </ControlButton>
-        <ControlButton
-          label={`Move ${item.label} down`}
-          onClick={() => moveChild(nodeIndex, childIndex, 1)}
-          disabled={childIndex === childCount - 1}
-        >
-          <ArrowDown className="h-3.5 w-3.5" />
-        </ControlButton>
-        <ControlButton label={`Move ${item.label} to top level`} onClick={() => promoteChild(nodeIndex, key)}>
-          <CornerUpLeft className="h-3.5 w-3.5" />
-        </ControlButton>
-        <ControlButton label={`Hide ${item.label}`} onClick={() => hideChild(nodeIndex, key)}>
-          <EyeOff className="h-3.5 w-3.5" />
-        </ControlButton>
+      <li key={key}>
+        <div className="flex items-center gap-1 rounded-md py-1 pl-7 pr-1 hover:bg-accent/50">
+          <ItemLabel item={item} />
+          <ControlButton label={`Move ${item.label} up`} onClick={() => moveChild(nodeIndex, childIndex, -1)} disabled={childIndex === 0}>
+            <ArrowUp className="h-3.5 w-3.5" />
+          </ControlButton>
+          <ControlButton
+            label={`Move ${item.label} down`}
+            onClick={() => moveChild(nodeIndex, childIndex, 1)}
+            disabled={childIndex === childCount - 1}
+          >
+            <ArrowDown className="h-3.5 w-3.5" />
+          </ControlButton>
+          <ControlButton label={`Move ${item.label} to top level`} onClick={() => promoteChild(nodeIndex, key)}>
+            <CornerUpLeft className="h-3.5 w-3.5" />
+          </ControlButton>
+          <ControlButton label={`Hide ${item.label}`} onClick={() => hideChild(nodeIndex, key)}>
+            <EyeOff className="h-3.5 w-3.5" />
+          </ControlButton>
+        </div>
+        <RollupChildren item={item} indentClass="pl-12" />
       </li>
     )
   }
@@ -369,7 +408,11 @@ export function NavCustomizer({
                   <ControlButton
                     label={`Nest ${item.label} under the entry above`}
                     onClick={() => nestUnderPrevious(index)}
-                    disabled={index === 0 || node.children.length > 0}
+                    disabled={
+                      index === 0
+                      || node.children.length > 0
+                      || ((item.children?.length ?? 0) > 0 && state.nodes[index - 1].kind !== "group")
+                    }
                   >
                     <CornerDownRight className="h-3.5 w-3.5" />
                   </ControlButton>
@@ -377,6 +420,7 @@ export function NavCustomizer({
                     <EyeOff className="h-3.5 w-3.5" />
                   </ControlButton>
                 </div>
+                <RollupChildren item={item} />
                 {node.children.length > 0 && (
                   <ul className="flex flex-col gap-0.5">
                     {node.children.map((key, childIndex) => renderChild(index, key, childIndex, node.children.length))}

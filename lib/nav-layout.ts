@@ -29,7 +29,11 @@ export type NavLayout = {
 }
 
 // Resolved tree the sidebar renders after reconciling a layout against the
-// viewer's visible items.
+// viewer's visible items. An item node's `children` are LAYOUT children (the
+// user nested them); items may additionally carry intrinsic `children` of
+// their own (plugin nav rollups — see lib/navigation.ts). Rendering shows
+// intrinsic children first, then layout children; the customizer edits only
+// the latter.
 export type SidebarNavNode =
   | { kind: "item"; item: SidebarNavItem; children: SidebarNavItem[] }
   | { kind: "group"; label: string; children: SidebarNavItem[] }
@@ -160,13 +164,19 @@ export function buildSidebarNav(items: SidebarNavItem[], layout: NavLayout | nul
   const byKey = new Map(items.map((item) => [item.key, item]))
   const placed = new Set<string>()
 
-  const resolveChildren = (keys: string[] | undefined): SidebarNavItem[] => {
+  // Groups may contain rollup clusters (they still render their dropdown
+  // there), but an item's dropdown may not: a cluster nested inside another
+  // item's dropdown would put the cluster's own children at an unreachable
+  // depth. A disallowed cluster is left unplaced and falls through to a
+  // top-level append, so a layout saved before the item became a rollup host
+  // degrades safely.
+  const resolveChildren = (keys: string[] | undefined, allowClusters: boolean): SidebarNavItem[] => {
     const children: SidebarNavItem[] = []
 
     for (const key of keys ?? []) {
       const item = byKey.get(key)
 
-      if (item && !placed.has(key)) {
+      if (item && !placed.has(key) && (allowClusters || !item.children?.length)) {
         placed.add(key)
         children.push(item)
       }
@@ -183,11 +193,11 @@ export function buildSidebarNav(items: SidebarNavItem[], layout: NavLayout | nul
 
       if (item && !placed.has(node.key)) {
         placed.add(node.key)
-        nodes.push({ kind: "item", item, children: resolveChildren(node.children) })
+        nodes.push({ kind: "item", item, children: resolveChildren(node.children, false) })
       } else {
         // Parent is invisible but its children may still be: promote them so
         // losing access to a parent never hides its children too.
-        for (const child of resolveChildren(node.children)) {
+        for (const child of resolveChildren(node.children, true)) {
           nodes.push({ kind: "item", item: child, children: [] })
         }
       }
@@ -195,7 +205,7 @@ export function buildSidebarNav(items: SidebarNavItem[], layout: NavLayout | nul
       continue
     }
 
-    const children = resolveChildren(node.children)
+    const children = resolveChildren(node.children, true)
 
     if (children.length > 0) {
       nodes.push({ kind: "group", label: node.label, children })

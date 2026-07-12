@@ -19,24 +19,46 @@ export const coreNavItems: CoreNavItem[] = [
 // Plugin nav entries are computed server-side (permission-filtered against the
 // live grant map in core/plugins/navigation.ts) and passed to the client
 // sidebar as serializable data — icon is a name string resolved client-side
-// via lib/plugin-icons.ts, not a component reference.
+// via lib/plugin-icons.ts, not a component reference. `children` are entries
+// rolled up from satellite plugins (manifest navRollup, resolved in
+// core/plugins/nav-rollup.ts): registry-defined, one level deep.
 export type PluginNavItem = {
   pluginId: string
   label: string
   href: string
   iconName: string
+  children?: PluginNavItem[]
 }
 
 // One sidebar entry after core and plugin sources are merged. `key` is the
 // identity persisted in per-user layouts; it equals the href because hrefs are
 // unique across core routes and /p/{plugin} routes and stay stable across
 // renames of the visible label.
+//
+// `children` are intrinsic: rolled-up satellite entries that travel with the
+// item wherever a member's layout places it. They render as the item's
+// dropdown, are never separate layout keys, and hide/move with their parent —
+// a rolled-up function stays ONE sidebar entry.
 export type SidebarNavItem = {
   key: string
   label: string
   href: string
   iconName: string
   source: "core" | "plugin"
+  children?: SidebarNavItem[]
+}
+
+function pluginItemToSidebarItem(item: PluginNavItem): SidebarNavItem {
+  return {
+    key: item.href,
+    label: item.label,
+    href: item.href,
+    iconName: item.iconName,
+    source: "plugin",
+    ...(item.children && item.children.length > 0
+      ? { children: item.children.map(pluginItemToSidebarItem) }
+      : {}),
+  }
 }
 
 export function toSidebarNavItems(
@@ -51,12 +73,6 @@ export function toSidebarNavItems(
       iconName: item.iconName,
       source: "core" as const,
     })),
-    ...plugins.map((item) => ({
-      key: item.href,
-      label: item.label,
-      href: item.href,
-      iconName: item.iconName,
-      source: "plugin" as const,
-    })),
+    ...plugins.map(pluginItemToSidebarItem),
   ]
 }

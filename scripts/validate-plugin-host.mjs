@@ -78,7 +78,7 @@ const manifestSource = read("core/plugins/manifest.ts")
 assertIncludes(manifestSource, "export type WinningOSPluginManifest", "manifest module exports the core-v0 manifest type")
 assertIncludes(manifestSource, 'compatibility: "core-v0"', "manifest type pins the core-v0 compatibility literal")
 
-for (const field of ["permissions:", "navigation:", "routes: Record<string, React.ComponentType>", "tables:", "publicTables?:", "dependsOn?:", "slots?:", "modules?:"]) {
+for (const field of ["permissions:", "navigation:", "navRollup?:", "routes: Record<string, React.ComponentType>", "tables:", "publicTables?:", "dependsOn?:", "slots?:", "modules?:"]) {
   assertIncludes(manifestSource, field, `manifest type declares ${field.replace(/[:?].*$/, "")}`)
 }
 
@@ -152,6 +152,11 @@ assertIncludes(barrelSource, '"default" ? "md" : size', "API barrel Button accep
 // Host integration points: nav group, settings tab, Roles-grid group, grant editor.
 assertIncludes(read("app/(app)/layout.tsx"), "getPluginNavItems", "app layout computes the plugin nav group server-side")
 assertIncludes(read("components/app/sidebar.tsx"), "buildSidebarNav", "sidebar renders plugin nav entries through the per-user layout model")
+assertIncludes(read("core/plugins/navigation.ts"), "rollupPluginNavItems", "plugin nav resolves manifest navRollup declarations")
+
+const navRollupSource = read("core/plugins/nav-rollup.ts")
+assertIncludes(navRollupSource, "seen.has(target.pluginId)", "nav rollup resolution is cycle-guarded")
+assertIncludes(navRollupSource, "topLevel.push(...source.entries)", "unresolvable rollup hosts fall back to top-level entries")
 assertIncludes(read("lib/navigation.ts"), "toSidebarNavItems", "plugin nav entries merge into the unified sidebar item model")
 assertIncludes(read("lib/plugin-icons.ts"), "?? Puzzle", "unknown manifest icon names fall back to the Puzzle icon")
 assertIncludes(read("components/app/settings/settings-tabs.tsx"), '"plugins"', "settings has a Plugins tab")

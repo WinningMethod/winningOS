@@ -15,6 +15,60 @@ function isActivePath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/")
 }
 
+// A nav entry with a dropdown: intrinsic children (plugin rollups) render
+// first, then children the member nested via their personal layout. Expanded
+// state auto-follows the active route until the member toggles it by hand.
+function NavEntry({
+  item,
+  layoutChildren = [],
+  pathname,
+  onNavigate,
+}: {
+  item: SidebarNavItem
+  layoutChildren?: SidebarNavItem[]
+  pathname: string
+  onNavigate?: () => void
+}) {
+  const [expandedOverride, setExpandedOverride] = useState<boolean | null>(null)
+  const dropdown = [...(item.children ?? []), ...layoutChildren]
+
+  if (dropdown.length === 0) {
+    return <NavLink item={item} active={isActivePath(pathname, item.href)} onNavigate={onNavigate} />
+  }
+
+  const childActive = dropdown.some((child) => isActivePath(pathname, child.href))
+  const expanded = expandedOverride ?? childActive
+  const ToggleIcon = expanded ? ChevronDown : ChevronRight
+
+  return (
+    <>
+      <div className="flex items-center">
+        <div className="min-w-0 flex-1">
+          <NavLink item={item} active={isActivePath(pathname, item.href)} onNavigate={onNavigate} />
+        </div>
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-label={`${expanded ? "Collapse" : "Expand"} ${item.label} submenu`}
+          onClick={() => setExpandedOverride(!expanded)}
+          className="mr-1 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ToggleIcon className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {expanded && (
+        <ul className="flex flex-col gap-0.5 pt-0.5">
+          {dropdown.map((child) => (
+            <li key={child.key}>
+              <NavLink item={child} active={isActivePath(pathname, child.href)} nested onNavigate={onNavigate} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  )
+}
+
 function NavLink({
   item,
   active,
@@ -68,9 +122,6 @@ export function SidebarContent({
   const pathname = usePathname()
   const [customizing, setCustomizing] = useState(false)
   const [hiddenOpen, setHiddenOpen] = useState(false)
-  // Parent keys the user toggled by hand; unset parents fall back to
-  // auto-expanding while one of their children is the active route.
-  const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>({})
 
   const nav = useMemo(() => buildSidebarNav(navItems, navLayout), [navItems, navLayout])
 
@@ -111,58 +162,17 @@ export function SidebarContent({
                   <ul className="flex flex-col gap-0.5">
                     {node.children.map((item) => (
                       <li key={item.key}>
-                        <NavLink item={item} active={isActivePath(pathname, item.href)} onNavigate={onNavigate} />
+                        <NavEntry item={item} pathname={pathname} onNavigate={onNavigate} />
                       </li>
                     ))}
                   </ul>
                 </li>
               )
             }
-
-            if (node.children.length === 0) {
-              return (
-                <li key={node.item.key}>
-                  <NavLink item={node.item} active={isActivePath(pathname, node.item.href)} onNavigate={onNavigate} />
-                </li>
-              )
-            }
-
-            const childActive = node.children.some((child) => isActivePath(pathname, child.href))
-            const expanded = expandedOverrides[node.item.key] ?? childActive
-            const ToggleIcon = expanded ? ChevronDown : ChevronRight
 
             return (
               <li key={node.item.key}>
-                <div className="flex items-center">
-                  <div className="min-w-0 flex-1">
-                    <NavLink item={node.item} active={isActivePath(pathname, node.item.href)} onNavigate={onNavigate} />
-                  </div>
-                  <button
-                    type="button"
-                    aria-expanded={expanded}
-                    aria-label={`${expanded ? "Collapse" : "Expand"} ${node.item.label} submenu`}
-                    onClick={() =>
-                      setExpandedOverrides((current) => ({ ...current, [node.item.key]: !expanded }))
-                    }
-                    className="mr-1 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <ToggleIcon className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                {expanded && (
-                  <ul className="flex flex-col gap-0.5 pt-0.5">
-                    {node.children.map((item) => (
-                      <li key={item.key}>
-                        <NavLink
-                          item={item}
-                          active={isActivePath(pathname, item.href)}
-                          nested
-                          onNavigate={onNavigate}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <NavEntry item={node.item} layoutChildren={node.children} pathname={pathname} onNavigate={onNavigate} />
               </li>
             )
           })}
