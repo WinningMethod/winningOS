@@ -128,7 +128,7 @@ The app shell includes:
 - theme application
 - permission-aware navigation display
 
-Future plugins may request navigation entries through the compatibility contract, but they must not replace the core shell.
+Future plugins may request navigation entries through the compatibility contract, but they must not replace the core shell. Satellite plugins (Viewers, Bridges, Connectors orbiting a domain owner) declare `navRollup: { into: "{host_id}" }` so a whole function stays one sidebar entry — see COMPATIBILITY.md "Navigation and settings" and the sidebar rules in ECOSYSTEM.md. Members can additionally rearrange, group, and hide entries per-user (`core_nav_preferences`); neither mechanism changes what a member is permitted to see.
 
 ## Branding and theme boundary
 

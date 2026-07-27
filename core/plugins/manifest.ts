@@ -52,6 +52,20 @@ export type WinningOSPluginManifest = {
     /** Permission required to see the entry. */
     permission: PluginPermissionKey
   }[]
+  /**
+   * Roll this plugin's nav entries up under another plugin's primary (first
+   * visible) nav entry instead of adding top-level sidebar entries of its own.
+   * The idiom for Viewers and Bridges orbiting an owner App: the owner keeps
+   * the single sidebar entry for the function, satellites appear as its
+   * dropdown children. A hint, not a command — Core resolves it (chains
+   * collapse to the root plugin; cycles, uninstalled targets, or targets with
+   * no visible entries fall back to top-level entries so nothing disappears),
+   * and members can still rearrange everything per-user.
+   */
+  navRollup?: {
+    /** Installed plugin id whose primary nav entry hosts this plugin's entries. */
+    into: string
+  }
   /** Route table: path under /p/{id} → React component (server or client). */
   routes: Record<string, React.ComponentType>
   /** Optional Settings → Plugins panel. */

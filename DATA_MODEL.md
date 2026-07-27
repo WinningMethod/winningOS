@@ -53,6 +53,9 @@ core_role_permissions
 core_brand_settings
   Workspace branding and theme configuration
 
+core_nav_preferences
+  Per-member personal sidebar layout (groups, nesting, hidden items)
+
 core_audit_events
   Optional future table for important security/activity events
 ```
@@ -73,6 +76,7 @@ core_roles
 core_permissions
 core_role_permissions
 core_brand_settings
+core_nav_preferences
 ```
 
 ## `auth.users`
@@ -291,6 +295,37 @@ Notes:
 - The application should expose typed theme helpers rather than spreading raw JSON everywhere.
 - `theme_json` is a storage carrier, not the long-term component API. Components should consume named core theme tokens.
 - Branding is intended to be one row per workspace unless a future theme-history/versioning feature is explicitly designed. The first migration should enforce `UNIQUE(workspace_id)` so a workspace cannot accumulate conflicting active brand settings.
+
+## `core_nav_preferences`
+
+Stores each member's personal sidebar layout (migration
+`20260710120000_add_nav_preferences.sql`).
+
+Conceptual fields:
+
+```text
+id uuid primary key
+workspace_id uuid references core_workspaces(id)
+profile_id uuid references core_profiles(id)
+layout_json jsonb
+created_at timestamptz
+updated_at timestamptz
+```
+
+Notes:
+
+- One row per `(workspace_id, profile_id)`; absence of a row means the member
+  sees the default layout (Workspace group + Plugins group).
+- `layout_json` is presentation state, not authorization: it stores an ordered
+  tree of nav-item keys (top-level items, user-named groups, parent items with
+  dropdown children) plus a hidden list. `lib/nav-layout.ts` is the canonical
+  sanitizer/reconciler; items the member cannot see are skipped at render, and
+  visible items the layout never mentions are appended so nothing a member is
+  entitled to can disappear.
+- Reads go through RLS (own row only). Writes go through the
+  `core_save_nav_preferences` definer RPC (null layout resets to default).
+- Hiding an item only reduces sidebar noise — routes stay reachable and
+  permission checks are unaffected.
 
 ## Agent/plugin data boundary
 

@@ -8,7 +8,8 @@ import { ThemeToggle } from "@/components/app/theme-toggle"
 import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/ui/dropdown"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import type { PluginNavItem } from "@/lib/navigation"
+import type { SidebarNavItem } from "@/lib/navigation"
+import type { NavLayout } from "@/lib/nav-layout"
 import { cn } from "@/lib/utils"
 
 type AppShellProps = {
@@ -19,17 +20,18 @@ type AppShellProps = {
   profileName: string
   profileEmail: string | null
   roleKey: string
-  pluginNavItems?: PluginNavItem[]
+  navItems?: SidebarNavItem[]
+  navLayout?: NavLayout | null
 }
 
-export function AppShell({ children, workspaceName, brandLogoUrl, brandName, profileName, profileEmail, roleKey, pluginNavItems = [] }: AppShellProps) {
+export function AppShell({ children, workspaceName, brandLogoUrl, brandName, profileName, profileEmail, roleKey, navItems = [], navLayout = null }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar lg:block">
         <div className="sticky top-0 h-screen">
-          <SidebarContent brandLogoUrl={brandLogoUrl} brandName={brandName} pluginNavItems={pluginNavItems} />
+          <SidebarContent brandLogoUrl={brandLogoUrl} brandName={brandName} navItems={navItems} navLayout={navLayout} />
         </div>
       </aside>
 
@@ -49,7 +51,8 @@ export function AppShell({ children, workspaceName, brandLogoUrl, brandName, pro
             <SidebarContent
               brandLogoUrl={brandLogoUrl}
               brandName={brandName}
-              pluginNavItems={pluginNavItems}
+              navItems={navItems}
+              navLayout={navLayout}
               onNavigate={() => setMobileOpen(false)}
             />
           </div>
