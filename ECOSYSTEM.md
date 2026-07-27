@@ -1,4 +1,4 @@
-# Plugin Ecosystem Roles — Tables, Apps, Viewers, Bridges
+# Plugin Ecosystem Roles — Tables, Apps, Viewers, Bridges, Connectors
 
 `COMPATIBILITY.md` defines the mechanics of cross-plugin reuse (`dependsOn`,
 `publicTables`, slots/modules, install/uninstall order). This document
@@ -10,7 +10,7 @@ principle:
 > top of it are replaceable.** The dataset outlives any particular way of
 > looking at it — or working in it.
 
-## The four roles
+## The five roles
 
 ### Tables — the data owner (one per domain)
 
@@ -19,7 +19,10 @@ It declares `publicTables` as the domain's stable interface; everything not
 listed there is private and may change without notice. It is also the
 domain's **ingestion point**: external data enters through the owner — API
 syncs (`meta_tables` pulling the Graph API), webhooks, lead-form endpoints —
-never through a skin.
+never through a skin. When a domain has **multiple** external upstreams
+(meeting recordings arriving from both Google Meet and Fathom), the owner
+stays provider-neutral and ingestion is delegated to **Connector** plugins
+(below), one per external tool.
 
 Two flavors, distinguished by where the data comes from:
 
@@ -37,6 +40,13 @@ Two flavors, distinguished by where the data comes from:
   the ground-truth surface, and the reference implementation App authors
   copy. Deployments running a full App on top can simply leave the built-in
   UI to admins (or de-grant it).
+
+A user-content owner may additionally be **connector-fed** (e.g.
+`recordings_tables`): its public tables carry provenance columns (`provider`,
+`external_id` with a dedupe unique) so Connector plugins can ingest external
+rows via service role alongside user CRUD. The flavors describe the write
+paths, and they compose — what never changes is that all paths obey the
+owner's database-enforced invariants.
 
 **The multi-writer rule (load-bearing):** an owner that intends other
 plugins to write its domain must enforce its semantic invariants **in the
@@ -154,6 +164,44 @@ Bridge rules:
 
 Naming: `Winning{A}{B}Bridge` (e.g. `WinningMetaCRMBridge`).
 
+### Connector — an ingestion pipe (one per external tool)
+
+A Connector moves **one external tool's data into an existing Tables
+owner's domain**, normalizing as it goes. It is the split-out version of
+what a synced owner's engine does internally: `meta_tables` syncs the Graph
+API itself because Meta data has exactly one upstream; meeting recordings
+have many (Google Meet, Fathom, …), so the owner stays provider-neutral and
+each provider gets its own small plugin. All connectors for a domain land
+rows in the **same** owner tables — one normalized dataset, many pipes.
+
+Connector rules:
+
+- It declares `dependsOn` its target owner and writes the owner's
+  `publicTables` **via service role only** (its sync engine, behind its own
+  sync/manage grants and a cron secret) — machine ingestion, exactly like a
+  synced owner's engine, never through user sessions. Its writes touch only
+  the owner's `publicTables` plus its own state tables.
+- It owns **only its own state**: provider-account registrations, sync
+  runs, resume cursors (`plugin_{connector_id}_*`). No domain tables, no
+  DDL on the owner, no new columns — if the domain needs a field, that is a
+  feature request against the owner.
+- Every row it ingests carries the owner's provenance columns with the
+  connector's stable **provider key** (`gmeet`, `fathom`), and the owner's
+  dedupe unique makes re-syncs idempotent. The multi-writer rule applies
+  with full force: the owner's DB invariants are what keep a buggy
+  connector from corrupting the domain.
+- Its UI is **settings + sync status only**: credentials presence, account
+  mapping, a budgeted "Sync now" with cooldowns, a cron endpoint. No domain
+  presentation — the owner's UI, Viewers, and Apps do that.
+- Uninstalling a connector removes the pipe, not the water: ingested rows
+  persist in the owner (`uninstall.sql` drops only connector state).
+- One connector per external tool; any number per owner. A connector never
+  registers, grants, or rides the owner's permission keys — its writes are
+  service-role, so the only keys it needs are its own.
+
+Naming: `Winning{Domain}{Tool}` (e.g. `WinningRecordingsGMeet`,
+`WinningRecordingsFathom`); plugin ids `{domain}_{tool}` (`recordings_gmeet`).
+
 ## Modules — how a Bridge shows up inside an App or Viewer
 
 Joined data is only useful where people already work: Meta campaign numbers
@@ -229,11 +277,14 @@ Ask in order:
    Decide the flavor: synced (external upstream, engine writes, minimal raw
    UI) or user-content (RLS writes, reference CRUD, DB-enforced invariants,
    ingestion endpoints).
-2. **Does it let users work IN another plugin's data?** → It's an **App**
+2. **Does it move an external tool's data into a domain someone else
+   owns?** → It's a **Connector** (one per external tool; the owner must
+   carry provenance columns + a dedupe unique on the tables it feeds).
+3. **Does it let users work IN another plugin's data?** → It's an **App**
    (user-content owners only).
-3. **Does it present another plugin's data without changing it?** → It's a
+4. **Does it present another plugin's data without changing it?** → It's a
    **Viewer**.
-4. **Does it relate two owners' data?** → It's a **Bridge**, and its
+5. **Does it relate two owners' data?** → It's a **Bridge**, and its
    presentation ships as Modules into host slots.
 
 If a repo seems to need two of these roles, it is two repos. The one
@@ -242,18 +293,17 @@ owner ships its own reference CRUD.
 
 ## Rules at a glance
 
-| | Tables (owner) | App (surface) | Viewer (skin) | Bridge (join) |
-|---|---|---|---|---|
-| Owns tables | the domain schema | own UI-state only | own settings only | join tables only |
-| Reads | own | owner's `publicTables` | owner's `publicTables` | both owners' `publicTables` |
-| Writes | own tables | owner's `publicTables` under owner RLS | own settings only | own join tables only |
-| `dependsOn` | `[]` | its owner | its owner | both owners |
-| `publicTables` | the stable interface | none | none | join tables (optional) |
-| `slots` / `modules` | may host slots | hosts slots | hosts slots | ships modules |
-| UI | synced: raw browser + settings · user-content: reference CRUD | full product UX | presentation | attach/inspect + modules |
-| Sidebar nav | hosts the domain's entry (or rolls up under its App) | hosts the domain's entry | `navRollup` into owner/App | none, or `navRollup` into primary host |
-| External APIs / ingestion | yes (it is the sync point) | never | never | never |
-| Per domain | exactly one | few (usually one) | any number | one per relationship |
+| | Tables (owner) | App (surface) | Viewer (skin) | Bridge (join) | Connector (pipe) |
+|---|---|---|---|---|---|
+| Owns tables | the domain schema | own UI-state only | own settings only | join tables only | own sync state only |
+| Reads | own | owner's `publicTables` | owner's `publicTables` | both owners' `publicTables` | owner's `publicTables` + own state |
+| Writes | own tables | owner's `publicTables` under owner RLS | own settings only | own join tables only | owner's `publicTables` via service role |
+| `dependsOn` | `[]` | its owner | its owner | both owners | its owner |
+| `publicTables` | the stable interface | none | none | join tables (optional) | none |
+| `slots` / `modules` | may host slots | hosts slots | hosts slots | ships modules | neither (usually) |
+| UI | synced: raw browser + settings · user-content: reference CRUD | full product UX | presentation | attach/inspect + modules | settings + sync status only |
+| External APIs / ingestion | yes (it is the sync point) | never | never | never | yes — exactly one tool |
+| Per domain | exactly one | few (usually one) | any number | one per relationship | one per external tool |
 
 ## What enforces this
 
@@ -276,7 +326,14 @@ repo against that role's column above.
 | `WinningMetaTables` (`meta_tables`) | Tables — synced-data owner (Meta Graph API) |
 | `WinningMetaViewer` (`meta_viewer`) | Viewer — skin #1 over `meta_tables` |
 | `WinningCRMTablesB2B` (`crm_b2b`) | Tables — user-content owner (reference CRUD, DB-enforced invariants, App-writable) |
-| Future `WinningCRMApp` | App — GoHighLevel-style working surface on `crm_b2b` |
-| Future `WinningMetaViewer2` | Viewer — skin #2, same dataset, zero contract changes |
+| `WinningCRMApp` (`crm_app`) | App — GoHighLevel-style working surface on `crm_b2b`; hosts `company_detail_panels` since 0.3.0 |
+| `WinningPMTables` (`pm_tables`) | Tables — user-content owner (projects → lists → statuses → tasks) |
+| `WinningPMApp` (`pm_app`) | App — ClickUp-style task surface on `pm_tables`; hosts the bridge slots |
+| `WinningRecordingsTables` (`recordings_tables`) | Tables — user-content owner, **connector-fed** (manual logging + provider ingestion) |
+| `WinningRecordingsGMeet` (`recordings_gmeet`) | Connector — Google Meet → `recordings_tables` (the first Connector) |
+| Future `WinningRecordingsFathom` (`recordings_fathom`) | Connector — Fathom recordings → `recordings_tables` |
+| Future `WinningPMCRMBridge` (`pm_crm`) | Bridge — tasks ↔ CRM companies/locations/contacts/deals; modules into `pm_app`/CRM slots |
+| Future `WinningPMMetaBridge` (`pm_meta`) | Bridge — tasks ↔ Meta accounts/campaigns |
 | Future `WinningMetaCRMBridge` | Bridge — attaches Meta campaigns to CRM companies/locations; ships modules into CRM App/Viewer slots |
-| Future `WinningCRMViewer` | Viewer — reporting skins over `crm_b2b` `publicTables` |
+| `WinningRecordingsCRMBridge` (`recordings_crm`) | Bridge — recordings ↔ CRM companies/contacts; the first live Modules (recording pages + CRM company pages) |
+| Future `WinningRecordingsAnalyzer` (`recordings_analyzer`) | Tables (derived) — call analysis over `recordings_tables` transcripts; module on recording pages |
