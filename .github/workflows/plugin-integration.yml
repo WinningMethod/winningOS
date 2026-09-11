@@ -1,0 +1,46 @@
+name: Paired plugin integration
+on:
+  workflow_dispatch:
+    inputs:
+      core_commit:
+        description: Exact reviewed WinningOS commit SHA
+        required: true
+      template_commit:
+        description: Exact reviewed WinningTemplate commit SHA
+        required: true
+permissions:
+  contents: read
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require immutable inputs
+        env:
+          CORE_COMMIT: ${{ inputs.core_commit }}
+          TEMPLATE_COMMIT: ${{ inputs.template_commit }}
+        run: |
+          [[ "$CORE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$TEMPLATE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+      - uses: actions/checkout@v4
+        with:
+          repository: WinningMethod/winningOS
+          ref: ${{ inputs.core_commit }}
+          path: core
+          token: ${{ secrets.WINNING_REPO_READ_TOKEN }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: WinningMethod/WinningTemplate
+          ref: ${{ inputs.template_commit }}
+          path: template
+          token: ${{ secrets.WINNING_REPO_READ_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: core
+      - run: npm ci && npm run check
+        working-directory: template
+      - run: npm run plugins:integration -- ../template
+        working-directory: core

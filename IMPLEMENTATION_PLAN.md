@@ -268,3 +268,10 @@ Before adding plugin code, confirm:
 - plugin security expectations documented — done
 - plugin permission and navigation contribution rules documented — done
 - `Example_Plugin` explicitly approved as the next validation step — pending
+
+## Core 0.2.0 portability slice
+
+`PLUGIN_PORTABILITY.md` adds generic host extension points without installing a
+plugin into Core: registry-backed aliases/jobs, version/import validation, shared
+UI API and scratch-deployment proof. Live Supabase acceptance remains a release
+gate. No company-specific routes, providers or workflow models enter Core.

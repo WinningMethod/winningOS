@@ -6,6 +6,15 @@ This document is the specification that WinningOS build-time plugins are built a
 
 Status: **Core v0.1 is code-complete and the Phase 10 plugin host is shipped** (manifest type, registry, `/p/{plugin_id}` host route, nav/settings integration, API barrel, `plugins:validate`). The Phase 9 readiness gate (live migrations + the owner→viewer walkthrough in `TESTING.md`) and the scratch-deployment integration proof are what remain before real plugins are approved.
 
+## Core 0.2.0 portability additions
+
+`PLUGIN_PORTABILITY.md` defines the opt-in alias host, registered machine jobs,
+public code entrypoints, release minimums, shared UI additions, and paired
+integration proof. `core-v0` canonical routes and existing manifests remain
+supported; consumers of these additions declare `minCoreVersion: "0.2.0"`.
+The new validator also enforces existing dependency version requirements and
+rejects deployment imports that defeat registry-only removal.
+
 ## The three-repository model
 
 WinningOS separates framework from deployment. Three kinds of repositories exist, and the boundary between them is a hard rule:
@@ -98,6 +107,9 @@ export type WinningOSPluginManifest = {
   version: string
   /** Compatibility level this plugin was built and verified against. */
   compatibility: "core-v0"
+  minCoreVersion?: string
+  publicApi?: string[]
+  jobs?: Record<string, { secretEnv: string; run: () => Promise<void> }>
   /** Every permission the plugin registers. Format: plugin.{id}.{action}. */
   permissions: {
     key: `plugin.${string}.${string}`
@@ -266,7 +278,7 @@ Plugins should not recreate each other's data. A Client Changelog plugin that tr
 - Core owns the shell and final rendering. Plugin nav entries come from manifests, are permission-gated per entry, render by default in a "Plugins" sidebar group below Core items, and disappear automatically when the registry entry is removed.
 - Satellite plugins declare `navRollup: { into: "{host_plugin_id}" }` to contribute their nav entries as dropdown children of the host's primary (first visible) nav entry instead of top-level entries of their own. This is the expected shape for Viewers and Bridges orbiting an owner App — one function, ONE sidebar entry. It is a hint, not a command: Core resolves it (chains collapse to the root host; cycles, uninstalled hosts, or hosts with no visible entries fall back to top-level entries so nothing the member is entitled to disappears), each rolled entry keeps its own permission gate, and the whole cluster moves/hides as a single unit in per-user layouts.
 - Members may personally rearrange the sidebar (reorder, group under custom categories, nest as dropdown children, hide into the collapsed bottom section) via `core_nav_preferences`. This is per-user presentation state owned by Core (`lib/nav-layout.ts`): it never changes what a member is permitted to see, plugins cannot read or write it, and entries a layout references reappear in their saved position when the plugin or permission returns.
-- Plugins never: replace the shell; replace or reorder Home/Members/Settings; inject workspace switchers; add auth controls; render outside their `/p/{plugin_id}` subtree except via declared settings panels.
+- Plugins never: replace the shell; replace or reorder Home/Members/Settings; inject workspace switchers; add auth controls; render outside their `/p/{plugin_id}` subtree except via declared settings panels, slot modules, or deployment aliases resolved by the installed-plugin host (Core 0.2.0; `PLUGIN_PORTABILITY.md`).
 - Plugin settings live under `Settings → Plugins → {name}` via the manifest's `settings` entry — never as new top-level Core settings tabs, and never provider/API-key fields inside Core's Workspace/Branding sections.
 
 ## Secrets and external calls
@@ -276,6 +288,8 @@ Plugins should not recreate each other's data. A Client Changelog plugin that tr
 - Agent/chat plugins carry the highest secret/tool-execution risk; they follow this contract like everyone else and get extra review on provider credential storage and tool boundaries.
 
 ## Removal (three explicit levels)
+
+Registered job dispatch and deployment aliases follow the same registry switch.
 
 1. **Disable** — delete the plugin's line from `config/plugins.ts`. Routes 404, nav and settings entries vanish, Core builds and runs. Data, tables, and grants remain untouched. This must always be sufficient to "turn off" a plugin.
 2. **Remove source** — also delete `plugins/{plugin_id}/`. Same runtime result; the deployment no longer carries the code.

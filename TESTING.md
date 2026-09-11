@@ -100,3 +100,12 @@ Accounts used below:
 - [ ] Every failure above produced a specific, human-readable notice — no raw errors, no Supabase branding anywhere in UI or emails (#19, #26).
 - [ ] Recent activity now contains at least: workspace.updated, branding.updated, member.invited ×3+, member.role_changed, member.disabled, member.removed, role_permission.changed.
 - [ ] Vercel logs show no unexpected 500s during the run.
+
+## Plugin portability acceptance
+
+Run `npm run plugins:test` and `npm run plugins:integration -- /path/to/WinningTemplate`.
+These prove credential-free dispatch/version behavior and scratch builds; they never apply
+SQL. Then use a fresh isolated database to verify all roles and direct RLS writes.
+While authenticated, disable the leaf plugin: canonical URLs, aliases and job
+requests must stop; remove its source and rebuild; reinstall and confirm retained
+data. Record both commit SHAs and the live results before claiming portability.
