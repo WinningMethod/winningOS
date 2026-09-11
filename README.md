@@ -42,3 +42,9 @@ for creating the project and applying migrations.
 - `FRONTEND_BRIEF.md` and `V0_WIREFRAME_PROMPT.md` describe the static wireframe scope.
 
 Additional implementation work should land in small, reviewable PRs.
+
+## Portable extensions
+
+Core 0.2.0 adds registered route aliases, machine jobs, explicit public code APIs,
+minimum-version checks and shared UI exports. See `PLUGIN_PORTABILITY.md` for
+the contract, deployment upgrade steps and credential-free/live acceptance distinction.

@@ -34,6 +34,12 @@ export type WinningOSPluginManifest = {
   version: string
   /** Compatibility level this plugin was built and verified against. */
   compatibility: "core-v0"
+  /** Minimum Core release; new portability features require 0.2.0. */
+  minCoreVersion?: string
+  /** Explicit public code entrypoints, relative to the plugin folder. */
+  publicApi?: string[]
+  /** Authenticated machine entrypoints, dispatched only while installed. */
+  jobs?: Record<string, PluginJob>
   /** Every permission the plugin registers. Format: plugin.{id}.{action}. */
   permissions: {
     key: PluginPermissionKey
@@ -123,4 +129,19 @@ const PLUGIN_PERMISSION_KEY_PATTERN = /^plugin\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*
 
 export function isPluginPermissionKey(value: string): value is PluginPermissionKey {
   return PLUGIN_PERMISSION_KEY_PATTERN.test(value)
+}
+
+/** Jobs accept no caller-controlled payload. Interactive actions still use live grants. */
+export type PluginJob = {
+  /** Plugin-scoped server-only bearer secret, e.g. PLUGIN_MY_PLUGIN_CRON_SECRET. */
+  secretEnv: string
+  /** Bounded, idempotent engine; never assumes Core provides retries or locking. */
+  run: () => Promise<void>
+}
+
+/** Deployment-owned aliases contain metadata only, never imported plugin code. */
+export type PluginRouteAlias = {
+  path: string
+  pluginId: string
+  route: string
 }

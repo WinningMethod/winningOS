@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils"
+
 export function PageHeader({
   title,
   description,
@@ -20,6 +22,6 @@ export function PageHeader({
   )
 }
 
-export function PageContainer({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto w-full max-w-6xl px-4 py-6 lg:px-8 lg:py-8">{children}</div>
+export function PageContainer({ children, className }: { children?: React.ReactNode; className?: string }) {
+  return <div className={cn("mx-auto w-full max-w-6xl px-4 py-6 lg:px-8 lg:py-8", className)}>{children}</div>
 }

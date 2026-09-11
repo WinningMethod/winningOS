@@ -74,3 +74,17 @@ export const Button = forwardRef<HTMLButtonElement, PluginApiButtonProps>(
     return createElement(CoreButton, { ...props, ref, size: size === "default" ? "md" : size })
   },
 )
+
+// Additive Core 0.2.0 presentation API. All authorization stays with callers.
+export type { PluginJob, PluginRouteAlias } from "./manifest"
+import { roleHasLivePermission } from "@/core/permissions/grants"
+import { isPermissionKey } from "@/core/permissions/catalog"
+export async function roleHasCorePermission(roleKey: string | null | undefined, permission: string): Promise<boolean> {
+  return isPermissionKey(permission) && roleHasLivePermission(roleKey, permission)
+}
+export { ActionForm, type FormActionResult } from "@/components/app/action-form"
+export { ConfirmForm } from "@/components/app/confirm-form"
+export { RecordTable } from "@/components/app/record-table"
+export { SubmitButton } from "@/components/app/submit-button"
+export { QueryContextFields } from "@/components/app/query-context-fields"
+export { withQueryContext, type QueryContext } from "@/core/navigation/query-context"

@@ -142,3 +142,10 @@ Plugins reuse data instead of recreating it, through **declared dependencies** (
 ## House style, briefly
 
 Small reviewable PRs mapped to a plan doc; explicit and boring over clever; comments explain constraints, not narration; docs are agent-agnostic (any agent or human must be able to work from repo files alone); every behavioral rule gets a validator assertion so it can't silently regress. Match Core's tone in all documents — calm, declarative, no marketing.
+
+## Core 0.2.0 paired template update
+
+Mirror `minCoreVersion`, `publicApi`, `jobs`, `PluginJob`, `PluginRouteAlias` and
+the shared presentation API from `PLUGIN_PORTABILITY.md`. Keep standalone tooling
+outside `plugin/`. Run the API assignability and scratch lifecycle proof against
+the exact Core PR commit; do not infer parity from a handwritten stub alone.

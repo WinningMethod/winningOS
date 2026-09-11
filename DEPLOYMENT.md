@@ -278,3 +278,11 @@ Only for deployment repos (clones of Core with plugins installed):
 `.env.local` (gitignored) and Vercel env vars. Never commit them, never prefix
 them with `NEXT_PUBLIC_`, and rotate them if they leak. The anon key is public
 by design; RLS is the boundary.
+
+## Registered plugin jobs and product URLs
+
+See `PLUGIN_PORTABILITY.md` for metadata-only URL aliases and the POST job
+dispatcher. Configure scheduler secrets in server-only environment variables.
+Do not retain bespoke routes importing removed plugin engines. The credential-free
+integration command installs migration files only; normal isolated database
+verification and explicit migration application are still required.
