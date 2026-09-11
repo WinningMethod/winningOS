@@ -16,7 +16,7 @@ function fixture(error,user=null,active=true){
   }})
   return {run:exports.ensureCoreSession,rpcCalls:()=>rpcCalls}
 }
-for(const code of ['refresh_token_not_found','refresh_token_already_used','session_not_found','user_not_found'])test(`${code} returns signed-out state without a database bootstrap`,async()=>{
+for(const code of ['refresh_token_not_found','refresh_token_already_used','session_not_found','session_expired','user_not_found'])test(`${code} returns signed-out state without a database bootstrap`,async()=>{
   // A contradictory user/error result must still fail closed.
   const f=fixture({name:'AuthApiError',code},{id:'untrusted'})
   const state=await f.run()
