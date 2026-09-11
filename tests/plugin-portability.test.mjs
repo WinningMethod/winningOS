@@ -83,3 +83,16 @@ test('query context carries only named scalar values without changing the destin
   assert.equal(withQueryContext('/work?fixed=1#section',{area:'sales',token:'private',fixed:'2'},['area','fixed']),'/work?fixed=1&area=sales#section')
   assert.equal(withQueryContext('/work',{area:['x'],bad:'\n'},['area','bad']),'/work')
 })
+
+test('test-only mock loaders are excluded while production dynamic imports fail',()=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'winning-test-boundary-'))
+  try {
+    const owner={...plugin,folder:path.join(root,'plugins/notes')}
+    fs.mkdirSync(path.join(owner.folder,'tests'),{recursive:true})
+    fs.writeFileSync(path.join(owner.folder,'tests/mock.ts'),'require(name)')
+    fs.writeFileSync(path.join(owner.folder,'data.test.mjs'),'require(name)')
+    validateImports(root,[owner])
+    fs.writeFileSync(path.join(owner.folder,'data.ts'),'import(name)')
+    assert.throws(()=>validateImports(root,[owner]),/explicit string literal/)
+  } finally {fs.rmSync(root,{recursive:true,force:true})}
+})

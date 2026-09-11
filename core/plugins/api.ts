@@ -88,3 +88,7 @@ export { RecordTable } from "@/components/app/record-table"
 export { SubmitButton } from "@/components/app/submit-button"
 export { QueryContextFields } from "@/components/app/query-context-fields"
 export { withQueryContext, type QueryContext } from "@/core/navigation/query-context"
+
+export { FilterOptions } from "@/components/app/filter-options"
+export { SourceBrowser } from "@/components/app/source-browser"
+export { DetailDrawer } from "@/components/app/detail-drawer"

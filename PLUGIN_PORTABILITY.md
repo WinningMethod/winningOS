@@ -152,3 +152,13 @@ production database for this proof. See `TESTING.md`.
 5. Run the scratch proof, then the isolated live acceptance before release.
 
 This change does not migrate any existing deployment or certify its plugins.
+
+## Deployment integration refinements
+
+The shared UI surface also includes `FilterOptions`, `SourceBrowser` and
+`DetailDrawer`. `CardTitle` accepts `as: "h2" | "h3" | "h4"` (default `h3`).
+These are presentation primitives; all data, destinations and permissions remain
+with callers. TypeScript configuration permits explicit `.ts` import extensions
+under `noEmit` so plugin contracts tested by Node and Next use the same source.
+Production import validation excludes test/spec modules; their mock loaders are
+not application entrypoints. Actual runtime modules retain the strict boundary.

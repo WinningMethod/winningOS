@@ -58,7 +58,7 @@ export function files(folder) {
   if (!fs.existsSync(folder)) return []
   return fs.readdirSync(folder, { withFileTypes: true }).flatMap(e => {
     const f = path.join(folder,e.name)
-    return e.isDirectory() ? files(f) : /\.(ts|tsx|js|mjs)$/.test(f) ? [f] : []
+    return e.isDirectory() ? (['tests', '__tests__'].includes(e.name) ? [] : files(f)) : /\.(ts|tsx|js|mjs)$/.test(f) && !/\.(test|spec)\./.test(e.name) ? [f] : []
   })
 }
 export function imports(file) {
