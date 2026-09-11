@@ -56,12 +56,21 @@ export async function ensureCoreSession(): Promise<CoreSession> {
     error: userError,
   } = await supabase.auth.getUser()
 
-  if (userError && userError.name !== "AuthSessionMissingError") {
+  // Invalid or revoked credentials are signed-out state, not an unavailable
+  // auth service. This also lets the sign-in page recover stale browser cookies.
+  const sessionMissing = userError?.name === "AuthSessionMissingError" || [
+    "refresh_token_not_found",
+    "refresh_token_already_used",
+    "session_not_found",
+    "user_not_found",
+  ].includes(userError?.code ?? "")
+
+  if (userError && !sessionMissing) {
     console.error("Failed to read Supabase user", userError)
     throw new Error("Session bootstrap failed")
   }
 
-  if (!user) {
+  if (sessionMissing || !user) {
     return {
       status: "unauthenticated",
       hasActiveMembership: false,
