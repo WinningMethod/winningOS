@@ -107,7 +107,7 @@ export function validateImports(root, plugins) {
       const target = specifier.startsWith('@/') ? path.join(root,specifier.slice(2)) : specifier.startsWith('.') ? path.resolve(path.dirname(file),specifier) : null
       if (!target) continue
       if (target.startsWith(p.folder + path.sep)) continue
-      if (target === path.join(root,'core/plugins/api')) continue
+      if (target.replace(/\.(ts|tsx)$/,'') === path.join(root,'core/plugins/api')) continue
       if (!target.startsWith(pluginRoot + path.sep)) throw new Error(`${file}: import outside the plugin API: ${specifier}`)
       const rel = path.relative(pluginRoot,target).split(path.sep); const owner = plugins.find(o => o.id === rel[0])
       if (!owner || !p.dependsOn.some(d => d.pluginId === owner.id)) throw new Error(`${p.id}: undeclared code dependency ${specifier}`)

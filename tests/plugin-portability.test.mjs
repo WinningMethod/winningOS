@@ -79,6 +79,18 @@ test('private, undeclared and shell-to-plugin imports fail; declared public entr
     assert.throws(()=>validateImports(root,[owner,consumer]))
   } finally {fs.rmSync(root,{recursive:true,force:true})}
 })
+test('the Core API barrel is importable with or without an explicit .ts extension',()=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'winning-core-api-import-test-'))
+  try {
+    const owner={...plugin,folder:path.join(root,'plugins/notes')}
+    fs.mkdirSync(owner.folder,{recursive:true})
+    const f=path.join(owner.folder,'page.ts')
+    fs.writeFileSync(f,'import { ActionForm } from "@/core/plugins/api"')
+    validateImports(root,[owner])
+    fs.writeFileSync(f,'import { ActionForm } from "@/core/plugins/api.ts"')
+    validateImports(root,[owner])
+  } finally {fs.rmSync(root,{recursive:true,force:true})}
+})
 test('query context carries only named scalar values without changing the destination',()=>{
   assert.equal(withQueryContext('/work?fixed=1#section',{area:'sales',token:'private',fixed:'2'},['area','fixed']),'/work?fixed=1&area=sales#section')
   assert.equal(withQueryContext('/work',{area:['x'],bad:'\n'},['area','bad']),'/work')
