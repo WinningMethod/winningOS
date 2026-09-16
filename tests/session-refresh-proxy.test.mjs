@@ -5,12 +5,13 @@ import vm from 'node:vm'
 import ts from 'typescript'
 const source=fs.readFileSync(new URL('../proxy.ts',import.meta.url),'utf8')
 const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText
-function fixture({missingEnv=false,refresh=true}={}) {
+function fixture({missingEnv=false,refresh=true,throwOnClaims=false}={}) {
  const exports={};let claims=0
  const request={cookies:new Map([['session','expired-fixture']])}
  request.cookies.getAll=()=>[...request.cookies].map(([name,value])=>({name,value}))
  const responses=[]
- vm.runInNewContext(code,{exports,require:name=>{
+ const fakeConsole={error:()=>{}}
+ vm.runInNewContext(code,{exports,console:fakeConsole,require:name=>{
   if(name==='next/server')return {NextResponse:{next:({request})=>{
    const response={forwarded:request.cookies.get('session'),cookies:new Map(),headers:new Map()};responses.push(response);return response
   }}}
@@ -18,6 +19,7 @@ function fixture({missingEnv=false,refresh=true}={}) {
   if(name==='@supabase/ssr')return {createServerClient:(_url,_key,{cookies})=>({auth:{getClaims:async()=>{
    claims++
    assert.equal(cookies.getAll()[0].value,'expired-fixture')
+   if(throwOnClaims) throw new Error('network unreachable')
    if(refresh) cookies.setAll([{name:'session',value:'fresh-fixture',options:{httpOnly:true}}],{'Cache-Control':'private, no-store'})
    return {data:{claims:{sub:'fixture'}},error:null}
   }}})}
@@ -44,4 +46,8 @@ test('session refresh state does not leak between requests',async()=>{
  const first=fixture();await first.run()
  const second=fixture({refresh:false});const response=await second.run()
  assert.equal(response.forwarded,'expired-fixture');assert.equal(response.cookies.size,0)
+})
+test('a transient auth-service failure does not fail the request',async()=>{
+ const f=fixture({throwOnClaims:true});const response=await f.run()
+ assert.equal(response.forwarded,'expired-fixture');assert.equal(response.cookies.size,0);assert.equal(f.claims(),1)
 })

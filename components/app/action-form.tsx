@@ -49,7 +49,7 @@ export function ActionForm({ action, label, children, id, className, fieldsClass
     {pending ? <p role="status" className="mt-3 text-sm text-muted-foreground">Saving…</p> : null}
     {state && visible ? <div ref={feedback} role={state.status === "error" ? "alert" : "status"} tabIndex={-1} className={`mt-3 rounded-lg border p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${state.status === "error" ? "border-destructive" : "border-border bg-muted/30"}`}>
       <p>{state.message}</p>
-      {state.status === "saved" ? <div className="flex flex-wrap gap-x-4 gap-y-1">{state.href && state.linkLabel ? <Link prefetch={false} href={state.href} className="inline-flex min-h-11 items-center font-medium text-primary hover:underline">{state.linkLabel}</Link> : null}{resetLabel ? <button type="button" className="inline-flex min-h-11 items-center font-medium text-primary hover:underline" onClick={() => {
+      {state.status === "saved" ? <div className="flex flex-wrap gap-x-4 gap-y-1">{state.href && state.linkLabel ? <Link href={state.href} className="inline-flex min-h-11 items-center font-medium text-primary hover:underline">{state.linkLabel}</Link> : null}{resetLabel ? <button type="button" className="inline-flex min-h-11 items-center font-medium text-primary hover:underline" onClick={() => {
         manualReset.current = true; form.current?.reset(); manualReset.current = false
         setVisible(false); setDirty(false)
         window.requestAnimationFrame(() => form.current?.querySelector<HTMLElement>('input:not([type=hidden]), select, textarea')?.focus())
