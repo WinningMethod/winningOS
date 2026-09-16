@@ -17,7 +17,7 @@
     "plugins:validate": "node scripts/validate-plugin-host.mjs && node scripts/validate-portability.mjs",
     "plugins:test": "node --experimental-strip-types --test tests/plugin-portability.test.mjs",
     "plugins:integration": "node scripts/check-plugin-integration.mjs",
-    "auth:test": "node --test tests/auth-session-recovery.test.mjs"
+    "auth:test": "node --test tests/session-refresh-proxy.test.mjs tests/auth-session-recovery.test.mjs"
   },
   "dependencies": {
     "@supabase/server": "^1.2.0",

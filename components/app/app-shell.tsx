@@ -107,7 +107,7 @@ export function AppShell({ children, workspaceName, brandLogoUrl, brandName, pro
                 <UserRound className="h-4 w-4" />
                 Profile
               </DropdownItem>
-              <Link href="/settings">
+              <Link prefetch={false} href="/settings">
                 <DropdownItem>
                   <UserRound className="h-4 w-4" />
                   Workspace settings

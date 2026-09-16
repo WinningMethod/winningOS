@@ -12,3 +12,5 @@ Do not replace page content with a visible loading sentence or a standalone spin
 - Action feedback (saving, sending, rotating a key) remains in its control; do not blank an already loaded page to indicate an action is pending.
 
 Acceptance: exercise a cold route transition on a slow connection, confirm the shell remains usable, the skeleton resolves into real content, and mobile widths do not overflow. Also check reduced motion and keyboard focus. Do not add artificial production delays merely to display a skeleton.
+
+Authentication load: route links default to `prefetch={false}`. Loading boundaries must not cause background authenticated page requests. Session bootstrap is deduplicated only within a server render, and the request proxy persists refreshed cookies before page rendering. Recheck live auth after adding loading boundaries.

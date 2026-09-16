@@ -17,7 +17,7 @@ export default function PluginNotFound() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Link href="/home" className="text-sm font-medium text-primary hover:underline">
+          <Link prefetch={false} href="/home" className="text-sm font-medium text-primary hover:underline">
             Return home
           </Link>
         </CardContent>

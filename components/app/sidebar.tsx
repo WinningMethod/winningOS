@@ -85,7 +85,7 @@ function NavLink({
   const Icon = resolvePluginNavIcon(item.iconName)
 
   return (
-    <Link
+    <Link prefetch={false}
       href={item.href}
       aria-current={active ? "page" : undefined}
       onClick={onNavigate}

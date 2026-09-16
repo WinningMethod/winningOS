@@ -102,7 +102,7 @@ export default async function HomePage() {
               />
               <Stat label="Created" value={formatCreated(settings.workspace?.createdAt ?? null)} />
             </dl>
-            <Link
+            <Link prefetch={false}
               href="/members"
               className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
             >

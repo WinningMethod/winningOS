@@ -1,4 +1,5 @@
 import "server-only"
+import { cache } from "react"
 
 import { createClient } from "@/core/supabase/server"
 
@@ -49,7 +50,8 @@ function displayNameFromUser(email: string | null | undefined, metadata: Record<
   return "Core user"
 }
 
-export async function ensureCoreSession(): Promise<CoreSession> {
+// Deduplicate only within this server render, never across requests or users.
+export const ensureCoreSession = cache(async function ensureCoreSession(): Promise<CoreSession> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -116,4 +118,4 @@ export async function ensureCoreSession(): Promise<CoreSession> {
         }
       : null,
   }
-}
+})
