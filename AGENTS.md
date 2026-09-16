@@ -138,3 +138,7 @@ Until Core implementation begins in the approved sequence:
 - no workspace switcher or multi-workspace management
 
 Implementation should now proceed in small PRs that map back to `IMPLEMENTATION_PLAN.md`, `SUPABASE_CONTRACT.md`, `ROUTE_MAP.md`, and `COMPATIBILITY.md`.
+
+## Page loading UX
+
+Use skeleton screens for all page-loading states. Follow `LOADING_STATES.md`; new Core pages and plugin templates must preserve this standard.
