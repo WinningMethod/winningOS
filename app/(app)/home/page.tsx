@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { WorkspaceLink as Link } from "@/components/app/workspace-navigation"
 import { ArrowRight, Activity, Check, Circle } from "lucide-react"
 import { PageContainer, PageHeader } from "@/components/app/page-header"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
