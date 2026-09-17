@@ -142,3 +142,7 @@ Implementation should now proceed in small PRs that map back to `IMPLEMENTATION_
 ## Page loading UX
 
 Use skeleton screens for all page-loading states. Follow `LOADING_STATES.md`; new Core pages and plugin templates must preserve this standard.
+
+## Performance gate
+
+Follow `PERFORMANCE.md` for every new page and plugin. `npm run perf:validate` is required in CI; include live loading-path verification before declaring a page ready.

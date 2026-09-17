@@ -44,25 +44,18 @@ export const getCoreBrandTheme = cache(async (): Promise<CoreBrandTheme> => {
     // The single active workspace — never resolve by slug, it is owner-editable (#52).
     const { data: workspace, error: workspaceError } = await supabase
       .from("core_workspaces")
-      .select("id")
+      .select("id, branding:core_brand_settings(brand_name, logo_url, theme_json)")
       .is("deleted_at", null)
       .order("created_at", { ascending: true })
       .limit(1)
-      .maybeSingle()
+      .maybeSingle<{ id: string; branding: { brand_name: string; logo_url: string | null; theme_json: Record<string, unknown> | null } | null }>()
 
     if (workspaceError || !workspace?.id) {
       return EMPTY_THEME
     }
 
-    const { data: brand, error: brandError } = await supabase
-      .from("core_brand_settings")
-      .select("brand_name, logo_url, theme_json")
-      .eq("workspace_id", workspace.id)
-      .maybeSingle()
-
-    if (brandError) {
-      return EMPTY_THEME
-    }
+    const brand = workspace.branding
+    if (!brand) return EMPTY_THEME
 
     const theme = (brand?.theme_json ?? {}) as Record<string, unknown>
     const brandName = typeof brand?.brand_name === "string" && brand.brand_name.trim()

@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { WorkspaceLink as Link } from "@/components/app/workspace-navigation"
 import { ArrowRight, Activity, Check, Circle } from "lucide-react"
 import { PageContainer, PageHeader } from "@/components/app/page-header"
@@ -51,10 +53,10 @@ function formatRelativeTime(value: string): string {
 }
 
 export default async function HomePage() {
-  const [settings, memberData, audit] = await Promise.all([
+  const auditPromise = getRecentAuditEvents()
+  const [settings, memberData] = await Promise.all([
     getCoreSettingsOverview(),
     getCoreMembers(),
-    getRecentAuditEvents(),
   ])
 
   const workspaceName = settings.workspace?.name ?? "Workspace"
@@ -145,7 +147,14 @@ export default async function HomePage() {
       </div>
 
       {/* Recent activity (audit trail, visible with workspace.manage) */}
-      {audit.canViewAudit && (
+      <Suspense fallback={<div role="status" aria-label="Loading recent activity" className="mt-6"><Skeleton className="h-40 w-full" /></div>}><RecentActivity auditPromise={auditPromise} /></Suspense>
+    </PageContainer>
+  )
+}
+
+async function RecentActivity({ auditPromise }: { auditPromise: ReturnType<typeof getRecentAuditEvents> }) {
+  const audit = await auditPromise
+  return <>      {audit.canViewAudit && (
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>Recent activity</CardTitle>
@@ -168,9 +177,7 @@ export default async function HomePage() {
             )}
           </CardContent>
         </Card>
-      )}
-    </PageContainer>
-  )
+      )}</>
 }
 
 function AuditRow({ event }: { event: CoreAuditEventOverview }) {

@@ -1,4 +1,5 @@
 import "server-only"
+import { cache } from "react"
 
 import { createClient } from "@/core/supabase/server"
 import {
@@ -46,6 +47,11 @@ function withOwnerAlwaysFull(map: RoleGrantMap): RoleGrantMap {
  * Members page keep rendering if the grant table can't be read.
  */
 export async function getRoleGrantMap(): Promise<{ grants: RoleGrantMap; live: boolean }> {
+  return readRoleGrantMap()
+}
+
+// Request-local only; never persist authorization across requests.
+const readRoleGrantMap = cache(async (): Promise<{ grants: RoleGrantMap; live: boolean }> => {
   const supabase = await createClient()
   const { data, error } = await supabase.from("core_role_permissions").select("role_key, permission_key")
 
@@ -67,7 +73,7 @@ export async function getRoleGrantMap(): Promise<{ grants: RoleGrantMap; live: b
   }
 
   return { grants: withOwnerAlwaysFull(map), live: true }
-}
+})
 
 /**
  * Whether a role holds a permission according to the live grant map. Use for

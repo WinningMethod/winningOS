@@ -70,7 +70,10 @@ export async function getCoreMembers(): Promise<{
   }
 
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc("core_list_workspace_members")
+  const [{ data, error }, { grants }] = await Promise.all([
+    supabase.rpc("core_list_workspace_members"),
+    getRoleGrantMap(),
+  ])
 
   if (error) {
     console.error("Failed to list Core members", {
@@ -91,7 +94,6 @@ export async function getCoreMembers(): Promise<{
   // disable/remove/role-assignment are re-enforced server-side by their RPCs;
   // invite's grant is DB-driven but the admin-tier restriction (no admin
   // invites by non-owners) is app-layer-enforced only (see inviteAuthUser).
-  const { grants } = await getRoleGrantMap()
   const roleKey = session.membership?.roleKey ?? null
   const roleGrants = CORE_ROLE_KEYS.includes(roleKey as CoreRoleKey)
     ? grants[roleKey as CoreRoleKey]
