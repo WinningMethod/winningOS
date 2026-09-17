@@ -20,7 +20,13 @@ export async function proxy(request: NextRequest) {
     },
   })
   // Claims refresh cookies; they are not a substitute for live authorization.
-  await client.auth.getClaims()
+  // A transient auth-service failure (network error, rate limit) must not
+  // fail every matched request — let the DAL's live getUser check decide.
+  try {
+    await client.auth.getClaims()
+  } catch (error) {
+    console.error("Failed to refresh Supabase session in proxy", error)
+  }
   return response
 }
 
