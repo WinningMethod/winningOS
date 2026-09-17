@@ -17,6 +17,7 @@ jobs:
       - run: npm ci
       - run: npm run plugins:validate && npm run plugins:test
       - run: npm run db:validate && npm run auth:validate && npm run auth:test && npm run members:validate && npm run permissions:validate && npm run settings:validate && npm run nav:validate
+      - run: npm run perf:validate
       - run: npm run typecheck
       - run: npm run build -- --webpack
         env:

@@ -26,7 +26,7 @@ for(const code of ['refresh_token_not_found','refresh_token_already_used','sessi
 for(const error of [null,{name:'AuthSessionMissingError'}])test(`absent session stays signed out (${error?.name??'no error'})`,async()=>{
   const f=fixture(error);assert.equal((await f.run()).status,'unauthenticated');assert.equal(f.rpcCalls(),0)
 })
-for(const code of ['unexpected_failure','request_timeout'])test(`auth service failure stays an error (${code})`,async()=>{
+for(const code of ['unexpected_failure','request_timeout','over_request_rate_limit'])test(`auth service failure stays an error (${code})`,async()=>{
   const f=fixture({name:'AuthApiError',code,status:500});await assert.rejects(f.run(),/Session bootstrap failed/);assert.equal(f.rpcCalls(),0)
 })
 for(const active of [true,false])test(`valid credentials retain membership resolution (${active})`,async()=>{

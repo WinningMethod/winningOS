@@ -114,7 +114,7 @@ export default async function SignUpPage({
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/sign-in" className="font-medium text-primary hover:underline">
+          <Link prefetch={false} href="/sign-in" className="font-medium text-primary hover:underline">
             Sign in
           </Link>
         </p>
