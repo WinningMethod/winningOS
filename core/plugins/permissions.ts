@@ -1,4 +1,5 @@
 import "server-only"
+import { cache } from "react"
 
 import { createClient } from "@/core/supabase/server"
 import { isCoreRoleKey, CORE_ROLE_KEYS, type CoreRoleKey } from "@/core/permissions/catalog"
@@ -17,6 +18,12 @@ type PluginGrantRow = {
   permission_key: string | null
 }
 
+// Shared by every plugin permission check in this render, not cached across requests.
+const readPluginGrants = cache(async () => {
+  const supabase = await createClient()
+  return supabase.from("core_role_permissions").select("role_key, permission_key").like("permission_key", "plugin.%")
+})
+
 /**
  * Whether a role holds a plugin permission per the LIVE grant map
  * (core_role_permissions). Owners always hold everything; unknown keys deny;
@@ -34,14 +41,7 @@ export async function roleHasPluginPermission(
     return true
   }
 
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("core_role_permissions")
-    .select("permission_key")
-    .eq("role_key", roleKey)
-    .eq("permission_key", permission)
-    .limit(1)
-    .maybeSingle()
+  const { data, error } = await readPluginGrants()
 
   if (error) {
     console.error("Failed to read plugin permission grant; denying", {
@@ -53,7 +53,7 @@ export async function roleHasPluginPermission(
     return false
   }
 
-  return data !== null
+  return (data ?? []).some(row => row.role_key === roleKey && row.permission_key === permission)
 }
 
 /**
@@ -72,12 +72,7 @@ export async function getPluginGrantsForRole(roleKey: string | null | undefined)
     return new Set(plugins.flatMap((plugin) => plugin.permissions.map((permission) => permission.key)))
   }
 
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("core_role_permissions")
-    .select("permission_key")
-    .eq("role_key", roleKey)
-    .like("permission_key", "plugin.%")
+  const { data, error } = await readPluginGrants()
 
   if (error) {
     console.error("Failed to read plugin permission grants; denying", {
@@ -89,7 +84,8 @@ export async function getPluginGrantsForRole(roleKey: string | null | undefined)
   }
 
   return new Set(
-    ((data ?? []) as { permission_key: string | null }[])
+    ((data ?? []) as PluginGrantRow[])
+      .filter((row) => row.role_key === roleKey)
       .map((row) => row.permission_key)
       .filter((key): key is string => typeof key === "string"),
   )
@@ -111,11 +107,7 @@ export async function getPluginPermissionNamespaces(): Promise<{
     return { namespaces: [], live: true }
   }
 
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("core_role_permissions")
-    .select("role_key, permission_key")
-    .like("permission_key", "plugin.%")
+  const { data, error } = await readPluginGrants()
 
   const live = !error
 

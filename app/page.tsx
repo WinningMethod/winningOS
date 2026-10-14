@@ -40,14 +40,14 @@ export default async function AuthEntryPage() {
             </p>
 
             <div className="mt-5 flex flex-col gap-2.5">
-              <Link
+              <Link prefetch={false}
                 href="/sign-in"
                 className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 Sign in
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link
+              <Link prefetch={false}
                 href="/sign-up"
                 className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-border bg-secondary px-6 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >

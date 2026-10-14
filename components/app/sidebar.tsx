@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import Link from "next/link"
+import { WorkspaceLink as Link } from "@/components/app/workspace-navigation"
 import { usePathname } from "next/navigation"
 import { ChevronDown, ChevronRight, EyeOff, SlidersHorizontal } from "lucide-react"
 import { BrandMark } from "@/components/app/brand-mark"

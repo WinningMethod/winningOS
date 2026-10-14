@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
+import { WorkspaceLink as Link, WorkspaceNavigationProvider, WorkspaceNavigationContent } from "@/components/app/workspace-navigation"
 import { LogOut, Menu, UserRound, X } from "lucide-react"
 import { SidebarContent } from "@/components/app/sidebar"
 import { ThemeToggle } from "@/components/app/theme-toggle"
@@ -28,6 +28,7 @@ export function AppShell({ children, workspaceName, brandLogoUrl, brandName, pro
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
+    <WorkspaceNavigationProvider>
     <div className="flex min-h-screen bg-background">
       <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar lg:block">
         <div className="sticky top-0 h-screen">
@@ -128,8 +129,9 @@ export function AppShell({ children, workspaceName, brandLogoUrl, brandName, pro
           </div>
         </header>
 
-        <main className="flex-1">{children}</main>
+        <main className="flex-1"><WorkspaceNavigationContent>{children}</WorkspaceNavigationContent></main>
       </div>
     </div>
+    </WorkspaceNavigationProvider>
   )
 }

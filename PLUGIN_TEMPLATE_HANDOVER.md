@@ -149,3 +149,7 @@ Mirror `minCoreVersion`, `publicApi`, `jobs`, `PluginJob`, `PluginRouteAlias` an
 the shared presentation API from `PLUGIN_PORTABILITY.md`. Keep standalone tooling
 outside `plugin/`. Run the API assignability and scratch lifecycle proof against
 the exact Core PR commit; do not infer parity from a handwritten stub alone.
+
+## Page loading UX
+
+Plugin routes inherit Core’s skeleton fallback. Any route-local Suspense boundary must use a matching skeleton, never a loading-message screen. See `LOADING_STATES.md` for accessibility, theme, and responsive requirements.

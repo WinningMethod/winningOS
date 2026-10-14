@@ -54,7 +54,7 @@ export default async function SignInPage({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="password">Password</Label>
-              <Link
+              <Link prefetch={false}
                 href="/forgot-password"
                 className="text-xs font-medium text-primary hover:underline"
               >
@@ -87,7 +87,7 @@ export default async function SignInPage({
 
         <p className="text-center text-sm text-muted-foreground">
           New here?{" "}
-          <Link href="/sign-up" className="font-medium text-primary hover:underline">
+          <Link prefetch={false} href="/sign-up" className="font-medium text-primary hover:underline">
             Create an account
           </Link>
         </p>
@@ -95,7 +95,7 @@ export default async function SignInPage({
 
       <p className="mt-4 rounded-md border border-border bg-muted/40 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
         Signed up before passwords existed? Use{" "}
-        <Link href="/forgot-password" className="font-medium text-foreground hover:underline">
+        <Link prefetch={false} href="/forgot-password" className="font-medium text-foreground hover:underline">
           Forgot password
         </Link>{" "}
         once to set a password for your existing account.

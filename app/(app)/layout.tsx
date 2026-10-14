@@ -7,7 +7,7 @@ import { getPluginNavItems } from "@/core/plugins/navigation"
 import { coreNavItems, toSidebarNavItems } from "@/lib/navigation"
 
 export default async function AppGroupLayout({ children }: { children: React.ReactNode }) {
-  const session = await ensureCoreSession()
+  const [session, brand, navLayout] = await Promise.all([ensureCoreSession(), getCoreBrandTheme(), getNavLayoutForCurrentUser()])
 
   if (session.status === "unauthenticated") {
     redirect("/sign-in")
@@ -17,11 +17,7 @@ export default async function AppGroupLayout({ children }: { children: React.Rea
     redirect("/pending-access")
   }
 
-  const [brand, pluginNavItems, navLayout] = await Promise.all([
-    getCoreBrandTheme(),
-    getPluginNavItems(session.membership?.roleKey ?? null),
-    getNavLayoutForCurrentUser(),
-  ])
+  const pluginNavItems = await getPluginNavItems(session.membership?.roleKey ?? null)
 
   return (
     <AppShell

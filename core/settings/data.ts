@@ -1,4 +1,5 @@
 import "server-only"
+import { cache } from "react"
 
 import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { createClient } from "@/core/supabase/server"
@@ -57,44 +58,29 @@ async function viewerGrantSet(): Promise<Set<PermissionKey>> {
  * the user client, so RLS (active members only) is the boundary; manage flags
  * come from the live grant map so buttons match what the RPCs will allow.
  */
-export async function getCoreSettingsOverview(): Promise<CoreSettingsOverview> {
+export const getCoreSettingsOverview = cache(async (): Promise<CoreSettingsOverview> => {
   const session = await ensureCoreSession()
-  const grantSet = await viewerGrantSet()
-  const canManageWorkspace = grantSet.has("workspace.manage")
-  const canManageBranding = grantSet.has("branding.manage")
 
   if (!session.workspace?.id) {
-    return { workspace: null, branding: null, canManageWorkspace, canManageBranding }
+    return { workspace: null, branding: null, canManageWorkspace: false, canManageBranding: false }
   }
 
   const supabase = await createClient()
 
-  const [{ data: workspaceRow, error: workspaceError }, { data: brandRow, error: brandError }] = await Promise.all([
+  // The existing one-to-one FK lets PostgREST return both records in one read.
+  // The user client still enforces RLS on both tables.
+  const [grantSet, { data: workspaceRow, error }] = await Promise.all([
+    viewerGrantSet(),
     supabase
-      .from("core_workspaces")
-      .select("id, name, slug, created_at")
-      .eq("id", session.workspace.id)
-      .maybeSingle<WorkspaceRow>(),
-    supabase
-      .from("core_brand_settings")
-      .select("brand_name, logo_url, theme_json")
-      .eq("workspace_id", session.workspace.id)
-      .maybeSingle<BrandRow>(),
+    .from("core_workspaces")
+    .select("id, name, slug, created_at, branding:core_brand_settings(brand_name, logo_url, theme_json)")
+    .eq("id", session.workspace.id)
+    .maybeSingle<WorkspaceRow & { branding: BrandRow | null }>(),
   ])
-
-  if (workspaceError) {
-    console.error("Failed to read Core workspace settings", {
-      code: workspaceError.code,
-      details: workspaceError.details,
-    })
-  }
-
-  if (brandError) {
-    console.error("Failed to read Core branding settings", {
-      code: brandError.code,
-      details: brandError.details,
-    })
-  }
+  const canManageWorkspace = grantSet.has("workspace.manage")
+  const canManageBranding = grantSet.has("branding.manage")
+  if (error) console.error("Failed to read Core workspace settings", { code: error.code })
+  const brandRow = workspaceRow?.branding
 
   const themeColor = (key: string): string | null =>
     typeof brandRow?.theme_json?.[key] === "string" ? (brandRow.theme_json[key] as string) : null
@@ -120,7 +106,7 @@ export async function getCoreSettingsOverview(): Promise<CoreSettingsOverview> {
     canManageWorkspace,
     canManageBranding,
   }
-}
+})
 
 export type CoreAuditEventOverview = {
   id: string

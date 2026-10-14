@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { PageContainer, PageHeader } from "@/components/app/page-header"
 import { BrandingSection } from "@/components/app/settings/branding-section"
 import { PluginsSection } from "@/components/app/settings/plugins-section"
@@ -44,10 +46,6 @@ export default async function SettingsPage({
   searchParams?: Promise<{ tab?: string; status?: string }>
 }) {
   const params = await searchParams
-  const [rolesOverview, settingsOverview] = await Promise.all([
-    getCoreRolesOverview(),
-    getCoreSettingsOverview(),
-  ])
   const statusNotice = STATUS_NOTICE_META[params?.status ?? ""] ?? null
 
   return (
@@ -72,22 +70,30 @@ export default async function SettingsPage({
       ) : null}
 
       <SettingsTabs
-        workspacePanel={(
-          <WorkspaceSection
-            workspace={settingsOverview.workspace}
-            canManage={settingsOverview.canManageWorkspace}
-          />
-        )}
-        rolesPanel={<RolesSection overview={rolesOverview} />}
-        brandingPanel={(
-          <BrandingSection
-            branding={settingsOverview.branding}
-            canManage={settingsOverview.canManageBranding}
-          />
-        )}
-        pluginsPanel={<PluginsSection />}
+        workspacePanel={<Suspense fallback={<PanelSkeleton />}><WorkspacePanel /></Suspense>}
+        rolesPanel={<Suspense fallback={<PanelSkeleton />}><RolesPanel /></Suspense>}
+        brandingPanel={<Suspense fallback={<PanelSkeleton />}><BrandingPanel /></Suspense>}
+        pluginsPanel={<Suspense fallback={<PanelSkeleton />}><PluginsSection /></Suspense>}
         initialTab={params?.tab}
       />
     </PageContainer>
   )
+}
+
+function PanelSkeleton() {
+  return <div role="status" aria-label="Loading settings section" className="space-y-6 rounded-lg border border-border p-6">
+    <span className="sr-only">Loading settings section…</span>
+    <Skeleton className="h-5 w-40" /><Skeleton className="h-10 w-full max-w-xl" /><Skeleton className="h-10 w-full max-w-xl" /><Skeleton className="h-9 w-28" />
+  </div>
+}
+async function WorkspacePanel() {
+  const overview = await getCoreSettingsOverview()
+  return <WorkspaceSection workspace={overview.workspace} canManage={overview.canManageWorkspace} />
+}
+async function BrandingPanel() {
+  const overview = await getCoreSettingsOverview()
+  return <BrandingSection branding={overview.branding} canManage={overview.canManageBranding} />
+}
+async function RolesPanel() {
+  return <RolesSection overview={await getCoreRolesOverview()} />
 }

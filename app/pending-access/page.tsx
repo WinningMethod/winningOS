@@ -7,8 +7,7 @@ import { ensureCoreSession } from "@/core/auth/bootstrap"
 import { getCoreBrandTheme } from "@/core/branding/theme"
 
 export default async function PendingAccessPage() {
-  const session = await ensureCoreSession()
-  const brand = await getCoreBrandTheme()
+  const [session, brand] = await Promise.all([ensureCoreSession(), getCoreBrandTheme()])
 
   if (session.status === "unauthenticated") {
     redirect("/sign-in")

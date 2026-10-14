@@ -97,14 +97,9 @@ async function getActiveMemberCounts(): Promise<{ counts: Record<CoreRoleKey, nu
  * Never throws — degrades to zeroed counts so Settings always renders.
  */
 export async function getCoreRolesOverview(): Promise<CoreRolesOverview> {
-  const { counts, available } = await getActiveMemberCounts()
-  const { grants: grantMap, live: grantsLive } = await getRoleGrantMap()
-  // Installed plugins contribute a "Plugins" group of editable grants (empty
-  // registry — the framework-repo state — contributes nothing and no query).
-  const pluginOverview = await getPluginPermissionNamespaces()
-
-  // Only owners (who hold the owner-only roles.manage grant) may edit the grid.
-  const session = await ensureCoreSession()
+  const [{ counts, available }, { grants: grantMap, live: grantsLive }, pluginOverview, session] = await Promise.all([
+    getActiveMemberCounts(), getRoleGrantMap(), getPluginPermissionNamespaces(), ensureCoreSession(),
+  ])
   const viewerRoleKey = session.membership?.roleKey ?? null
   const canManageRoles = CORE_ROLE_KEYS.includes(viewerRoleKey as CoreRoleKey)
     && grantMap[viewerRoleKey as CoreRoleKey].has("roles.manage")

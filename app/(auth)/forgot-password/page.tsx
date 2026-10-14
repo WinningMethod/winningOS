@@ -60,7 +60,7 @@ export default async function ForgotPasswordPage({
 
         <p className="mt-2 text-center text-sm text-muted-foreground">
           Remembered it?{" "}
-          <Link href="/sign-in" className="font-medium text-primary hover:underline">
+          <Link prefetch={false} href="/sign-in" className="font-medium text-primary hover:underline">
             Back to sign in
           </Link>
         </p>

@@ -1,6 +1,6 @@
 "use client"
 
-import Link from "next/link"
+import { WorkspaceLink as Link } from "@/components/app/workspace-navigation"
 import { useRouter } from "next/navigation"
 import { useActionState, useEffect, useRef, useState, type ReactNode } from "react"
 import { useDraftGuard } from "./use-draft-guard"
